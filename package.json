@@ -1,0 +1,49 @@
+{
+  "name": "nct-classificacao",
+  "version": "0.1.0",
+  "description": "Sistema de classificação para torneios de vôlei de praia — Circuito NCT",
+  "main": "main.js",
+  "author": "Circuito NCT",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "br.com.nct.classificacao",
+    "productName": "NCT Classificação",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "package.json",
+      "assets/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.sports",
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ]
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ]
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Sports"
+    }
+  }
+}

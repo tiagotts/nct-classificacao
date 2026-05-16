@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Classificação v2 — Vôlei de Praia (PoC com configuração)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --sand:#f6efe1;
+    --sand-dark:#e7d9b4;
+    --ocean:#0a6e7e;
+    --ocean-dark:#063e48;
+    --sun:#f59e0b;
+    --ink:#1a2434;
+    --muted:#6b7280;
+    --line:#d8d2c3;
+    --good:#16a34a;
+    --warn:#dc2626;
+    --paper:#fff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--sand);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.45}
+  header{background:linear-gradient(135deg,var(--ocean) 0%,var(--ocean-dark) 100%);color:#fff;padding:24px 32px}
+  header h1{margin:0;font-size:24px;font-weight:700}
+  header p{margin:6px 0 0;opacity:.85;font-size:14px}
+  main{max-width:1280px;margin:0 auto;padding:24px 32px 64px}
+  section{margin-bottom:32px}
+  h2{font-size:18px;color:var(--ocean-dark);margin:0 0 14px;border-bottom:2px solid var(--sand-dark);padding-bottom:6px;display:flex;align-items:center;gap:10px}
+  h2 .step{display:inline-flex;width:24px;height:24px;background:var(--ocean);color:#fff;border-radius:50%;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+  h3{font-size:15px;color:var(--ocean-dark);margin:0 0 10px}
+
+  .uploader{border:2px dashed var(--ocean);background:#fff;border-radius:12px;padding:36px;text-align:center;cursor:pointer;transition:.2s;position:relative}
+  .uploader:hover,.uploader.drag{background:#f0fafa;border-color:var(--sun)}
+  .uploader input{position:absolute;inset:0;opacity:0;cursor:pointer}
+  .uploader .ic{font-size:32px;color:var(--ocean)}
+  .uploader .ttl{font-weight:600;margin-top:8px}
+  .uploader .hint{color:var(--muted);font-size:13px;margin-top:4px}
+  .file-info{margin-top:12px;display:none;padding:10px 14px;background:#fff;border-radius:8px;border:1px solid var(--line);font-size:13px}
+  .file-info.show{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .file-info button{background:transparent;border:0;color:var(--ocean);font-size:13px;text-decoration:underline;cursor:pointer}
+
+  .btn{background:var(--ocean);color:#fff;border:0;padding:10px 18px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
+  .btn:hover{background:var(--ocean-dark)}
+  .btn.ghost{background:transparent;color:var(--ocean);border:1px solid var(--ocean)}
+  .btn.ghost:hover{background:#0a6e7e10}
+  .btn.sm{padding:6px 10px;font-size:12px;font-weight:600}
+  .btn.danger{background:transparent;color:var(--warn);border:1px solid #fca5a5}
+  .btn.danger:hover{background:#fee2e2}
+
+  /* CONFIG PANEL */
+  .config-panel{background:#fff;border-radius:12px;border:1px solid var(--line);padding:20px;box-shadow:0 1px 0 #e0d5b6}
+  .config-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  @media (max-width:880px){.config-grid{grid-template-columns:1fr}}
+  .cfg-block{}
+  .cfg-block h3{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--ocean);margin-bottom:12px}
+  .cfg-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:14px}
+  .cfg-row label{flex:0 0 180px;color:var(--muted)}
+  .cfg-row input[type=number],.cfg-row select{padding:6px 10px;border:1px solid var(--line);border-radius:6px;font-size:14px;background:#fdfaf2;width:90px;font-family:inherit}
+  .cfg-row select{width:auto;min-width:160px}
+  .cfg-row .hint{color:var(--muted);font-size:12px}
+
+  .radio-row{display:flex;flex-wrap:wrap;gap:14px;margin-top:6px}
+  .radio-row label{display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer}
+
+  /* Critérios reorderable */
+  .criteria-list{list-style:none;padding:0;margin:0}
+  .criteria-list li{display:flex;align-items:center;gap:8px;background:#fdfaf2;border:1px solid var(--line);border-radius:6px;padding:8px 12px;margin-bottom:6px;font-size:13px}
+  .criteria-list li .order{font-weight:700;color:var(--ocean);min-width:18px}
+  .criteria-list li select{flex:1;padding:5px 8px;border:1px solid var(--line);border-radius:5px;font-size:13px;background:#fff;font-family:inherit}
+  .criteria-list li .move{display:flex;flex-direction:column;gap:1px}
+  .criteria-list li .move button{background:var(--ocean);color:#fff;border:0;padding:1px 8px;font-size:9px;cursor:pointer;border-radius:3px;line-height:1}
+  .criteria-list li .move button:hover{background:var(--ocean-dark)}
+  .criteria-list li .remove{background:transparent;border:0;color:var(--warn);font-size:16px;cursor:pointer;padding:0 4px;line-height:1}
+  .add-criterion{margin-top:4px}
+
+  /* Cruzamentos */
+  .matchups{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .matchup{background:#fdfaf2;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:13px;display:flex;align-items:center;gap:6px}
+  .matchup .lbl{font-weight:600;color:var(--ocean);width:55px}
+  .matchup input{width:50px;padding:4px 6px;border:1px solid var(--line);border-radius:4px;font-size:13px;font-family:inherit;text-align:center}
+  .matchup .x{color:var(--muted)}
+  .matchups-actions{margin-top:8px;display:flex;gap:8px}
+
+  .config-actions{margin-top:24px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .config-actions .info{color:var(--muted);font-size:13px}
+
+  .empty{color:var(--muted);background:#fff;padding:24px;border-radius:10px;text-align:center;border:1px solid var(--line)}
+
+  /* Grupos */
+  .groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+  .group{background:#fff;border-radius:10px;padding:16px;border:1px solid var(--line)}
+  .group h3{display:flex;justify-content:space-between;align-items:center}
+  .group h3 .badge{font-size:11px;font-weight:500;color:var(--muted);background:var(--sand);padding:2px 8px;border-radius:99px}
+  table.standings{width:100%;border-collapse:collapse;font-size:13px}
+  table.standings th{font-weight:600;color:var(--muted);text-align:left;padding:6px 4px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  table.standings td{padding:8px 4px;border-bottom:1px solid #f1ecdd;vertical-align:top}
+  table.standings tr:last-child td{border-bottom:0}
+  .pos{display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--sand);text-align:center;line-height:22px;font-weight:700;font-size:11px;color:var(--ink)}
+  .pos.p1{background:#fbbf24;color:#7c2d12}
+  .pos.p2{background:#9ca3af;color:#fff}
+  .pos.p3{background:#b45309;color:#fff}
+  .dupla{font-weight:600}
+  .dupla .cod{display:inline-block;font-size:10px;color:var(--muted);background:var(--sand);padding:1px 6px;border-radius:99px;margin-right:6px;font-weight:500}
+  .num{font-variant-numeric:tabular-nums;text-align:right}
+  .tie-info{font-size:11px;color:var(--muted);margin-top:4px;font-style:italic}
+  .tie-flag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:99px;background:#fef3c7;color:#92400e;margin-left:6px;font-weight:500}
+  .tie-flag.sorteio{background:#fee2e2;color:#991b1b}
+
+  /* Jogos */
+  table.games{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+  table.games th{background:var(--sand);padding:8px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600}
+  table.games td{padding:8px;border-bottom:1px solid #f1ecdd}
+  table.games tr:last-child td{border-bottom:0}
+  .gscore{font-weight:700;text-align:center;font-variant-numeric:tabular-nums;font-size:14px}
+  .gwin{color:var(--good)}
+  .gx{color:var(--muted);font-size:11px;text-align:center}
+  .gcode{display:inline-block;font-size:10px;color:var(--muted);background:var(--sand);padding:1px 6px;border-radius:99px;font-weight:500}
+
+  .top8{background:#fff;border-radius:10px;padding:16px;border:1px solid var(--line)}
+  table.top8t{width:100%;border-collapse:collapse;font-size:13px}
+  table.top8t th{font-weight:600;color:var(--muted);text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  table.top8t td{padding:10px 6px;border-bottom:1px solid #f1ecdd}
+  .why{font-size:11px;color:var(--muted)}
+
+  .bracket{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:8px}
+  .qf{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px}
+  .qf .ttl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:8px}
+  .qf .pair{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px}
+  .qf .pair .seed{display:inline-block;width:20px;height:20px;background:var(--ocean);color:#fff;text-align:center;line-height:20px;border-radius:50%;font-size:10px;font-weight:700;flex-shrink:0}
+  .qf .vs{font-size:10px;color:var(--muted);text-align:center;padding:4px 0;font-style:italic}
+
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-bottom:10px}
+  .legend span{display:flex;align-items:center;gap:5px}
+  .legend b{color:var(--ink)}
+
+  .error{background:#fee2e2;color:#991b1b;padding:12px 16px;border-radius:8px;font-size:13px;margin-top:12px}
+  .ok{background:#dcfce7;color:#166534;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:12px}
+
+  .hidden{display:none}
+  .badge-detect{display:inline-block;background:#dbeafe;color:#1e40af;font-size:10px;padding:1px 6px;border-radius:99px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-left:6px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏐 Classificação — Vôlei de Praia (v2)</h1>
+  <p>PoC com configuração ajustável por torneio · Circuito NCT</p>
+</header>
+
+<main>
+
+  <section>
+    <h2><span class="step">1</span>Carregar planilha da etapa</h2>
+    <div class="uploader" id="dropzone">
+      <input type="file" id="file" accept=".xlsx,.xls" />
+      <div class="ic">📂</div>
+      <div class="ttl">Clique ou solte o arquivo aqui (.xlsx)</div>
+      <div class="hint">Espera-se uma planilha com abas <b>TABELA</b>, <b>GRUPOS</b> e (opcional) <b>REGULAMENTO</b>.</div>
+    </div>
+    <div class="file-info" id="fileinfo"></div>
+    <div id="msg"></div>
+  </section>
+
+  <section id="config-section" class="hidden">
+    <h2><span class="step">2</span>Configuração da etapa</h2>
+    <div class="config-panel">
+      <p style="margin:0 0 16px;color:var(--muted);font-size:13px">
+        Os valores abaixo foram detectados automaticamente da planilha. Ajuste o que precisar antes de calcular.
+        Itens marcados com <span class="badge-detect">auto</span> vieram do seu arquivo.
+      </p>
+      <div class="config-grid">
+
+        <div class="cfg-block">
+          <h3>📐 Estrutura</h3>
+          <div class="cfg-row">
+            <label>Nº de duplas</label>
+            <input type="number" id="cfg-numDuplas" min="4" max="64" disabled>
+            <span class="hint">(inferido dos jogos)</span>
+          </div>
+          <div class="cfg-row">
+            <label>Nº de grupos</label>
+            <input type="number" id="cfg-numGrupos" min="1" max="16" disabled>
+            <span class="hint">(inferido)</span>
+          </div>
+          <div class="cfg-row">
+            <label>Classificados/grupo</label>
+            <input type="number" id="cfg-classPorGrupo" min="1" max="4" value="2">
+          </div>
+          <div class="cfg-row">
+            <label>Repescagem (3ºs)</label>
+            <input type="number" id="cfg-repescagem" min="0" max="8" value="2">
+          </div>
+          <div class="cfg-row">
+            <label>Total que avança</label>
+            <span id="cfg-totalAvanca" style="font-weight:700;color:var(--ocean-dark)">—</span>
+          </div>
+        </div>
+
+        <div class="cfg-block">
+          <h3>📏 Fórmula do average</h3>
+          <div class="radio-row">
+            <label><input type="radio" name="cfg-avg" value="razao" checked> Razão (PP ÷ PC)</label>
+            <label><input type="radio" name="cfg-avg" value="diferenca"> Diferença (PP − PC)</label>
+          </div>
+          <p style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5">
+            <b>PP</b> = pontos pró (soma dos pontos que a dupla fez nos jogos do grupo).<br>
+            <b>PC</b> = pontos contra (soma dos pontos que a dupla cedeu nos jogos do grupo).<br>
+            "Razão" é o mais comum no circuito. Use "diferença" se o seu regulamento trabalha com saldo de pontos.
+          </p>
+
+          <h3 style="margin-top:20px">⚖️ Critérios de desempate</h3>
+          <p style="font-size:12px;color:var(--muted);margin:0 0 8px">Aplicados em ordem. Use as setas para reordenar.</p>
+          <ul class="criteria-list" id="criteria-list"></ul>
+          <button class="btn ghost sm add-criterion" onclick="addCriterion()">+ Adicionar critério</button>
+        </div>
+
+        <div class="cfg-block" style="grid-column:1 / -1">
+          <h3>🎯 Cruzamentos do mata-mata</h3>
+          <p style="font-size:12px;color:var(--muted);margin:0 0 8px">Quem joga contra quem nas quartas/oitavas (seeds 1–N do ranking geral).</p>
+          <div class="matchups" id="matchups"></div>
+          <div class="matchups-actions">
+            <button class="btn ghost sm" onclick="addMatchup()">+ Adicionar confronto</button>
+            <button class="btn ghost sm" onclick="resetMatchups()">Restaurar padrão 1×8, 4×5, 2×7, 3×6</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="config-actions">
+        <span class="info">Quando estiver pronto, calcule a classificação.</span>
+        <button class="btn" onclick="runEngine()">▶ Calcular classificação</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="games-section" class="hidden">
+    <h2><span class="step">3</span>Jogos da fase de grupos</h2>
+    <div id="games-block"></div>
+  </section>
+
+  <section id="standings-section" class="hidden">
+    <h2><span class="step">4</span>Classificação por grupo</h2>
+    <div class="legend" id="standings-legend"></div>
+    <div id="groups-block"></div>
+  </section>
+
+  <section id="top8-section" class="hidden">
+    <h2><span class="step">5</span>Ranking geral dos classificados</h2>
+    <div id="top8-block"></div>
+  </section>
+
+  <section id="bracket-section" class="hidden">
+    <h2><span class="step">6</span>Cruzamentos do mata-mata</h2>
+    <div id="bracket-block"></div>
+  </section>
+
+</main>
+
+<script>
+// ============================================================
+// Estado global
+// ============================================================
+let parsedData = null;  // { games, codeToName, regulamentoText }
+let config = {
+  numDuplas: 0, numGrupos: 0, gruposLetras: [],
+  classPorGrupo: 2, repescagem: 2,
+  formulaAvg: 'razao',
+  criterios: ['V','AVG','H2H','SORTEIO'],
+  cruzamentos: [[1,8],[4,5],[2,7],[3,6]],
+};
+
+const CRIT_LABELS = {
+  V: 'Nº de vitórias',
+  AVG: 'Ponto average',
+  H2H: 'Confronto direto',
+  SP: 'Saldo de pontos (PP − PC)',
+  SORTEIO: 'Sorteio',
+};
+
+// ============================================================
+// UPLOAD
+// ============================================================
+const $ = (id) => document.getElementById(id);
+const fileInput = $('file');
+const dropzone = $('dropzone');
+const fileinfo = $('fileinfo');
+const msg = $('msg');
+
+['dragover','dragenter'].forEach(ev =>
+  dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('drag'); })
+);
+['dragleave','drop'].forEach(ev =>
+  dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('drag'); })
+);
+dropzone.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+fileInput.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (f) handleFile(f);
+});
+
+function handleFile(file){
+  msg.innerHTML = '';
+  fileinfo.classList.add('show');
+  fileinfo.innerHTML = `<span>📄 <b>${file.name}</b> · ${(file.size/1024).toFixed(1)} KB</span>
+    <button onclick="resetAll()">Trocar arquivo</button>`;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type:'array' });
+      parseWorkbook(wb);
+    } catch (err) {
+      console.error(err);
+      showError('Não consegui ler o arquivo: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function resetAll(){
+  fileInput.value = '';
+  fileinfo.classList.remove('show');
+  ['config-section','games-section','standings-section','top8-section','bracket-section'].forEach(id => $(id).classList.add('hidden'));
+  msg.innerHTML = '';
+  parsedData = null;
+}
+
+function showError(text){ msg.innerHTML = `<div class="error">${text}</div>`; }
+function showOk(text){ msg.innerHTML = `<div class="ok">${text}</div>`; }
+
+// ============================================================
+// PARSER
+// ============================================================
+function parseWorkbook(wb){
+  // Aba TABELA
+  const tabName = wb.SheetNames.find(n => /tabela/i.test(n))
+              || wb.SheetNames.find(n => /jogos?/i.test(n))
+              || wb.SheetNames[0];
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[tabName], { header:1, defval:null });
+  // Header
+  let headerRow = -1;
+  for (let i = 0; i < rows.length; i++) {
+    const r = (rows[i]||[]).map(c => String(c||'').toLowerCase());
+    if (r.some(c => c.includes('jogo')) && r.some(c => c.includes('grupo'))) { headerRow = i; break; }
+  }
+  if (headerRow === -1) return showError(`Não localizei o cabeçalho na aba "${tabName}".`);
+  const headers = rows[headerRow].map(c => String(c||'').toLowerCase().trim());
+  const col = {
+    jogo:  headers.findIndex(c => c === 'jogo'),
+    grupo: headers.findIndex(c => c === 'grupo'),
+    eq1:   headers.findIndex(c => c === 'equipe 1' || c === 'equipe1' || c === 'dupla 1'),
+    eq2:   headers.findIndex(c => c === 'equipe 2' || c === 'equipe2' || c === 'dupla 2'),
+  };
+  let codCount = 0, cod1Col = -1, cod2Col = -1;
+  headers.forEach((c, i) => {
+    if (c === 'código' || c === 'codigo' || c === 'cód') {
+      if (codCount === 0) cod1Col = i;
+      else if (codCount === 1) cod2Col = i;
+      codCount++;
+    }
+  });
+  let xCol = -1;
+  for (let c = 0; c < (rows[headerRow+1]||[]).length; c++) {
+    let n = 0;
+    for (let i = headerRow+1; i < Math.min(headerRow+30, rows.length); i++) {
+      if (String((rows[i]||[])[c]||'').trim().toUpperCase() === 'X') n++;
+    }
+    if (n >= 10) { xCol = c; break; }
+  }
+  const placar1Col = xCol > 0 ? xCol - 1 : col.eq1 + 1;
+  const placar2Col = xCol > 0 ? xCol + 1 : col.eq2 - 1;
+
+  // Lê GRUPOS para nomes
+  const codeToName = readGroupsSheet(wb);
+
+  // Lê regulamento (texto bruto)
+  const regulamentoText = readRegulamentoSheet(wb);
+
+  // Lê jogos
+  const games = [];
+  for (let i = headerRow+1; i < rows.length; i++) {
+    const r = rows[i]||[];
+    const jogo = r[col.jogo];
+    if (jogo == null || jogo === '') continue;
+    const grupo = String(r[col.grupo]||'').trim().toUpperCase();
+    if (!/^[A-Z]$/.test(grupo)) continue;
+    const cod1 = String(r[cod1Col]||'').trim();
+    const cod2 = String(r[cod2Col]||'').trim();
+    let eq1 = String(r[col.eq1]||'').trim();
+    let eq2 = String(r[col.eq2]||'').trim();
+    if ((!eq1 || eq1.startsWith('=')) && codeToName[cod1]) eq1 = codeToName[cod1];
+    if ((!eq2 || eq2.startsWith('=')) && codeToName[cod2]) eq2 = codeToName[cod2];
+    if (!eq1) eq1 = cod1;
+    if (!eq2) eq2 = cod2;
+    games.push({
+      num: Number(jogo), grupo,
+      cod1, eq1,
+      placar1: toScore(r[placar1Col]),
+      placar2: toScore(r[placar2Col]),
+      cod2, eq2,
+    });
+  }
+  if (games.length === 0) return showError('Não encontrei jogos da fase de grupos.');
+
+  parsedData = { games, codeToName, regulamentoText, tabName };
+  showOk(`Lidos <b>${games.length}</b> jogos da aba <b>"${tabName}"</b>. Ajuste a configuração abaixo e calcule.`);
+
+  // Auto-detecta configuração
+  autoDetectConfig();
+  buildConfigUI();
+  $('config-section').classList.remove('hidden');
+}
+
+function readGroupsSheet(wb){
+  const map = {};
+  const name = wb.SheetNames.find(n => /grupos?/i.test(n));
+  if (!name) return map;
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header:1, defval:null });
+  for (const r of rows) {
+    if (!r) continue;
+    for (let c = 0; c < r.length; c++) {
+      const v = r[c];
+      if (typeof v === 'string' && /^[A-F][1-9]\d?$/.test(v.trim())) {
+        const cand = r[c-1];
+        if (typeof cand === 'string' && cand.trim() && cand.length > 2) {
+          map[v.trim()] = cand.trim();
+        }
+      }
+    }
+  }
+  return map;
+}
+
+function readRegulamentoSheet(wb){
+  const name = wb.SheetNames.find(n => /regulamento/i.test(n));
+  if (!name) return '';
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header:1, defval:null });
+  return rows.map(r => (r||[]).filter(c => c!=null).join(' | ')).join('\n');
+}
+
+function toScore(v){
+  if (v == null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+// ============================================================
+// AUTO-DETECT
+// ============================================================
+function autoDetectConfig(){
+  const { games, regulamentoText } = parsedData;
+  // Duplas únicas
+  const codes = new Set();
+  const byGroup = {};
+  games.forEach(g => {
+    codes.add(g.cod1); codes.add(g.cod2);
+    byGroup[g.grupo] = byGroup[g.grupo] || new Set();
+    byGroup[g.grupo].add(g.cod1); byGroup[g.grupo].add(g.cod2);
+  });
+  config.numDuplas = codes.size;
+  config.gruposLetras = Object.keys(byGroup).sort();
+  config.numGrupos = config.gruposLetras.length;
+
+  // Tenta detectar cruzamentos do regulamento (item 9)
+  if (regulamentoText){
+    const matches = [...regulamentoText.matchAll(/(\d+)\s*[ºo°]?\s*[xX×]\s*(\d+)\s*[ºo°]?/g)];
+    const pairs = matches.map(m => [Number(m[1]), Number(m[2])]).filter(p => p[0] >= 1 && p[0] <= 32 && p[1] >= 1 && p[1] <= 32 && p[0] !== p[1]);
+    // Deduplica
+    const seen = new Set();
+    const unique = pairs.filter(p => {
+      const k = [...p].sort().join('-');
+      if (seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+    if (unique.length >= 2 && unique.length <= 16) {
+      config.cruzamentos = unique;
+    }
+  }
+
+  // Defaults por tamanho
+  // 8 duplas: 2 grupos de 4 → semis (1×4, 2×3); 12 → quartas; 16 → quartas
+  if (config.numDuplas <= 8) {
+    config.classPorGrupo = 2;
+    config.repescagem = 0;
+    if (!config.cruzamentos || config.cruzamentos.length < 2) config.cruzamentos = [[1,4],[2,3]];
+  } else if (config.numDuplas <= 12) {
+    config.classPorGrupo = 2;
+    config.repescagem = 2;
+  } else if (config.numDuplas <= 16) {
+    config.classPorGrupo = 2;
+    config.repescagem = 0;
+  } else {
+    config.classPorGrupo = 2;
+    config.repescagem = 4;
+  }
+}
+
+// ============================================================
+// CONFIG UI
+// ============================================================
+function buildConfigUI(){
+  $('cfg-numDuplas').value = config.numDuplas;
+  $('cfg-numGrupos').value = config.numGrupos;
+  $('cfg-classPorGrupo').value = config.classPorGrupo;
+  $('cfg-repescagem').value = config.repescagem;
+  updateTotal();
+
+  $('cfg-classPorGrupo').oninput = updateTotal;
+  $('cfg-repescagem').oninput = updateTotal;
+  document.querySelectorAll('input[name="cfg-avg"]').forEach(el =>
+    el.onchange = () => { config.formulaAvg = el.value; }
+  );
+
+  // Critérios
+  renderCriteria();
+  renderMatchups();
+
+  $('config-section').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function updateTotal(){
+  const a = Number($('cfg-classPorGrupo').value) * config.numGrupos;
+  const b = Number($('cfg-repescagem').value);
+  $('cfg-totalAvanca').textContent = `${a + b} duplas (${a} diretos + ${b} repescagem)`;
+}
+
+function renderCriteria(){
+  const ul = $('criteria-list');
+  ul.innerHTML = '';
+  config.criterios.forEach((c, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <span class="order">${i+1}º</span>
+      <select onchange="config.criterios[${i}]=this.value">
+        ${Object.entries(CRIT_LABELS).map(([k,v]) => `<option value="${k}"${c===k?' selected':''}>${v}</option>`).join('')}
+      </select>
+      <div class="move">
+        <button onclick="moveCrit(${i},-1)" title="Mover para cima">▲</button>
+        <button onclick="moveCrit(${i},1)" title="Mover para baixo">▼</button>
+      </div>
+      <button class="remove" onclick="removeCrit(${i})" title="Remover">×</button>
+    `;
+    ul.appendChild(li);
+  });
+}
+
+function moveCrit(i, delta){
+  const j = i + delta;
+  if (j < 0 || j >= config.criterios.length) return;
+  [config.criterios[i], config.criterios[j]] = [config.criterios[j], config.criterios[i]];
+  renderCriteria();
+}
+function removeCrit(i){
+  if (config.criterios.length <= 1) return;
+  config.criterios.splice(i, 1);
+  renderCriteria();
+}
+function addCriterion(){
+  config.criterios.push('SORTEIO');
+  renderCriteria();
+}
+
+function renderMatchups(){
+  const div = $('matchups');
+  div.innerHTML = '';
+  config.cruzamentos.forEach((p, i) => {
+    const el = document.createElement('div');
+    el.className = 'matchup';
+    el.innerHTML = `
+      <span class="lbl">QF ${String.fromCharCode(65+i)}</span>
+      <input type="number" min="1" max="64" value="${p[0]}" onchange="config.cruzamentos[${i}][0]=Number(this.value)">
+      <span class="x">×</span>
+      <input type="number" min="1" max="64" value="${p[1]}" onchange="config.cruzamentos[${i}][1]=Number(this.value)">
+      <button class="remove" onclick="removeMatchup(${i})" style="background:transparent;border:0;color:var(--warn);cursor:pointer;font-size:16px;margin-left:auto">×</button>
+    `;
+    div.appendChild(el);
+  });
+}
+function addMatchup(){ config.cruzamentos.push([1,1]); renderMatchups(); }
+function removeMatchup(i){ config.cruzamentos.splice(i,1); renderMatchups(); }
+function resetMatchups(){ config.cruzamentos = [[1,8],[4,5],[2,7],[3,6]]; renderMatchups(); }
+
+// ============================================================
+// MOTOR DE CLASSIFICAÇÃO (parametrizado)
+// ============================================================
+function computeAvg(s){
+  if (config.formulaAvg === 'diferenca') return s.PP - s.PC;
+  return s.PC > 0 ? s.PP / s.PC : (s.PP > 0 ? Infinity : 0);
+}
+
+function buildStats(duplas, games){
+  const stats = new Map();
+  duplas.forEach(d => stats.set(d.cod, { ...d, j:0, V:0, D:0, PP:0, PC:0 }));
+  games.forEach(g => {
+    if (g.placar1 == null || g.placar2 == null) return;
+    const s1 = stats.get(g.cod1), s2 = stats.get(g.cod2);
+    if (!s1 || !s2) return;
+    s1.j++; s2.j++;
+    s1.PP += g.placar1; s1.PC += g.placar2;
+    s2.PP += g.placar2; s2.PC += g.placar1;
+    if (g.placar1 > g.placar2) s1.V++; else if (g.placar2 > g.placar1) s2.V++;
+  });
+  stats.forEach(s => { s.AVG = computeAvg(s); s.SP = s.PP - s.PC; });
+  return stats;
+}
+
+function critEquals(a, b, crit){
+  if (crit === 'V')   return a.V === b.V;
+  if (crit === 'AVG') return a.AVG === b.AVG;
+  if (crit === 'SP')  return a.SP === b.SP;
+  return true; // H2H e SORTEIO não comparam valores diretos
+}
+
+function critCompare(a, b, crit){
+  if (crit === 'V')   return b.V - a.V;
+  if (crit === 'AVG') return b.AVG - a.AVG;
+  if (crit === 'SP')  return b.SP - a.SP;
+  return 0;
+}
+
+function headToHead(d1, d2, games){
+  const g = games.find(x =>
+    (x.cod1 === d1.cod && x.cod2 === d2.cod) ||
+    (x.cod1 === d2.cod && x.cod2 === d1.cod)
+  );
+  if (!g || g.placar1 == null || g.placar2 == null) return null;
+  if (g.cod1 === d1.cod) return g.placar1 > g.placar2 ? 'd1' : g.placar2 > g.placar1 ? 'd2' : null;
+  return g.placar1 > g.placar2 ? 'd2' : g.placar2 > g.placar1 ? 'd1' : null;
+}
+
+// Ordena uma lista aplicando os critérios na ordem configurada.
+// sameGroup: se true, h2h pode ser aplicado (eles jogaram entre si).
+function sortByCriteria(list, games, sameGroup){
+  list.forEach(d => d.tieReason = null);
+  // Ordena recursivamente: aplica primeiro critério, depois resolve empates com próximos.
+  return resolveBlock(list, 0, games, sameGroup);
+}
+
+function resolveBlock(block, critIdx, games, sameGroup){
+  if (block.length <= 1 || critIdx >= config.criterios.length) return block;
+  const crit = config.criterios[critIdx];
+
+  if (crit === 'H2H') {
+    // Só faz sentido para blocos de exatamente 2 duplas que jogaram (mesmo grupo).
+    if (block.length === 2 && sameGroup) {
+      const r = headToHead(block[0], block[1], games);
+      if (r === 'd2') { [block[0], block[1]] = [block[1], block[0]]; block[1].tieReason = 'Confronto direto'; }
+      else if (r === 'd1') { block[1].tieReason = 'Confronto direto'; }
+      else return resolveBlock(block, critIdx+1, games, sameGroup); // sem resultado → próximo critério
+      return block;
+    }
+    // Não aplicável → próximo
+    return resolveBlock(block, critIdx+1, games, sameGroup);
+  }
+
+  if (crit === 'SORTEIO') {
+    for (let k = 1; k < block.length; k++) block[k].tieReason = 'SORTEIO';
+    return block;
+  }
+
+  // Critérios comparativos (V, AVG, SP)
+  block.sort((a,b) => critCompare(a, b, crit));
+  // Agrupa duplas que ficaram empatadas neste critério e resolve recursivamente
+  const out = [];
+  let i = 0;
+  while (i < block.length) {
+    let j = i+1;
+    while (j < block.length && critEquals(block[i], block[j], crit)) j++;
+    const sub = block.slice(i, j);
+    if (sub.length === 1) {
+      // Se a anterior tinha valor diferente neste critério, marca razão
+      if (i > 0 && !critEquals(block[i-1], block[i], crit)) {
+        // somente marcamos se o critério anterior os tinha empatado
+        // (na prática: tieReason já null; vamos pôr o critério)
+        block[i].tieReason = block[i].tieReason || (critIdx > 0 ? CRIT_LABELS[crit] : null);
+      }
+      out.push(sub[0]);
+    } else {
+      // Há empate neste critério; resolve com próximo
+      const resolved = resolveBlock(sub, critIdx+1, games, sameGroup);
+      out.push(...resolved);
+    }
+    i = j;
+  }
+  return out;
+}
+
+function compute(){
+  const { games } = parsedData;
+  // Constrói duplas a partir dos jogos
+  const duplas = [];
+  const seen = new Set();
+  games.forEach(g => {
+    if (!seen.has(g.cod1)) { seen.add(g.cod1); duplas.push({ cod:g.cod1, nome:g.eq1, grupo:g.grupo }); }
+    if (!seen.has(g.cod2)) { seen.add(g.cod2); duplas.push({ cod:g.cod2, nome:g.eq2, grupo:g.grupo }); }
+  });
+
+  const stats = buildStats(duplas, games);
+  // Agrupa
+  const groups = {};
+  stats.forEach(s => {
+    groups[s.grupo] = groups[s.grupo] || [];
+    groups[s.grupo].push(s);
+  });
+  Object.keys(groups).forEach(g => {
+    groups[g] = sortByCriteria([...groups[g]], games, true);
+  });
+
+  // Top N — class por grupo + repescagem
+  const directly = [], thirds = [];
+  Object.keys(groups).sort().forEach(g => {
+    const list = groups[g];
+    for (let i = 0; i < config.classPorGrupo && i < list.length; i++) {
+      directly.push({ ...list[i], qualifBy:`${i+1}º do grupo ${g}` });
+    }
+    // Pega o "primeiro fora" de cada grupo como candidato à repescagem
+    if (list.length > config.classPorGrupo) {
+      thirds.push({ ...list[config.classPorGrupo], qualifBy:`${config.classPorGrupo+1}º do grupo ${g}` });
+    }
+  });
+
+  const thirdsRanked = sortByCriteria([...thirds], games, false);
+  const reps = thirdsRanked.slice(0, config.repescagem).map(d => ({ ...d, qualifBy: d.qualifBy + ' (repescagem)' }));
+
+  const eight = [...directly, ...reps];
+  const ranked = sortByCriteria([...eight], games, false);
+
+  // Tenta aplicar h2h entre duplas do mesmo grupo no ranking final
+  applyIntraGroupH2H(ranked, games);
+
+  ranked.forEach((d, i) => d.seed = i + 1);
+
+  return { groups, ranked };
+}
+
+function applyIntraGroupH2H(list, games){
+  let i = 0;
+  while (i < list.length) {
+    let j = i+1;
+    while (j < list.length && list[i].V === list[j].V && list[i].AVG === list[j].AVG) j++;
+    const block = list.slice(i, j);
+    if (block.length === 2 && block[0].grupo === block[1].grupo) {
+      const r = headToHead(block[0], block[1], games);
+      if (r === 'd2') { [list[i], list[i+1]] = [list[i+1], list[i]]; list[i+1].tieReason = 'Confronto direto'; }
+      else if (r === 'd1') list[i+1].tieReason = 'Confronto direto';
+    }
+    i = j;
+  }
+}
+
+function runEngine(){
+  if (!parsedData) return;
+  const { groups, ranked } = compute();
+  renderGames(parsedData.games);
+  renderGroups(groups);
+  renderTop8(ranked);
+  renderBracket(ranked);
+  ['games-section','standings-section','top8-section','bracket-section'].forEach(id => $(id).classList.remove('hidden'));
+  $('games-section').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+// ============================================================
+// RENDERIZAÇÃO
+// ============================================================
+function renderGames(games){
+  const byGroup = {};
+  games.forEach(g => { byGroup[g.grupo] = byGroup[g.grupo] || []; byGroup[g.grupo].push(g); });
+  let html = '';
+  Object.keys(byGroup).sort().forEach(g => {
+    html += `<h3 style="margin-top:16px">Grupo ${g}</h3>`;
+    html += `<table class="games" style="margin-bottom:8px">
+      <thead><tr><th style="width:50px">#</th><th>Equipe 1</th><th style="width:60px">Placar</th><th class="gx" style="width:30px">×</th><th style="width:60px">Placar</th><th>Equipe 2</th></tr></thead><tbody>`;
+    byGroup[g].forEach(j => {
+      const win1 = j.placar1 != null && j.placar2 != null && j.placar1 > j.placar2;
+      const win2 = j.placar1 != null && j.placar2 != null && j.placar2 > j.placar1;
+      html += `<tr>
+        <td>${j.num}</td>
+        <td><span class="gcode">${j.cod1}</span> ${j.eq1}</td>
+        <td class="gscore ${win1?'gwin':''}">${j.placar1 ?? '–'}</td>
+        <td class="gx">×</td>
+        <td class="gscore ${win2?'gwin':''}">${j.placar2 ?? '–'}</td>
+        <td><span class="gcode">${j.cod2}</span> ${j.eq2}</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+  });
+  $('games-block').innerHTML = html;
+}
+
+function fmtAvg(n){
+  if (!Number.isFinite(n)) return '—';
+  return config.formulaAvg === 'diferenca' ? (n>=0?'+':'') + n : n.toFixed(3);
+}
+
+function renderGroups(groups){
+  // Legenda dinâmica
+  $('standings-legend').innerHTML =
+    `<span><b>V</b> — vitórias na fase de grupos</span>
+     <span><b>PP</b> — pontos pró (soma dos pontos que a dupla fez nos 3 jogos do grupo)</span>
+     <span><b>PC</b> — pontos contra (soma dos pontos que a dupla cedeu nos 3 jogos do grupo)</span>
+     <span><b>AVG</b> — ponto average: ${config.formulaAvg==='razao' ? 'razão PP ÷ PC' : 'diferença PP − PC'}</span>
+     <span><b>Critérios de desempate:</b> ${config.criterios.map(c => CRIT_LABELS[c]).join(' → ')}</span>`;
+
+  let html = `<div class="groups">`;
+  Object.keys(groups).sort().forEach(g => {
+    const list = groups[g];
+    html += `<div class="group"><h3>Grupo ${g} <span class="badge">${list.length} duplas</span></h3>
+      <table class="standings"><thead><tr><th></th><th>Dupla</th>
+        <th class="num" title="Vitórias na fase de grupos">V</th>
+        <th class="num" title="Pontos pró — total de pontos que a dupla fez nos jogos do grupo">PP</th>
+        <th class="num" title="Pontos contra — total de pontos que a dupla cedeu nos jogos do grupo">PC</th>
+        <th class="num" title="Ponto average — ${config.formulaAvg==='razao' ? 'razão PP ÷ PC' : 'diferença PP − PC'}">AVG</th>
+      </tr></thead><tbody>`;
+    list.forEach((d, i) => {
+      const pos = i+1;
+      const cls = pos===1?'p1':pos===2?'p2':pos===3?'p3':'';
+      const tie = d.tieReason ? `<span class="tie-flag ${d.tieReason.includes('SORTEIO')?'sorteio':''}">${d.tieReason}</span>` : '';
+      html += `<tr>
+        <td><span class="pos ${cls}">${pos}</span></td>
+        <td><div class="dupla"><span class="cod">${d.cod}</span>${d.nome}</div>${tie?`<div class="tie-info">${tie}</div>`:''}</td>
+        <td class="num">${d.V}</td>
+        <td class="num">${d.PP}</td>
+        <td class="num">${d.PC}</td>
+        <td class="num">${fmtAvg(d.AVG)}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  });
+  html += `</div>`;
+  $('groups-block').innerHTML = html;
+}
+
+function renderTop8(ranked){
+  let html = `<div class="top8"><table class="top8t">
+    <thead><tr>
+      <th style="width:40px" title="Posição final no ranking dos classificados">Seed</th>
+      <th>Dupla</th>
+      <th>Como se classificou</th>
+      <th class="num" title="Vitórias na fase de grupos">V</th>
+      <th class="num" title="Ponto average — ${config.formulaAvg==='razao' ? 'razão PP ÷ PC' : 'diferença PP − PC'}">AVG</th>
+      <th title="Critério de desempate aplicado nesta posição">Critério</th>
+    </tr></thead><tbody>`;
+  ranked.forEach(d => {
+    const cls = d.seed===1?'p1':d.seed===2?'p2':d.seed===3?'p3':'';
+    const tie = d.tieReason ? `<span class="tie-flag ${d.tieReason.includes('SORTEIO')?'sorteio':''}">${d.tieReason}</span>` : '<span class="why">—</span>';
+    html += `<tr>
+      <td><span class="pos ${cls}">${d.seed}</span></td>
+      <td><div class="dupla"><span class="cod">${d.cod}</span>${d.nome}</div></td>
+      <td class="why">${d.qualifBy}</td>
+      <td class="num">${d.V}</td>
+      <td class="num">${fmtAvg(d.AVG)}</td>
+      <td>${tie}</td>
+    </tr>`;
+  });
+  html += `</tbody></table></div>`;
+  $('top8-block').innerHTML = html;
+}
+
+function renderBracket(ranked){
+  const find = s => ranked.find(d => d.seed === s) || null;
+  let html = `<div class="bracket">`;
+  config.cruzamentos.forEach((p, i) => {
+    const a = find(p[0]), b = find(p[1]);
+    html += `<div class="qf"><div class="ttl">Confronto ${String.fromCharCode(65+i)} (${p[0]}º × ${p[1]}º)</div>`;
+    if (a) html += `<div class="pair"><span class="seed">${a.seed}</span><div><div class="dupla" style="font-size:13px">${a.nome}</div><div class="why">${a.cod}</div></div></div>`;
+    else html += `<div class="pair why">seed ${p[0]} não encontrada</div>`;
+    html += `<div class="vs">vs</div>`;
+    if (b) html += `<div class="pair"><span class="seed">${b.seed}</span><div><div class="dupla" style="font-size:13px">${b.nome}</div><div class="why">${b.cod}</div></div></div>`;
+    else html += `<div class="pair why">seed ${p[1]} não encontrada</div>`;
+    html += `</div>`;
+  });
+  html += `</div>`;
+  $('bracket-block').innerHTML = html;
+}
+
+// ============================================================
+// Integração com Electron (quando rodando como app desktop)
+// Detecta a presença de window.electronAPI (exposto pelo preload.js)
+// e adiciona: abertura via menu nativo + persistência da última config.
+// ============================================================
+(function initElectron(){
+  if (!window.electronAPI) return; // browser comum, nada a fazer
+
+  // Indicador visual: dica de uso do menu nativo
+  const hint = document.querySelector('.uploader .hint');
+  if (hint) {
+    const atalho = window.electronAPI.platform === 'darwin' ? '⌘O' : 'Ctrl+O';
+    hint.innerHTML += `<br><span style="color:var(--ocean);font-weight:600">Dica: use o menu <b>Arquivo → Abrir planilha…</b> (${atalho}) para abrir via diálogo nativo.</span>`;
+  }
+
+  // Recebe o ArrayBuffer do arquivo escolhido via menu nativo
+  window.electronAPI.onFileOpened(({ name, size, data }) => {
+    msg.innerHTML = '';
+    fileinfo.classList.add('show');
+    fileinfo.innerHTML = `<span>📄 <b>${name}</b> · ${(size/1024).toFixed(1)} KB</span>
+      <button onclick="resetAll()">Trocar arquivo</button>`;
+    try {
+      const wb = XLSX.read(new Uint8Array(data), { type:'array' });
+      parseWorkbook(wb);
+    } catch (err) {
+      console.error(err);
+      showError('Não consegui ler o arquivo: ' + err.message);
+    }
+  });
+
+  // Restaura a última configuração usada
+  window.electronAPI.loadConfig().then(saved => {
+    if (!saved) return;
+    ['classPorGrupo','repescagem','formulaAvg','criterios','cruzamentos'].forEach(k => {
+      if (saved[k] != null) config[k] = saved[k];
+    });
+    // Se a UI de config já foi montada, re-renderiza com os valores salvos
+    if (parsedData) buildConfigUI();
+  });
+
+  // Salva a configuração a cada cálculo
+  const _originalRun = window.runEngine;
+  window.runEngine = function(){
+    try {
+      window.electronAPI.saveConfig({
+        classPorGrupo: config.classPorGrupo,
+        repescagem: config.repescagem,
+        formulaAvg: config.formulaAvg,
+        criterios: config.criterios,
+        cruzamentos: config.cruzamentos
+      });
+    } catch (e) { /* silêncio */ }
+    return _originalRun();
+  };
+})();
+
+</script>
+</body>
+</html>

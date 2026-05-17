@@ -30,7 +30,21 @@
       "Bash(ELECTRON_RUN_AS_NODE=1 'dist/mac-arm64/NCT Classificação.app/Contents/MacOS/NCT Classificação' -e ' *)",
       "Bash(awk '{print $5}')",
       "Bash(npx --yes @electron/asar list \"dist/mac-arm64/NCT Classificação.app/Contents/Resources/app.asar\")",
-      "Bash(awk '{print $1}')"
+      "Bash(awk '{print $1}')",
+      "Bash(awk '{print $6, $7, $NF}')",
+      "Bash(open '__TRACKED_VAR__/dist/mac-arm64/NCT Classificação.app')",
+      "Bash(osascript -e 'tell application \"System Events\" to get name of every window of \\(every process whose name contains \"NCT\"\\)')",
+      "Bash(osascript -e 'tell application \"NCT Classificação\" to quit')",
+      "Bash(pkill -f \"NCT Classificação\")",
+      "Bash(log show *)",
+      "Bash(node -e \"const p=require\\('./node_modules/better-sqlite3/package.json'\\); console.log\\('deps:', JSON.stringify\\(p.dependencies\\)\\); console.log\\('main:', p.main\\)\")",
+      "Bash(codesign -dv --verbose=2 'dist/mac-arm64/NCT Classificação.app')",
+      "Bash(echo \"\\(exit: $?\\)\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('package.json','utf8'\\)\\); console.log\\('JSON valido'\\)\")",
+      "Bash(node -e \"console.log\\(Object.keys\\(require\\('./package.json'\\).scripts\\)\\)\")",
+      "Bash(node -e \"const p=require\\('/Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/package.json'\\); console.log\\('scripts:', Object.keys\\(p.scripts||{}\\)\\); console.log\\('build keys:', Object.keys\\(p.build||{}\\)\\)\")",
+      "Bash(npm --prefix /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao run dist:mac)",
+      "Bash(codesign -dv --verbose=2 '/Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/dist/mac-arm64/NCT Classificação.app')"
     ]
   }
 }

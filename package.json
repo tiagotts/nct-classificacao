@@ -39,6 +39,7 @@
     "asarUnpack": [
       "node_modules/better-sqlite3/**"
     ],
+    "afterPack": "build/assinar-adhoc.js",
     "mac": {
       "category": "public.app-category.sports",
       "target": [

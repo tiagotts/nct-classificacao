@@ -15,7 +15,14 @@
       "Bash(ELECTRON_RUN_AS_NODE=1 ./node_modules/.bin/electron -e \"require\\('qrcode'\\).toString\\('https://exemplo.github.io/nct/etapa-1.html',{type:'svg',margin:1}\\).then\\(s=>console.log\\('QR gerado, '+s.length+' chars de SVG'\\)\\)\")",
       "Bash(node --check renderer/telas/jogos.js)",
       "Read(//private/tmp/nct2/**)",
-      "Bash(node --check src/publicacao/gerar-pagina.js)"
+      "Bash(node --check src/publicacao/gerar-pagina.js)",
+      "Bash(node -e \"const b=require\\('./package.json'\\).build; console.log\\(JSON.stringify\\(b,null,2\\)\\)\")",
+      "Bash(sips -g pixelWidth -g pixelHeight -g format /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/imagens/image.png)",
+      "Bash(sips -g hasAlpha -g space /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/imagens/image.png)",
+      "Bash(python3 -c \"from PIL import Image; im=Image.open\\('/tmp/teste-pad.png'\\).convert\\('RGBA'\\); print\\('canto sup-esq:', im.getpixel\\(\\(1,62\\)\\)\\); print\\('canto inf-dir:', im.getpixel\\(\\(122,62\\)\\)\\)\")",
+      "Bash(python3 -)",
+      "Bash(python3 -c ' *)",
+      "Bash(git check-ignore *)"
     ]
   }
 }

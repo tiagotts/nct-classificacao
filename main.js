@@ -43,6 +43,7 @@ function createWindow() {
     minHeight: 600,
     backgroundColor: '#f6efe1',
     title: 'NCT Classificação',
+    icon: path.join(__dirname, 'build', 'icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

@@ -22,7 +22,8 @@
       "Bash(python3 -c \"from PIL import Image; im=Image.open\\('/tmp/teste-pad.png'\\).convert\\('RGBA'\\); print\\('canto sup-esq:', im.getpixel\\(\\(1,62\\)\\)\\); print\\('canto inf-dir:', im.getpixel\\(\\(122,62\\)\\)\\)\")",
       "Bash(python3 -)",
       "Bash(python3 -c ' *)",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(iconutil -c icns /tmp/nct.iconset -o build/icon.icns)"
     ]
   }
 }

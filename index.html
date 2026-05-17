@@ -5,7 +5,6 @@
 <title>Classificação v2 — Vôlei de Praia (PoC com configuração)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-<script src="src/motor-chave-dupla.js"></script>
 <style>
   :root{
     --sand:#f6efe1;
@@ -271,18 +270,6 @@
       </p>
       <div class="config-grid">
 
-        <div class="cfg-block" style="grid-column:1 / -1;background:#f0fafa;padding:14px;border-radius:8px;border:1px solid #99d6dc">
-          <h3>🎯 Formato do mata-mata</h3>
-          <div class="radio-row">
-            <label><input type="radio" name="cfg-formato" value="simples" checked> Mata-mata simples (chave única)</label>
-            <label><input type="radio" name="cfg-formato" value="chave-dupla"> Chave dupla (double elimination)</label>
-          </div>
-          <p style="font-size:12px;color:var(--muted);margin-top:8px">
-            <b>Simples:</b> uma derrota e a dupla está fora. Formato padrão das etapas atuais do circuito.<br>
-            <b>Dupla:</b> precisa perder duas vezes para ser eliminada. Para 4, 8, 16 ou 32 classificadas.
-          </p>
-        </div>
-
         <div class="cfg-block">
           <h3>📐 Estrutura</h3>
           <div class="cfg-row">
@@ -327,40 +314,14 @@
           <button class="btn ghost sm add-criterion" onclick="addCriterion()">+ Adicionar critério</button>
         </div>
 
-        <div class="cfg-block" id="cfg-block-cruzamentos" style="grid-column:1 / -1">
-          <h3>🎯 Cruzamentos do mata-mata simples</h3>
+        <div class="cfg-block" style="grid-column:1 / -1">
+          <h3>🎯 Cruzamentos do mata-mata</h3>
           <p style="font-size:12px;color:var(--muted);margin:0 0 8px">Quem joga contra quem nas quartas/oitavas (seeds 1–N do ranking geral).</p>
           <div class="matchups" id="matchups"></div>
           <div class="matchups-actions">
             <button class="btn ghost sm" onclick="addMatchup()">+ Adicionar confronto</button>
             <button class="btn ghost sm" onclick="resetMatchups()">Restaurar padrão 1×8, 4×5, 2×7, 3×6</button>
           </div>
-        </div>
-
-        <div class="cfg-block hidden" id="cfg-block-chave-dupla" style="grid-column:1 / -1">
-          <h3>🌱 Configuração da chave dupla</h3>
-          <div class="cfg-row">
-            <label>Tamanho da chave</label>
-            <select id="cfg-tamanhoChave">
-              <option value="4">4 duplas (2 grupos de 4 classificam 2 cada)</option>
-              <option value="8">8 duplas</option>
-              <option value="16" selected>16 duplas</option>
-              <option value="32">32 duplas</option>
-            </select>
-          </div>
-          <div class="cfg-row">
-            <label>Bracket reset?</label>
-            <label style="font-weight:normal;font-size:13px;flex:1"><input type="checkbox" id="cfg-bracketReset"> Sim — se o vencedor da LB ganhar da grande final, joga uma segunda partida</label>
-          </div>
-          <h3 style="margin-top:18px">Como mapear grupos → seeds 1..N</h3>
-          <div class="radio-row">
-            <label><input type="radio" name="cfg-regraSeed" value="em-blocos" checked> Em blocos</label>
-            <label><input type="radio" name="cfg-regraSeed" value="global"> Ranqueamento global</label>
-          </div>
-          <p style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5">
-            <b>Em blocos:</b> seeds 1–M são os 1ºs de cada grupo (ordenados pelos critérios), seeds M+1–2M são os 2ºs, e assim por diante. Recomendado quando os grupos têm tamanhos iguais.<br>
-            <b>Global:</b> ranqueia todas as duplas classificadas pelos critérios, ignorando posição no grupo.
-          </p>
         </div>
 
       </div>
@@ -393,17 +354,6 @@
     <div id="bracket-block"></div>
   </section>
 
-  <section id="chave-dupla-section" class="hidden">
-    <h2><span class="step">6</span>Chave dupla (double elimination)</h2>
-    <div class="chave-legend">
-      <span><span class="sw wb"></span> <b>WB</b> — chave dos vencedores</span>
-      <span><span class="sw lb"></span> <b>LB</b> — chave dos perdedores</span>
-      <span><span class="sw gf"></span> <b>GF</b> — grande final</span>
-      <span>Quem acumular <b>duas derrotas</b> está eliminado</span>
-    </div>
-    <div id="chave-dupla-block"></div>
-  </section>
-
 </main>
 
 <script>
@@ -417,10 +367,6 @@ let config = {
   formulaAvg: 'razao',
   criterios: ['V','AVG','H2H','SORTEIO'],
   cruzamentos: [[1,8],[4,5],[2,7],[3,6]],
-  formato: 'simples',                // 'simples' | 'chave-dupla'
-  tamanhoChave: 16,                  // 4, 8, 16, 32 (só para chave-dupla)
-  regraSeed: 'em-blocos',            // 'em-blocos' | 'global'
-  bracketReset: false,
 };
 
 const CRIT_LABELS = {
@@ -668,32 +614,11 @@ function buildConfigUI(){
     el.onchange = () => { config.formulaAvg = el.value; }
   );
 
-  // Formato do mata-mata
-  document.querySelectorAll('input[name="cfg-formato"]').forEach(el => {
-    el.checked = (el.value === config.formato);
-    el.onchange = () => { config.formato = el.value; toggleFormatoBlocks(); };
-  });
-  document.querySelectorAll('input[name="cfg-regraSeed"]').forEach(el => {
-    el.checked = (el.value === config.regraSeed);
-    el.onchange = () => { config.regraSeed = el.value; };
-  });
-  $('cfg-tamanhoChave').value = String(config.tamanhoChave);
-  $('cfg-tamanhoChave').onchange = (e) => { config.tamanhoChave = Number(e.target.value); };
-  $('cfg-bracketReset').checked = config.bracketReset;
-  $('cfg-bracketReset').onchange = (e) => { config.bracketReset = e.target.checked; };
-  toggleFormatoBlocks();
-
   // Critérios
   renderCriteria();
   renderMatchups();
 
   $('config-section').scrollIntoView({ behavior:'smooth', block:'start' });
-}
-
-function toggleFormatoBlocks(){
-  const isDupla = config.formato === 'chave-dupla';
-  $('cfg-block-cruzamentos').classList.toggle('hidden', isDupla);
-  $('cfg-block-chave-dupla').classList.toggle('hidden', !isDupla);
 }
 
 function updateTotal(){
@@ -932,186 +857,11 @@ function runEngine(){
   renderGames(parsedData.games);
   renderGroups(groups);
   renderTop8(ranked);
-
-  // Mostra/oculta seções conforme o formato escolhido
-  const isDupla = config.formato === 'chave-dupla';
-  $('bracket-section').classList.toggle('hidden', isDupla);
-  $('chave-dupla-section').classList.toggle('hidden', !isDupla);
-
-  if (isDupla) {
-    renderChaveDupla(groups, ranked);
-  } else {
-    renderBracket(ranked);
-  }
-
-  ['games-section','standings-section','top8-section'].forEach(id => $(id).classList.remove('hidden'));
+  renderBracket(ranked);
+  ['games-section','standings-section','top8-section','bracket-section'].forEach(id => $(id).classList.remove('hidden'));
   $('games-section').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
-// ============================================================
-// Renderização da chave dupla
-// ============================================================
-function renderChaveDupla(groups, ranked){
-  const N = config.tamanhoChave;
-  const block = $('chave-dupla-block');
-
-  // 1) Constrói seeds usando a regra escolhida
-  // Para "em-blocos": precisa de grupos contendo as duplas classificadas em ordem.
-  // Para "global":   usa diretamente o ranking 'ranked' truncado em N.
-  let seeds;
-  try {
-    if (config.regraSeed === 'global') {
-      if (ranked.length < N) {
-        block.innerHTML = `<div class="error">A configuração produz apenas ${ranked.length} classificadas, mas a chave dupla precisa de ${N}.</div>`;
-        return;
-      }
-      seeds = ranked.slice(0, N).map((d, i) => ({
-        seed: i + 1,
-        dupla: { cod: d.cod, nome: d.nome, V: d.V, AVG: d.AVG, grupo: d.grupo },
-        origem: d.qualifBy || `${d.grupo}`,
-      }));
-    } else {
-      // em-blocos: reusa o motor do módulo, passando os grupos ordenados
-      const groupsArr = {};
-      Object.keys(groups).forEach(g => {
-        groupsArr[g] = groups[g].map(d => ({ cod: d.cod, nome: d.nome, V: d.V, AVG: d.AVG, PP: d.PP, grupo: g }));
-      });
-      const mapeados = mapearSeedsGrupoChave(groupsArr, {
-        regra: 'em-blocos',
-        N,
-        comparador: (a, b) => {
-          if (b.V !== a.V) return b.V - a.V;
-          if (b.AVG !== a.AVG) return b.AVG - a.AVG;
-          return (b.PP||0) - (a.PP||0);
-        },
-      });
-      seeds = mapeados;
-    }
-  } catch (err) {
-    block.innerHTML = `<div class="error">${err.message}</div>`;
-    return;
-  }
-
-  // Valida quantidade de seeds antes de chamar o motor
-  if (seeds.length < N) {
-    block.innerHTML = `<div class="error">A configuração produz apenas <b>${seeds.length}</b> classificadas, mas a chave dupla de <b>${N}</b> precisa de exatamente ${N} duplas.<br>Ajuste o tamanho da chave ou a regra de classificação por grupo.</div>`;
-    return;
-  }
-
-  // 2) Gera a chave
-  let chave;
-  try {
-    chave = gerarChaveDupla(
-      seeds.slice(0, N).map(s => ({ seed: s.seed, dupla: s.dupla })),
-      { bracketReset: config.bracketReset }
-    );
-  } catch (err) {
-    block.innerHTML = `<div class="error">Erro ao gerar a chave: ${err.message}</div>`;
-    return;
-  }
-
-  // 3) Constrói índice de partidas por id e simula nomes "TBD" antes do jogo
-  const byId = new Map(chave.partidas.map(p => [p.id, p]));
-
-  function nomeSlot(slot){
-    if (slot.seed != null) {
-      const d = slot.dupla || {};
-      return { seed: slot.seed, nome: d.nome || d.cod || `Seed ${slot.seed}`, tbd: false };
-    }
-    return { seed: null, nome: `Vencedor/Perdedor de ${slot.fromMatch}`, tbd: true, label: `${slot.as === 'V' ? 'Vencedor' : 'Perdedor'} de ${slot.fromMatch}` };
-  }
-
-  // 4) Agrupa partidas por fase preservando a ordem original
-  const fasesOrdem = [];
-  const porFase = new Map();
-  chave.partidas.forEach(p => {
-    if (!porFase.has(p.fase)) { porFase.set(p.fase, []); fasesOrdem.push(p.fase); }
-    porFase.get(p.fase).push(p);
-  });
-
-  const fasesWB = fasesOrdem.filter(f => f.startsWith('WB'));
-  const fasesLB = fasesOrdem.filter(f => f.startsWith('LB'));
-  const fasesGF = fasesOrdem.filter(f => f.startsWith('Grand') || f.startsWith('Bracket'));
-
-  function renderMatchCard(p, tipo){
-    const a = nomeSlot(p.slot1);
-    const b = nomeSlot(p.slot2);
-    const flow = [];
-    if (p.proxV) flow.push(`Vencedor → <b>${p.proxV}</b>`);
-    else flow.push(`Vencedor → <b>CAMPEÃO</b>`);
-    if (p.proxP) flow.push(`Perdedor → <b>${p.proxP}</b>`);
-    else if (tipo !== 'gf') flow.push(`Perdedor → <b>eliminado</b>`);
-
-    const renderSlot = (s) => {
-      if (s.tbd) return `<div class="slot tbd"><span class="badge-seed">?</span>${s.label}</div>`;
-      return `<div class="slot"><span class="badge-seed">${s.seed}</span>${s.nome}</div>`;
-    };
-    return `<div class="match ${tipo}">
-      <div class="mid">${p.id} · ${p.fase}</div>
-      ${renderSlot(a)}
-      <div class="vs-sep">vs</div>
-      ${renderSlot(b)}
-      <div class="flow">${flow.join('<br>')}</div>
-    </div>`;
-  }
-
-  function renderRounds(fases, tipo){
-    let html = `<div class="rounds">`;
-    fases.forEach(fase => {
-      const partidas = porFase.get(fase);
-      html += `<div class="round"><div class="round-ttl">${fase}</div>`;
-      partidas.forEach(p => html += renderMatchCard(p, tipo));
-      html += `</div>`;
-    });
-    html += `</div>`;
-    return html;
-  }
-
-  let html = '';
-  html += `<div class="chave-wrap">`;
-
-  // Resumo
-  html += `<div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px 16px;font-size:13px">
-    <b>Chave dupla — ${N} duplas, ${chave.totalPartidas} partidas no mata-mata.</b>
-    Regra de seed: ${config.regraSeed === 'em-blocos' ? 'em blocos' : 'ranqueamento global'}.
-    ${config.bracketReset ? ' Com bracket reset.' : ''}
-  </div>`;
-
-  // Mostra os seeds 1..N
-  html += `<div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px 16px">
-    <h3 style="margin-top:0;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--ocean)">Seeds da chave dupla</h3>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;font-size:12px">`;
-  seeds.forEach(s => {
-    const dupla = s.dupla || {};
-    html += `<div style="display:flex;align-items:center;gap:6px;padding:4px">
-      <span class="badge-seed">${s.seed}</span>
-      <div><div style="font-weight:600">${dupla.nome || dupla.cod}</div>
-      <div style="font-size:10px;color:var(--muted)">${s.origem || ''}</div></div>
-    </div>`;
-  });
-  html += `</div></div>`;
-
-  // WB
-  html += `<div class="chave-bloco">
-    <h3>🏆 Chave dos vencedores <span class="badge">${fasesWB.reduce((acc, f) => acc + porFase.get(f).length, 0)} partidas</span></h3>
-    ${renderRounds(fasesWB, 'wb')}
-  </div>`;
-
-  // LB
-  html += `<div class="chave-bloco lb">
-    <h3>🔁 Chave dos perdedores <span class="badge">${fasesLB.reduce((acc, f) => acc + porFase.get(f).length, 0)} partidas — uma derrota mais e está fora</span></h3>
-    ${renderRounds(fasesLB, 'lb')}
-  </div>`;
-
-  // GF
-  html += `<div class="chave-bloco gf">
-    <h3>👑 Grande final</h3>
-    ${renderRounds(fasesGF, 'gf')}
-  </div>`;
-
-  html += `</div>`;
-  block.innerHTML = html;
-}
 
 // ============================================================
 // RENDERIZAÇÃO

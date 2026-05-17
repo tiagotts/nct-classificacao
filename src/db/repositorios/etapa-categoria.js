@@ -34,8 +34,19 @@ function atualizar(id, { numGrupos, configJson }) {
   return obter(id);
 }
 
+// Remove a etapa_categoria em cascata: apaga antes os jogos, as duplas e a
+// pontuação dela. Os atletas são compartilhados entre etapas e não são
+// removidos. defer_foreign_keys adia a checagem das FKs até o commit —
+// necessário porque os jogos do mata-mata referenciam uns aos outros (origem).
 function remover(id) {
-  getDb().prepare('DELETE FROM etapa_categoria WHERE id = ?').run(id);
+  const db = getDb();
+  db.transaction(() => {
+    db.pragma('defer_foreign_keys = ON');
+    db.prepare('DELETE FROM jogo WHERE etapa_categoria_id = ?').run(id);
+    db.prepare('DELETE FROM dupla WHERE etapa_categoria_id = ?').run(id);
+    db.prepare('DELETE FROM pontuacao WHERE etapa_categoria_id = ?').run(id);
+    db.prepare('DELETE FROM etapa_categoria WHERE id = ?').run(id);
+  })();
 }
 
 module.exports = { listar, obter, criar, atualizar, remover };

@@ -23,8 +23,24 @@ function atualizar(id, { nome, ano }) {
   return obter(id);
 }
 
+// Remove a temporada em cascata: apaga as etapas dela e, de cada uma, as
+// etapa_categoria com seus jogos, duplas e pontuação. Os atletas são
+// compartilhados entre etapas e não são removidos. defer_foreign_keys adia
+// a checagem das FKs até o commit — necessário pelas referências entre jogos.
 function remover(id) {
-  getDb().prepare('DELETE FROM temporada WHERE id = ?').run(id);
+  const db = getDb();
+  const escopoEtapa = '(SELECT id FROM etapa WHERE temporada_id = ?)';
+  const escopoEc =
+    `(SELECT id FROM etapa_categoria WHERE etapa_id IN ${escopoEtapa})`;
+  db.transaction(() => {
+    db.pragma('defer_foreign_keys = ON');
+    db.prepare(`DELETE FROM jogo WHERE etapa_categoria_id IN ${escopoEc}`).run(id);
+    db.prepare(`DELETE FROM dupla WHERE etapa_categoria_id IN ${escopoEc}`).run(id);
+    db.prepare(`DELETE FROM pontuacao WHERE etapa_categoria_id IN ${escopoEc}`).run(id);
+    db.prepare(`DELETE FROM etapa_categoria WHERE etapa_id IN ${escopoEtapa}`).run(id);
+    db.prepare('DELETE FROM etapa WHERE temporada_id = ?').run(id);
+    db.prepare('DELETE FROM temporada WHERE id = ?').run(id);
+  })();
 }
 
 module.exports = { listar, obter, criar, atualizar, remover };

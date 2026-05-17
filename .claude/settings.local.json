@@ -23,7 +23,14 @@
       "Bash(python3 -)",
       "Bash(python3 -c ' *)",
       "Bash(git check-ignore *)",
-      "Bash(iconutil -c icns /tmp/nct.iconset -o build/icon.icns)"
+      "Bash(iconutil -c icns /tmp/nct.iconset -o build/icon.icns)",
+      "Bash(ELECTRON_RUN_AS_NODE=1 npx electron tests/test-repositorios.js)",
+      "Bash(npx --yes @electron/asar list 'dist/mac-arm64/NCT Classificação.app/Contents/Resources/app.asar')",
+      "Read(//Users/tiagotts/Library/Logs/DiagnosticReports/**)",
+      "Bash(ELECTRON_RUN_AS_NODE=1 'dist/mac-arm64/NCT Classificação.app/Contents/MacOS/NCT Classificação' -e ' *)",
+      "Bash(awk '{print $5}')",
+      "Bash(npx --yes @electron/asar list \"dist/mac-arm64/NCT Classificação.app/Contents/Resources/app.asar\")",
+      "Bash(awk '{print $1}')"
     ]
   }
 }

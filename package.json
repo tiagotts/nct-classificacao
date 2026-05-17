@@ -33,7 +33,11 @@
       "package.json",
       "src/**/*",
       "renderer/**/*",
-      "assets/**/*"
+      "assets/**/*",
+      "node_modules/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/better-sqlite3/**"
     ],
     "mac": {
       "category": "public.app-category.sports",

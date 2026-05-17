@@ -1,7 +1,7 @@
 // Testes dos repositórios de CRUD (Fase 2).
 // Rodar com:  npm test   (ou ELECTRON_RUN_AS_NODE=1 electron tests/test-repositorios.js)
 
-const { abrir, fechar } = require('../src/db/database');
+const { abrir, fechar, getDb } = require('../src/db/database');
 const temporada = require('../src/db/repositorios/temporada');
 const etapa = require('../src/db/repositorios/etapa');
 const etapaCategoria = require('../src/db/repositorios/etapa-categoria');
@@ -142,6 +142,77 @@ t('remover: dupla some da listagem', () => {
   const antes = dupla.listar(ec.id).length;
   dupla.remover(novaDupla.id);
   eq(dupla.listar(ec.id).length, antes - 1);
+});
+
+// --- remoção em cascata ------------------------------------------------
+// Cada teste monta a sua própria árvore isolada para não interferir nos
+// objetos compartilhados (temp/et/ec) usados acima.
+function contar(tabela, coluna, valor) {
+  return getDb().prepare(
+    `SELECT COUNT(*) AS n FROM ${tabela} WHERE ${coluna} = ?`).get(valor).n;
+}
+
+// Monta uma árvore completa (etapa_categoria + 2 duplas + jogo de grupo +
+// jogo de mata-mata que referencia o de grupo) e devolve os ids.
+function montarArvore(etapaId) {
+  const ecx = etapaCategoria.criar({ etapaId, categoriaId: catSub17.id, numGrupos: 1 });
+  const dx1 = dupla.criar({ etapaCategoriaId: ecx.id, codigo: 'A1', grupo: 'A',
+                            atleta1Id: a1.id, atleta2Id: a2.id });
+  const dx2 = dupla.criar({ etapaCategoriaId: ecx.id, codigo: 'A2', grupo: 'A',
+                            atleta1Id: a3.id, atleta2Id: a4.id });
+  const jg = jogo.criar({ etapaCategoriaId: ecx.id, fase: 'grupo', num: 1, grupo: 'A',
+                          dupla1Id: dx1.id, dupla2Id: dx2.id });
+  // Jogo que referencia outro jogo (origem) — exercita o defer_foreign_keys.
+  jogo.criar({ etapaCategoriaId: ecx.id, fase: 'final', num: 2,
+               origem1JogoId: jg.id, origem1Tipo: 'vencedor',
+               origem2JogoId: jg.id, origem2Tipo: 'perdedor' });
+  getDb().prepare(`INSERT INTO pontuacao (etapa_categoria_id, pos_ini, pos_fim, pontos)
+                   VALUES (?, 1, 1, 200)`).run(ecx.id);
+  return ecx.id;
+}
+
+t('remover etapa_categoria: apaga jogos, duplas e pontuação; mantém atletas', () => {
+  const etx = etapa.criar({ temporadaId: temp.id, nome: 'Etapa cascata EC' });
+  const ecx = montarArvore(etx.id);
+  const atletasAntes = atleta.listar().length;
+
+  etapaCategoria.remover(ecx);
+
+  eq(etapaCategoria.obter(ecx), undefined, 'etapa_categoria removida');
+  eq(contar('dupla', 'etapa_categoria_id', ecx), 0, 'duplas');
+  eq(contar('jogo', 'etapa_categoria_id', ecx), 0, 'jogos');
+  eq(contar('pontuacao', 'etapa_categoria_id', ecx), 0, 'pontuação');
+  eq(atleta.listar().length, atletasAntes, 'atletas preservados');
+});
+
+t('remover etapa: apaga etapa_categoria e seus jogos/duplas em cascata', () => {
+  const etx = etapa.criar({ temporadaId: temp.id, nome: 'Etapa cascata' });
+  const ecx = montarArvore(etx.id);
+  const atletasAntes = atleta.listar().length;
+
+  etapa.remover(etx.id);
+
+  eq(etapa.obter(etx.id), undefined, 'etapa removida');
+  eq(etapaCategoria.listar(etx.id).length, 0, 'etapa_categoria');
+  eq(contar('dupla', 'etapa_categoria_id', ecx), 0, 'duplas');
+  eq(contar('jogo', 'etapa_categoria_id', ecx), 0, 'jogos');
+  eq(atleta.listar().length, atletasAntes, 'atletas preservados');
+});
+
+t('remover temporada: apaga etapas, categorias, duplas e jogos em cascata', () => {
+  const tx = temporada.criar({ nome: 'Temporada cascata', ano: 2099 });
+  const etx = etapa.criar({ temporadaId: tx.id, nome: 'Etapa T' });
+  const ecx = montarArvore(etx.id);
+  const atletasAntes = atleta.listar().length;
+
+  temporada.remover(tx.id);
+
+  eq(temporada.obter(tx.id), undefined, 'temporada removida');
+  eq(etapa.listar(tx.id).length, 0, 'etapas');
+  eq(contar('etapa_categoria', 'etapa_id', etx.id), 0, 'etapa_categoria');
+  eq(contar('dupla', 'etapa_categoria_id', ecx), 0, 'duplas');
+  eq(contar('jogo', 'etapa_categoria_id', ecx), 0, 'jogos');
+  eq(atleta.listar().length, atletasAntes, 'atletas preservados');
 });
 
 fechar();

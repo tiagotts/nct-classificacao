@@ -30,8 +30,11 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
+      # --publish never: o electron-builder detecta o CI e tentaria publicar
+      # sozinho (e falha por não ter token). Quem publica a Release é o passo
+      # abaixo (action-gh-release).
       - name: Gerar o instalador Windows
-        run: npm run dist:win
+        run: npm run dist:win -- --publish never
 
       - name: Enviar o instalador como artefato
         uses: actions/upload-artifact@v4

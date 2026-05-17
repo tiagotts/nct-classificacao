@@ -7,6 +7,8 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const database = require('./src/db/database');
+const dbIpc = require('./src/db/ipc');
 
 // Caminho do arquivo onde guardamos a última configuração usada.
 // Fica em ~/Library/Application Support/NCT Classificação/ (Mac)
@@ -49,7 +51,7 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile('index.html');
+  mainWindow.loadFile('renderer/index.html');
 
   // Abre links externos no navegador padrão, não dentro do app.
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -183,9 +185,15 @@ function buildMenu() {
 // Ciclo de vida
 // =============================================================================
 app.whenReady().then(() => {
+  // Abre o banco SQLite e aplica as migrações pendentes.
+  database.abrir(path.join(app.getPath('userData'), 'nct.db'));
+
   // Handlers IPC expostos ao renderer via preload.js
   ipcMain.handle('config:load', () => readConfig());
   ipcMain.handle('config:save', (event, cfg) => writeConfig(cfg));
+
+  // Handlers do banco (CRUD dos repositórios)
+  dbIpc.registrar(ipcMain);
 
   buildMenu();
   createWindow();
@@ -197,4 +205,8 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('will-quit', () => {
+  database.fechar();
 });

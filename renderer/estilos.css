@@ -1,0 +1,249 @@
+/* =============================================================================
+   NCT Classificação — estilos do app de cadastro.
+   Paleta reaproveitada do index.html original (PoC).
+   ========================================================================== */
+:root{
+  --sand:#f6efe1;
+  --sand-dark:#e7d9b4;
+  --ocean:#0a6e7e;
+  --ocean-dark:#063e48;
+  --sun:#f59e0b;
+  --ink:#1a2434;
+  --muted:#6b7280;
+  --line:#d8d2c3;
+  --warn:#dc2626;
+  --paper:#fff;
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;padding:0;height:100%;background:var(--sand);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  line-height:1.45;
+}
+
+.app{display:flex;min-height:100vh}
+
+/* Menu lateral fixo */
+.sidebar{
+  width:250px;flex-shrink:0;height:100vh;position:sticky;top:0;
+  background:linear-gradient(160deg,var(--ocean) 0%,var(--ocean-dark) 100%);
+  color:#fff;display:flex;flex-direction:column;
+}
+.sidebar-marca{padding:20px 18px;border-bottom:1px solid rgba(255,255,255,.15)}
+.marca-titulo{font-weight:700;font-size:17px}
+.marca-sub{font-size:12px;opacity:.8;margin-top:2px}
+.nav{padding:10px 0;overflow-y:auto}
+.nav-item{
+  display:block;width:100%;text-align:left;border:0;background:transparent;
+  color:#fff;font-family:inherit;font-size:13px;cursor:pointer;line-height:1.3;
+  padding:8px 16px;border-left:3px solid transparent;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.nav-item:hover{background:rgba(255,255,255,.10)}
+.nav-item.ativo{
+  background:rgba(255,255,255,.18);font-weight:700;border-left-color:var(--sun);
+}
+.nav-item.nivel-1{padding-left:30px}
+.nav-item.nivel-2{padding-left:44px}
+.nav-item.nivel-3{padding-left:58px}
+.nav-item.nivel-4{padding-left:72px}
+.nav-item.nivel-5{padding-left:86px}
+.nav-item.nav-secao{padding-left:72px;font-size:12px;opacity:.92}
+.nav-item.nav-secao::before{content:"· "}
+.nav-item.nav-secao.ativo{opacity:1}
+
+main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
+
+/* Topo de cada tela */
+.topo-tela{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px}
+.topo-tela h2{font-size:20px;color:var(--ocean-dark);margin:0}
+.acoes-topo{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Botões */
+.btn{
+  background:var(--ocean);color:#fff;border:0;padding:9px 16px;border-radius:8px;
+  font-size:14px;font-weight:600;cursor:pointer;transition:.15s;font-family:inherit;
+}
+.btn:hover{background:var(--ocean-dark)}
+.btn.ghost{background:transparent;color:var(--ocean);border:1px solid var(--ocean)}
+.btn.ghost:hover{background:#0a6e7e14}
+.btn.danger{background:transparent;color:var(--warn);border:1px solid #fca5a5}
+.btn.danger:hover{background:#fee2e2}
+.btn.sm{padding:5px 10px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Lista de itens */
+.lista{display:flex;flex-direction:column;gap:8px}
+.item{
+  background:var(--paper);border:1px solid var(--line);border-radius:10px;
+  padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;
+}
+.item-titulo{font-weight:600;font-size:15px}
+.item-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.item-acoes{display:flex;gap:6px;flex-shrink:0}
+
+.vazio{
+  background:var(--paper);border:1px solid var(--line);border-radius:10px;
+  padding:28px;text-align:center;color:var(--muted);
+}
+
+/* Badge de código da dupla */
+.cod{
+  display:inline-block;font-size:11px;color:var(--muted);background:var(--sand);
+  padding:1px 7px;border-radius:99px;margin-right:6px;font-weight:600;
+}
+
+/* Hub: grade de áreas de uma categoria */
+.hub{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.hub-card{
+  background:var(--paper);border:1px solid var(--line);border-radius:10px;
+  padding:18px;text-align:left;cursor:pointer;font-family:inherit;transition:.15s;
+}
+.hub-card:hover:not(:disabled){border-color:var(--ocean);background:#f0fafa}
+.hub-card:disabled{opacity:.55;cursor:not-allowed}
+.hub-titulo{font-weight:700;font-size:15px;color:var(--ocean-dark)}
+.hub-sub{font-size:12px;color:var(--muted);margin-top:3px}
+
+/* Formulário */
+.form-card{
+  background:var(--paper);border:1px solid var(--line);border-radius:10px;
+  padding:18px;margin-bottom:16px;
+}
+.form-card h3{margin:0 0 14px;font-size:15px;color:var(--ocean-dark)}
+.form-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:14px}
+.form-row label{flex:0 0 120px;color:var(--muted)}
+.form-row input,.form-row select{
+  flex:1;padding:7px 10px;border:1px solid var(--line);border-radius:6px;
+  font-size:14px;background:#fdfaf2;font-family:inherit;
+}
+.form-acoes{display:flex;gap:8px;margin-top:14px}
+.form-erro{color:var(--warn);font-size:13px;margin-top:8px;min-height:18px}
+
+.dica{color:var(--muted);font-size:13px;margin:10px 0}
+
+/* Configuração da categoria */
+.radio-linha{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:8px}
+.radio-linha label{display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer}
+.crit-lista{list-style:none;padding:0;margin:0 0 10px}
+.crit-lista li{
+  display:flex;align-items:center;gap:8px;background:#fdfaf2;
+  border:1px solid var(--line);border-radius:6px;padding:6px 10px;margin-bottom:6px;
+}
+.crit-ordem{font-weight:700;color:var(--ocean);min-width:24px;font-size:13px}
+.crit-nome{flex:1;font-size:13px}
+.crit-acoes{display:flex;gap:4px}
+.crit-add{display:flex;gap:8px;align-items:center}
+.crit-add select{
+  padding:6px 10px;border:1px solid var(--line);border-radius:6px;
+  font-size:13px;background:#fdfaf2;font-family:inherit;
+}
+
+/* Barra de ferramentas do grid (combo de quantidade) */
+.grid-toolbar{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.grid-toolbar select{
+  padding:6px 10px;border:1px solid var(--line);border-radius:6px;
+  font-size:14px;background:#fdfaf2;font-family:inherit;
+}
+
+/* Grid editável de duplas */
+.grid-duplas{
+  width:100%;border-collapse:collapse;background:var(--paper);
+  border:1px solid var(--line);border-radius:10px;overflow:hidden;
+}
+.grid-duplas th{
+  background:var(--sand);font-size:11px;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--muted);text-align:left;padding:8px 10px;font-weight:600;
+}
+.grid-duplas td{padding:4px 6px;border-top:1px solid #f1ecdd}
+.grid-duplas td.idx,.grid-duplas th.idx{
+  width:34px;text-align:center;color:var(--muted);font-size:12px;
+}
+.grid-duplas td.col-cod,.grid-duplas th.col-cod{width:96px}
+.grid-duplas td.col-grupo,.grid-duplas th.col-grupo{width:84px}
+.grid-duplas input,.grid-duplas select{
+  width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:5px;
+  font-size:13px;background:#fdfaf2;font-family:inherit;
+}
+.grid-duplas input:focus,.grid-duplas select:focus{
+  outline:none;border-color:var(--ocean);background:#fff;
+}
+
+/* Jogos da fase de grupos */
+.bloco-grupo{margin-bottom:20px}
+.bloco-grupo h3{font-size:14px;color:var(--ocean-dark);margin:0 0 8px}
+.tab-jogos{
+  width:100%;border-collapse:collapse;background:var(--paper);
+  border:1px solid var(--line);border-radius:10px;overflow:hidden;
+}
+.tab-jogos th{
+  background:var(--sand);font-size:11px;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--muted);text-align:left;padding:8px 10px;font-weight:600;
+}
+.tab-jogos td{padding:6px 10px;border-top:1px solid #f1ecdd;font-size:13px}
+.tab-jogos td.idx,.tab-jogos th.idx{width:34px;text-align:center;color:var(--muted)}
+.tab-jogos td.col-placar,.tab-jogos th.col-placar{width:70px}
+.tab-jogos td.col-tipo,.tab-jogos th.col-tipo{width:130px}
+.tab-jogos input,.tab-jogos select{
+  width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:5px;
+  font-size:13px;background:#fdfaf2;font-family:inherit;
+}
+.tab-jogos input{text-align:center}
+.tab-jogos input:focus,.tab-jogos select:focus{
+  outline:none;border-color:var(--ocean);background:#fff;
+}
+.tab-jogos input:disabled,.tab-jogos select:disabled{
+  background:#efe9d8;color:var(--muted);cursor:not-allowed;
+}
+.tab-jogos td.col-jogo,.tab-jogos th.col-jogo{
+  width:96px;color:var(--muted);font-size:12px;
+}
+.tab-jogos .tbd{color:var(--muted);font-style:italic}
+
+/* Pódio / resultado final do mata-mata */
+.podio{
+  background:#fffbeb;border:1px solid var(--sun);border-radius:10px;
+  padding:14px 18px;margin-bottom:18px;
+}
+.podio h3{margin:0 0 8px;font-size:14px;color:#92400e}
+.podio-item{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:14px}
+.podio-pos{
+  display:inline-block;width:74px;font-weight:700;color:#92400e;font-size:12px;
+  text-transform:uppercase;letter-spacing:.04em;
+}
+
+/* Tabela de classificação */
+.tab-class{
+  width:100%;border-collapse:collapse;background:var(--paper);
+  border:1px solid var(--line);border-radius:10px;overflow:hidden;
+}
+.tab-class th{
+  background:var(--sand);font-size:11px;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--muted);text-align:left;padding:8px 10px;font-weight:600;
+}
+.tab-class td{padding:8px 10px;border-top:1px solid #f1ecdd;font-size:13px}
+.tab-class th.n,.tab-class td.n{text-align:right;width:54px;font-variant-numeric:tabular-nums}
+.tab-class th.idx,.tab-class td.idx{width:40px;text-align:center}
+.tab-class .pos{
+  display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;
+  border-radius:50%;background:var(--sand);font-size:12px;font-weight:700;
+}
+.tab-class .pos.pos-q{background:var(--ocean);color:#fff}
+.tab-class .motivo{color:var(--muted);font-size:12px;font-style:italic}
+.carregando{color:var(--muted);padding:24px;text-align:center}
+.erro{background:#fee2e2;color:#991b1b;padding:12px 16px;border-radius:8px;font-size:13px}
+.ok{background:#dcfce7;color:#166534;padding:12px 16px;border-radius:8px;font-size:13px;margin-top:8px}
+.ok a{color:#166534;font-weight:700;word-break:break-all}
+.qrcode-box{
+  margin-top:14px;background:var(--paper);border:1px solid var(--line);
+  border-radius:10px;padding:16px;display:inline-block;text-align:center;
+}
+.qrcode-box .dica{margin:0 0 8px}
+.qrcode-box svg{width:220px;height:220px;display:block}
+
+@media (max-width:640px){
+  main{padding:16px 16px 48px}
+  .item{flex-direction:column;align-items:stretch}
+  .item-acoes{justify-content:flex-end}
+  .form-row{flex-wrap:wrap}
+  .form-row label{flex:0 0 100%;margin-bottom:2px}
+}

@@ -11,29 +11,38 @@ critérios de desempate do regulamento e monta a chave do mata-mata.
 ## Comandos
 
 ```
-npm install            # instala Electron e electron-builder
+npm install            # instala dependências (postinstall recompila o módulo nativo)
 npm start              # roda o app (electron .)
+npm test               # roda toda a suíte de testes
+npm run rebuild        # recompila better-sqlite3 para o ABI do Electron
 npm run dist           # gera instaladores para a plataforma atual em dist/
 npm run dist:mac       # .dmg (precisa rodar em macOS)
 npm run dist:win       # .exe / nsis (precisa rodar em Windows)
 npm run dist:linux     # AppImage
 
-node tests/test-chave-dupla.js       # testes do motor de chave dupla
-node tests/test-fluxo-integrado.js   # testes do fluxo grupos -> seeds -> chave
 node tests/dump-chave.js [N]         # imprime a estrutura da chave para N duplas
 ```
 
-Não há `npm test`, lint ou build step: os testes são scripts Node puro, sem
-framework, e cada um faz `process.exit(1)` quando falha. A UI é HTML/CSS/JS
-direto, sem transpilação.
+Os testes são scripts Node puro, sem framework: cada arquivo faz
+`process.exit(1)` quando falha. `npm test` os roda com o Node do próprio
+Electron (`ELECTRON_RUN_AS_NODE=1 electron`), porque `better-sqlite3` é um
+módulo nativo compilado para o ABI do Electron — rodar os testes do banco com
+`node` direto falha por incompatibilidade de ABI. Não há lint ou build step;
+a UI é HTML/CSS/JS direto, sem transpilação.
 
 ## Arquitetura
 
 O app tem dois processos Electron e um motor que ainda não está conectado à UI.
 
 - [main.js](main.js) — processo principal. Cria a `BrowserWindow`, monta o menu
-  nativo, abre o diálogo de arquivo e persiste a configuração via IPC
-  (`config:load` / `config:save`). A config fica em `app.getPath('userData')/config.json`.
+  nativo, abre o diálogo de arquivo, persiste a configuração via IPC
+  (`config:load` / `config:save`) e abre o banco SQLite. A config fica em
+  `app.getPath('userData')/config.json`; o banco em `.../nct.db`.
+- [src/db/](src/db/) — camada de banco SQLite (`better-sqlite3`). `database.js`
+  abre a conexão e aplica as migrações de `migrations/` em ordem, controladas
+  pelo `PRAGMA user_version`. O banco vive no processo main; o renderer só o
+  acessa por IPC. Ver [docs/plano-migracao.md](docs/plano-migracao.md) para o
+  modelo de dados e o roteiro da migração que substitui a entrada por planilha.
 - [preload.js](preload.js) — expõe `window.electronAPI` ao renderer via
   `contextBridge` (sandbox ligado, sem nodeIntegration). Único canal entre
   main e renderer.

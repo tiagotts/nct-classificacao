@@ -5,6 +5,17 @@
 
 const { contextBridge, ipcRenderer } = require('electron');
 
+// Monta um conjunto CRUD padrão de chamadas para um prefixo de canal IPC.
+function crud(prefixo) {
+  return {
+    listar: (...args) => ipcRenderer.invoke(`${prefixo}:listar`, ...args),
+    obter: (id) => ipcRenderer.invoke(`${prefixo}:obter`, id),
+    criar: (dados) => ipcRenderer.invoke(`${prefixo}:criar`, dados),
+    atualizar: (id, dados) => ipcRenderer.invoke(`${prefixo}:atualizar`, id, dados),
+    remover: (id) => ipcRenderer.invoke(`${prefixo}:remover`, id),
+  };
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
   // Persistência de configuração no disco.
   loadConfig: () => ipcRenderer.invoke('config:load'),
@@ -15,7 +26,48 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('file-opened', (event, payload) => callback(payload));
   },
 
+  // Acesso ao banco SQLite (processo main).
+  db: {
+    temporada: crud('temporada'),
+    etapa: crud('etapa'),
+    etapaCategoria: crud('etapaCategoria'),
+    categoria: {
+      listar: () => ipcRenderer.invoke('categoria:listar'),
+      obter: (id) => ipcRenderer.invoke('categoria:obter', id),
+    },
+    atleta: {
+      ...crud('atleta'),
+      buscar: (termo) => ipcRenderer.invoke('atleta:buscar', termo),
+    },
+    dupla: crud('dupla'),
+    jogo: {
+      ...crud('jogo'),
+      registrarPlacar: (id, dados) =>
+        ipcRenderer.invoke('jogo:registrarPlacar', id, dados),
+      gerarFaseGrupos: (etapaCategoriaId, opts) =>
+        ipcRenderer.invoke('jogo:gerarFaseGrupos', etapaCategoriaId, opts),
+      gerarMataMata: (etapaCategoriaId, opts) =>
+        ipcRenderer.invoke('jogo:gerarMataMata', etapaCategoriaId, opts),
+    },
+    classificacao: {
+      calcular: (etapaCategoriaId) =>
+        ipcRenderer.invoke('classificacao:calcular', etapaCategoriaId),
+    },
+    rankingTemporada: {
+      calcular: (temporadaId, categoriaId) =>
+        ipcRenderer.invoke('rankingTemporada:calcular', temporadaId, categoriaId),
+    },
+  },
+
+  // Publicação da página de resultados no GitHub Pages.
+  publicacao: {
+    publicar: (etapaId, cfg) =>
+      ipcRenderer.invoke('publicacao:publicar', etapaId, cfg),
+    statusBuild: (cfg, sha) =>
+      ipcRenderer.invoke('publicacao:statusBuild', cfg, sha),
+  },
+
   // Para o renderer poder se identificar como rodando em Electron.
   isElectron: true,
-  platform: process.platform
+  platform: process.platform,
 });

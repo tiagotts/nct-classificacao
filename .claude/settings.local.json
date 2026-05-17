@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /tmp/nctxlsx && echo \"=== RELS ===\" && cat xl/_rels/workbook.xml.rels && echo && echo \"=== WORKSHEETS ===\" && ls xl/worksheets)",
+      "Read(//private/tmp/nctxlsx/**)",
+      "Bash(node -e ' *)",
+      "Bash(npm install *)",
+      "Bash(node tests/test-db.js)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(ELECTRON_RUN_AS_NODE=1 ./node_modules/.bin/electron -e ' *)",
+      "Bash(node --check renderer/telas/duplas.js)",
+      "Bash(node --check src/db/ipc.js)",
+      "Bash(node --check renderer/telas/publicacao.js)",
+      "Bash(ELECTRON_RUN_AS_NODE=1 ./node_modules/.bin/electron -e \"require\\('qrcode'\\).toString\\('https://exemplo.github.io/nct/etapa-1.html',{type:'svg',margin:1}\\).then\\(s=>console.log\\('QR gerado, '+s.length+' chars de SVG'\\)\\)\")",
+      "Bash(node --check renderer/telas/jogos.js)",
+      "Read(//private/tmp/nct2/**)",
+      "Bash(node --check src/publicacao/gerar-pagina.js)"
+    ]
+  }
+}

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>NCT Classificação</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-marca">
+      <div class="marca-titulo">NCT Classificação</div>
+      <div class="marca-sub">Circuito de Vôlei de Praia</div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+  </aside>
+  <main id="conteudo"></main>
+</div>
+
+<!-- Núcleo do app: roteador e menu lateral -->
+<script src="app.js"></script>
+<!-- Publicador (usado pelas telas que publicam resultados) -->
+<script src="publicar.js"></script>
+<!-- Telas (cada uma se registra em App) -->
+<script src="telas/temporadas.js"></script>
+<script src="telas/etapas.js"></script>
+<script src="telas/etapa-categorias.js"></script>
+<script src="telas/categoria-detalhe.js"></script>
+<script src="telas/config-categoria.js"></script>
+<script src="telas/duplas.js"></script>
+<script src="telas/jogos.js"></script>
+<script src="telas/classificacao.js"></script>
+<script src="telas/chave.js"></script>
+<script src="telas/ranking-temporada.js"></script>
+<script src="telas/publicacao.js"></script>
+<!-- Inicialização -->
+<script>App.iniciar();</script>
+
+</body>
+</html>

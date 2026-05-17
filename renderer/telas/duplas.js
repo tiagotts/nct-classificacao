@@ -1,0 +1,273 @@
+// Tela de cadastro de duplas de uma categoria da etapa.
+// Em vez de um formulário por dupla, usa um combo de quantidade + um grid
+// editável: escolhe-se quantas duplas e preenchem-se as linhas de uma vez.
+// Código e grupo já vêm pré-preenchidos; atletas novos são criados ao salvar.
+// params: { etapaCategoriaId }
+(() => {
+  const apiDupla = () => window.electronAPI.db.dupla;
+  const apiAtleta = () => window.electronAPI.db.atleta;
+  const apiEC = () => window.electronAPI.db.etapaCategoria;
+
+  const QUANTIDADES_BASE = [4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32];
+
+  App.registrarTela('duplas', { render });
+
+  // Estado da tela enquanto está aberta.
+  // linhas: [{ duplaId|null, codigo, grupo, atleta1, atleta2 }]
+  let estado = null;
+
+  async function render(container, params) {
+    const { etapaCategoriaId } = params;
+    const [ec, duplas, atletas] = await Promise.all([
+      apiEC().obter(etapaCategoriaId),
+      apiDupla().listar(etapaCategoriaId),
+      apiAtleta().listar(),
+    ]);
+
+    estado = {
+      etapaCategoriaId,
+      ec,
+      atletas,
+      idsOriginais: duplas.map(d => d.id),
+      linhas: duplas.map(d => ({
+        duplaId: d.id, codigo: d.codigo, grupo: d.grupo || '',
+        atleta1: d.atleta1_nome, atleta2: d.atleta2_nome,
+      })),
+    };
+
+    const qtdInicial = estado.linhas.length || sugestaoQuantidade(ec);
+    const qtds = [...new Set([...QUANTIDADES_BASE, qtdInicial])].sort((a, b) => a - b);
+
+    container.innerHTML = `
+      <div class="topo-tela">
+        <h2>Duplas</h2>
+        <div class="grid-toolbar">
+          <label for="combo-qtd">Quantidade de duplas</label>
+          <select id="combo-qtd">
+            ${qtds.map(q => `<option value="${q}"${q === qtdInicial ? ' selected' : ''}>${q}</option>`).join('')}
+          </select>
+          <button class="btn ghost sm" id="btn-serpentina">Distribuir em grupos</button>
+        </div>
+      </div>
+      <p class="dica">Código e grupo já vêm preenchidos — ajuste se precisar.
+        Limpar todos os campos de uma linha remove a dupla ao salvar.
+        "Distribuir em grupos" reparte as duplas em serpentina pelos grupos,
+        seguindo a ordem das linhas (1ª colocada do ranking no topo).</p>
+      <div id="grid"></div>
+      <div class="form-erro" id="grid-erro"></div>
+      <div class="form-acoes">
+        <button class="btn" id="btn-salvar">Salvar duplas</button>
+      </div>
+      <datalist id="lista-atletas">
+        ${atletas.map(a => `<option value="${App.escapar(a.nome)}"></option>`).join('')}
+      </datalist>`;
+
+    ajustarQuantidade(qtdInicial);
+    desenharGrid();
+
+    container.querySelector('#combo-qtd').onchange = (e) => {
+      lerGridParaEstado();
+      ajustarQuantidade(Number(e.target.value));
+      desenharGrid();
+    };
+    container.querySelector('#btn-serpentina').onclick = distribuirSerpentina;
+    container.querySelector('#btn-salvar').onclick = (e) => salvar(e.target);
+  }
+
+  // Sugere uma quantidade inicial quando ainda não há duplas.
+  function sugestaoQuantidade(ec) {
+    return ec && ec.num_grupos ? ec.num_grupos * 4 : 12;
+  }
+
+  // Gera código + grupo para cada posição, distribuindo as duplas pelos grupos
+  // o mais uniformemente possível.
+  function gerarPosicoes(qtd, numGrupos) {
+    const pos = [];
+    if (!numGrupos || numGrupos < 1) {
+      for (let i = 0; i < qtd; i++) pos.push({ codigo: String(i + 1), grupo: '' });
+      return pos;
+    }
+    const base = Math.floor(qtd / numGrupos);
+    const resto = qtd % numGrupos;
+    for (let g = 0; g < numGrupos; g++) {
+      const tamanho = base + (g < resto ? 1 : 0);
+      const letra = String.fromCharCode(65 + g);
+      for (let n = 1; n <= tamanho; n++) {
+        pos.push({ codigo: `${letra}${n}`, grupo: letra });
+      }
+    }
+    return pos;
+  }
+
+  // Redimensiona estado.linhas para a quantidade pedida, preenchendo código e
+  // grupo das linhas novas (ou das que estiverem vazias).
+  function ajustarQuantidade(qtd) {
+    const pos = gerarPosicoes(qtd, estado.ec.num_grupos);
+    const novas = [];
+    for (let i = 0; i < qtd; i++) {
+      const linha = estado.linhas[i];
+      if (linha) {
+        if (!linha.codigo) linha.codigo = pos[i].codigo;
+        if (!linha.grupo) linha.grupo = pos[i].grupo;
+        novas.push(linha);
+      } else {
+        novas.push({
+          duplaId: null, codigo: pos[i].codigo, grupo: pos[i].grupo,
+          atleta1: '', atleta2: '',
+        });
+      }
+    }
+    estado.linhas = novas;
+  }
+
+  // Distribui as duplas pelos grupos em serpentina, seguindo a ordem das
+  // linhas: A, B, C, D, depois D, C, B, A, e assim por diante. Reescreve
+  // o grupo e o código de cada linha.
+  function distribuirSerpentina() {
+    const ng = estado.ec.num_grupos;
+    if (!ng || ng < 1) {
+      alert('Defina o número de grupos da categoria antes de distribuir.');
+      return;
+    }
+    lerGridParaEstado();
+    const contador = {};
+    estado.linhas.forEach((linha, i) => {
+      const rodada = Math.floor(i / ng);
+      const pos = i % ng;
+      const indiceGrupo = rodada % 2 === 0 ? pos : ng - 1 - pos;
+      const letra = String.fromCharCode(65 + indiceGrupo);
+      contador[letra] = (contador[letra] || 0) + 1;
+      linha.grupo = letra;
+      linha.codigo = `${letra}${contador[letra]}`;
+    });
+    desenharGrid();
+  }
+
+  // Captura o que está digitado no grid de volta para estado.linhas.
+  function lerGridParaEstado() {
+    document.querySelectorAll('#grid tbody tr').forEach(tr => {
+      const i = Number(tr.dataset.i);
+      const linha = estado.linhas[i];
+      if (!linha) return;
+      linha.codigo = tr.querySelector('.c-cod').value.trim();
+      linha.grupo = tr.querySelector('.c-grupo').value.trim();
+      linha.atleta1 = tr.querySelector('.c-at1').value.trim();
+      linha.atleta2 = tr.querySelector('.c-at2').value.trim();
+    });
+  }
+
+  function desenharGrid() {
+    document.getElementById('grid').innerHTML = `
+      <table class="grid-duplas">
+        <thead>
+          <tr>
+            <th class="idx">#</th>
+            <th class="col-cod">Código</th>
+            <th class="col-grupo">Grupo</th>
+            <th>Atleta 1</th>
+            <th>Atleta 2</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${estado.linhas.map(linhaHtml).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  function linhaHtml(linha, i) {
+    return `
+      <tr data-i="${i}">
+        <td class="idx">${i + 1}</td>
+        <td class="col-cod">
+          <input type="text" class="c-cod" value="${App.escapar(linha.codigo)}"></td>
+        <td class="col-grupo">${celulaGrupo(linha.grupo)}</td>
+        <td><input type="text" class="c-at1" list="lista-atletas" autocomplete="off"
+                   placeholder="Atleta 1" value="${App.escapar(linha.atleta1)}"></td>
+        <td><input type="text" class="c-at2" list="lista-atletas" autocomplete="off"
+                   placeholder="Atleta 2" value="${App.escapar(linha.atleta2)}"></td>
+      </tr>`;
+  }
+
+  // Grupo: select A, B, C... quando o nº de grupos é conhecido; senão texto livre.
+  function celulaGrupo(valor) {
+    const ng = estado.ec.num_grupos;
+    if (ng) {
+      let opcoes = '<option value="">—</option>';
+      for (let g = 0; g < ng; g++) {
+        const letra = String.fromCharCode(65 + g);
+        opcoes += `<option value="${letra}"${letra === valor ? ' selected' : ''}>${letra}</option>`;
+      }
+      return `<select class="c-grupo">${opcoes}</select>`;
+    }
+    return `<input type="text" class="c-grupo" maxlength="2" value="${App.escapar(valor)}">`;
+  }
+
+  // Devolve o id do atleta com este nome, criando-o se ainda não existir.
+  async function resolverAtleta(nome) {
+    const existente = estado.atletas.find(
+      a => a.nome.toLowerCase() === nome.toLowerCase());
+    if (existente) return existente.id;
+    const novo = await apiAtleta().criar({ nome });
+    estado.atletas.push(novo);
+    return novo.id;
+  }
+
+  async function salvar(botao) {
+    lerGridParaEstado();
+    const erroEl = document.getElementById('grid-erro');
+    const erros = [];
+    const validas = [];
+
+    estado.linhas.forEach((l, i) => {
+      const temAlgo = l.codigo || l.atleta1 || l.atleta2;
+      const completa = l.codigo && l.atleta1 && l.atleta2;
+      if (temAlgo && !completa) {
+        erros.push(`Linha ${i + 1}: preencha código e os dois atletas.`);
+      } else if (completa) {
+        if (l.atleta1.toLowerCase() === l.atleta2.toLowerCase()) {
+          erros.push(`Linha ${i + 1}: os dois atletas devem ser diferentes.`);
+        } else {
+          validas.push(l);
+        }
+      }
+    });
+
+    // Códigos repetidos no grid.
+    const vistos = new Set();
+    for (const l of validas) {
+      const c = l.codigo.toLowerCase();
+      if (vistos.has(c)) erros.push(`Código "${l.codigo}" está repetido.`);
+      vistos.add(c);
+    }
+
+    if (erros.length) {
+      erroEl.innerHTML = erros.map(App.escapar).join('<br>');
+      return;
+    }
+    erroEl.textContent = '';
+
+    // Duplas que existiam e não estão mais no grid (linha esvaziada/removida).
+    const idsNoGrid = new Set(validas.filter(l => l.duplaId).map(l => l.duplaId));
+    const aRemover = estado.idsOriginais.filter(id => !idsNoGrid.has(id));
+    if (aRemover.length &&
+        !confirm(`${aRemover.length} dupla(s) já cadastrada(s) serão removidas. Continuar?`)) {
+      return;
+    }
+
+    botao.disabled = true;
+    try {
+      for (const l of validas) {
+        const atleta1Id = await resolverAtleta(l.atleta1);
+        const atleta2Id = await resolverAtleta(l.atleta2);
+        const dados = { codigo: l.codigo, grupo: l.grupo || null, atleta1Id, atleta2Id };
+        if (l.duplaId) await apiDupla().atualizar(l.duplaId, dados);
+        else await apiDupla().criar({ etapaCategoriaId: estado.etapaCategoriaId, ...dados });
+      }
+      for (const id of aRemover) await apiDupla().remover(id);
+      await App.recarregar();
+    } catch (err) {
+      erroEl.textContent = 'Erro ao salvar: ' + err.message;
+      botao.disabled = false;
+    }
+  }
+})();

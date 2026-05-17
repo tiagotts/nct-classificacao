@@ -1,0 +1,46 @@
+# Gera o instalador .exe do app num ambiente Windows (necessário porque o
+# better-sqlite3 é um módulo nativo e precisa do binário do Windows).
+#
+# - Pode ser disparado manualmente: aba Actions -> "Build Windows" -> Run workflow.
+# - Em tags "v*" (ex.: v0.1.0) também cria uma Release com o instalador anexado.
+name: Build Windows
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # npm ci roda o postinstall (electron-builder install-app-deps), que
+      # recompila o better-sqlite3 para o Electron no Windows.
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Gerar o instalador Windows
+        run: npm run dist:win
+
+      - name: Enviar o instalador como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: instalador-windows
+          path: dist/*.exe
+
+      - name: Criar Release (somente em tags)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.exe

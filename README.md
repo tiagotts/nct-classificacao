@@ -83,9 +83,25 @@ npm run dist:linux   # Linux (AppImage)
 Os instaladores são gerados em `dist/`. Você pode mandar esses arquivos para o
 seu amigo organizador instalar como qualquer outro programa.
 
-**Nota:** para gerar instalador `.dmg` no macOS, você precisa rodar `npm run dist:mac`
-em um Mac. O mesmo vale para Windows — `npm run dist:win` precisa ser rodado em
-um Windows (ou em CI). Não dá para gerar `.exe` no Mac sem configuração extra.
+**Nota:** o instalador precisa ser gerado no mesmo sistema do destino, porque
+o app usa um módulo nativo (`better-sqlite3`). `npm run dist:mac` roda no Mac;
+o `.exe` do Windows **não** pode ser gerado no Mac.
+
+### Instalador do Windows pelo GitHub Actions
+
+O jeito mais simples de gerar o `.exe` sem ter um PC Windows: o workflow
+`.github/workflows/build-windows.yml` constrói o instalador num Windows na nuvem.
+
+1. Garanta que o projeto está num repositório no GitHub.
+2. Aba **Actions** → workflow **Build Windows** → **Run workflow**.
+3. Ao terminar (~5 min), baixe o artefato **instalador-windows** (um `.zip`
+   com o `.exe` dentro).
+4. Como alternativa, crie uma tag `v*` (ex.: `git tag v0.1.0 && git push --tags`):
+   além de gerar, o workflow publica uma **Release** com o `.exe` anexado.
+
+Envie o `.exe` para o usuário Windows — ele instala como qualquer programa.
+Na primeira execução o Windows mostra o aviso do SmartScreen (app sem
+assinatura digital): basta clicar em **Mais informações → Executar assim mesmo**.
 
 ---
 

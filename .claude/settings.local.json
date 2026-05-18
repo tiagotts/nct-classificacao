@@ -44,7 +44,22 @@
       "Bash(node -e \"console.log\\(Object.keys\\(require\\('./package.json'\\).scripts\\)\\)\")",
       "Bash(node -e \"const p=require\\('/Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/package.json'\\); console.log\\('scripts:', Object.keys\\(p.scripts||{}\\)\\); console.log\\('build keys:', Object.keys\\(p.build||{}\\)\\)\")",
       "Bash(npm --prefix /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao run dist:mac)",
-      "Bash(codesign -dv --verbose=2 '/Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/dist/mac-arm64/NCT Classificação.app')"
+      "Bash(codesign -dv --verbose=2 '/Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/dist/mac-arm64/NCT Classificação.app')",
+      "Bash(npx electron-builder *)",
+      "Bash(rm -f /tmp/nct-diag.log)",
+      "Bash(open \"/Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/dist/mac-arm64/NCT Classificação.app\")",
+      "Read(//tmp/**)",
+      "Bash(pkill -f \"NCT Class\")",
+      "Bash(npx electron-builder --mac --dir 2>&1 | grep -iE \"assinatura ad-hoc|⨯|error \" | head -5 *)",
+      "Bash(/usr/libexec/PlistBuddy -c 'Print :ElectronAsarIntegrity' '/Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/dist/mac-arm64/NCT Classificação.app/Contents/Info.plist')",
+      "Bash(codesign -dv --verbose=4 '/Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/dist/mac-arm64/NCT Classificação.app')",
+      "Bash(codesign -dv --verbose=4 \"node_modules/electron/dist/Electron.app\")",
+      "Bash(rm -rf \"/Applications/NCT Classificação.app\")",
+      "Bash(cp -R \"/Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/dist/mac-arm64/NCT Classificação.app\" \"/Applications/\")",
+      "Bash(codesign --verify --deep --strict \"/Applications/NCT Classificação.app\")"
+    ],
+    "additionalDirectories": [
+      "/tmp"
     ]
   }
 }

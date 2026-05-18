@@ -7,8 +7,25 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+
+// --- DIAGNOSTICO TEMPORARIO -------------------------------------------------
+const os = require('os');
+const DIAG = path.join(os.homedir(), 'nct-diag.log');
+function diag(msg) {
+  try { fs.appendFileSync(DIAG, new Date().toISOString() + ' ' + msg + '\n'); }
+  catch (e) { /* ignora */ }
+}
+try { fs.writeFileSync(DIAG, ''); } catch (e) { /* ignora */ }
+diag('main.js: requires de electron/path/fs ok | DIAG=' + DIAG);
+process.on('uncaughtException', (e) => diag('UNCAUGHT: ' + (e && e.stack || e)));
+process.on('unhandledRejection', (e) => diag('REJECTION: ' + (e && e.stack || e)));
+// ---------------------------------------------------------------------------
+
+diag('antes require ./src/db/database');
 const database = require('./src/db/database');
+diag('depois require ./src/db/database');
 const dbIpc = require('./src/db/ipc');
+diag('depois require ./src/db/ipc');
 
 // Caminho do arquivo onde guardamos a última configuração usada.
 // Fica em ~/Library/Application Support/NCT Classificação/ (Mac)
@@ -186,22 +203,34 @@ function buildMenu() {
 // Ciclo de vida
 // =============================================================================
 app.whenReady().then(() => {
-  // Abre o banco SQLite e aplica as migrações pendentes.
-  database.abrir(path.join(app.getPath('userData'), 'nct.db'));
+  diag('whenReady: inicio');
+  try {
+    // Abre o banco SQLite e aplica as migrações pendentes.
+    diag('antes database.abrir | userData=' + app.getPath('userData'));
+    database.abrir(path.join(app.getPath('userData'), 'nct.db'));
+    diag('depois database.abrir');
 
-  // Handlers IPC expostos ao renderer via preload.js
-  ipcMain.handle('config:load', () => readConfig());
-  ipcMain.handle('config:save', (event, cfg) => writeConfig(cfg));
+    // Handlers IPC expostos ao renderer via preload.js
+    ipcMain.handle('config:load', () => readConfig());
+    ipcMain.handle('config:save', (event, cfg) => writeConfig(cfg));
 
-  // Handlers do banco (CRUD dos repositórios)
-  dbIpc.registrar(ipcMain);
+    // Handlers do banco (CRUD dos repositórios)
+    diag('antes dbIpc.registrar');
+    dbIpc.registrar(ipcMain);
+    diag('depois dbIpc.registrar');
 
-  buildMenu();
-  createWindow();
+    diag('antes buildMenu');
+    buildMenu();
+    diag('antes createWindow');
+    createWindow();
+    diag('depois createWindow');
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+  } catch (e) {
+    diag('ERRO no whenReady: ' + (e && e.stack || e));
+  }
 });
 
 app.on('window-all-closed', () => {

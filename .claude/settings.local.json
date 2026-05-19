@@ -67,7 +67,8 @@
       "Bash(ELECTRON_RUN_AS_NODE=1 npx electron tests/test-mata-mata.js)",
       "Bash(python3 -c \"import openpyxl; print\\('openpyxl ok'\\)\")",
       "Bash(node -e \"require\\('./renderer/app.js'\\)\")",
-      "Bash(node --check renderer/app.js)"
+      "Bash(node --check renderer/app.js)",
+      "Bash(node --check renderer/telas/classificacao.js)"
     ],
     "additionalDirectories": [
       "/tmp"

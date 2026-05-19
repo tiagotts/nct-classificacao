@@ -1,73 +1,46 @@
-// Tela de classificação dos grupos de uma categoria.
-// Apenas exibe o resultado calculado pelo motor (a partir dos placares).
+// Tela de classificação de uma categoria: o ranking geral dos classificados,
+// de 1 a N — é a partir dele que o mata-mata é montado.
 // params: { etapaCategoriaId }
 (() => {
   App.registrarTela('classificacao', { render });
 
-  const ROTULO = {
-    V: 'Vitórias', AVG: 'Average', SP: 'Saldo de pontos',
-    H2H: 'Confronto direto', SORTEIO: 'Sorteio',
-  };
-
   async function render(container, params) {
-    const r = await window.electronAPI.db.classificacao.calcular(params.etapaCategoriaId);
-    const grupos = Object.keys(r.grupos);
+    const r = await window.electronAPI.db.classificacao
+      .calcular(params.etapaCategoriaId);
+    const ranking = r.ranking || [];
 
-    if (!grupos.length) {
+    if (!ranking.length) {
       container.innerHTML = `
         <div class="topo-tela"><h2>Classificação</h2></div>
-        <div class="vazio">Cadastre as duplas e os grupos para ver a classificação.</div>`;
+        <div class="vazio">Cadastre as duplas e os grupos, e lance os placares
+          da fase de grupos para ver a classificação.</div>`;
       return;
     }
 
-    const avgTexto = r.formulaAvg === 'diferenca'
-      ? 'diferença PP − PC' : 'razão PP ÷ PC';
-    const dica = r.formato === 'dupla-eliminatoria'
-      ? 'Classificação pela chave de dupla eliminatória de cada grupo: '
-        + '1º vencedor da decisão, 2º vice, 3º perdedor da repescagem, '
-        + '4º perdedor do jogo dos perdedores.'
-      : 'Critérios de desempate: '
-        + `${r.criterios.map(c => ROTULO[c] || c).join(' › ')}. `
-        + `Average: ${avgTexto}. As 2 primeiras de cada grupo aparecem destacadas.`;
-
     container.innerHTML = `
-      <div class="topo-tela"><h2>Classificação dos grupos</h2></div>
-      <p class="dica">${dica}</p>
-      ${grupos.map(g => blocoGrupo(g, r.grupos[g], r.formulaAvg)).join('')}`;
-  }
-
-  function blocoGrupo(grupo, lista, formula) {
-    return `
-      <div class="bloco-grupo">
-        <h3>Grupo ${App.escapar(grupo)}</h3>
-        <table class="tab-class">
-          <thead><tr>
-            <th class="idx">#</th>
-            <th>Dupla</th>
-            <th class="n" title="Jogos">J</th>
-            <th class="n" title="Vitórias">V</th>
-            <th class="n" title="Pontos pró">PP</th>
-            <th class="n" title="Pontos contra">PC</th>
-            <th class="n" title="Ponto average">AVG</th>
-            <th>Desempate</th>
-          </tr></thead>
-          <tbody>${lista.map(s => linhaHtml(s, formula)).join('')}</tbody>
-        </table>
-      </div>`;
+      <div class="topo-tela"><h2>Classificados</h2></div>
+      <p class="dica">Ranking geral dos classificados, de 1º a ${ranking.length}º.
+        É a ordem usada para montar o mata-mata.</p>
+      <table class="tab-class">
+        <thead><tr>
+          <th class="idx">Posição</th>
+          <th>Dupla</th>
+          <th class="n">Vitórias</th>
+          <th class="n">Classif. no grupo</th>
+          <th class="n">Average</th>
+        </tr></thead>
+        <tbody>${ranking.map(s => linhaHtml(s, r.formulaAvg)).join('')}</tbody>
+      </table>`;
   }
 
   function linhaHtml(s, formula) {
-    const classificada = s.posicao <= 2 ? ' pos-q' : '';
     return `
       <tr>
-        <td class="idx"><span class="pos${classificada}">${s.posicao}</span></td>
+        <td class="idx"><span class="pos">${s.seed}º</span></td>
         <td><span class="cod">${App.escapar(s.codigo)}</span>${App.escapar(s.nome)}</td>
-        <td class="n">${s.J}</td>
         <td class="n">${s.V}</td>
-        <td class="n">${s.PP}</td>
-        <td class="n">${s.PC}</td>
+        <td class="n">${s.posGrupo}º</td>
         <td class="n">${fmtAvg(s.AVG, formula)}</td>
-        <td class="motivo">${s.motivo ? App.escapar(s.motivo) : '—'}</td>
       </tr>`;
   }
 

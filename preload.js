@@ -54,8 +54,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('classificacao:calcular', etapaCategoriaId),
     },
     rankingTemporada: {
-      calcular: (temporadaId, categoriaId) =>
-        ipcRenderer.invoke('rankingTemporada:calcular', temporadaId, categoriaId),
+      calcular: (temporadaId, categoriaId, tipo) =>
+        ipcRenderer.invoke('rankingTemporada:calcular', temporadaId, categoriaId, tipo),
+    },
+    pontuacao: {
+      faixas: (etapaCategoriaId) =>
+        ipcRenderer.invoke('pontuacao:faixas', etapaCategoriaId),
+      salvar: (etapaCategoriaId, faixas) =>
+        ipcRenderer.invoke('pontuacao:salvar', etapaCategoriaId, faixas),
     },
   },
 

@@ -11,7 +11,7 @@ const SELECT_BASE = `
 // listar(etapaId): categorias disputadas numa etapa.
 function listar(etapaId) {
   return getDb()
-    .prepare(`${SELECT_BASE} WHERE ec.etapa_id = ? ORDER BY c.nome`)
+    .prepare(`${SELECT_BASE} WHERE ec.etapa_id = ? ORDER BY c.nome, ec.tipo`)
     .all(etapaId);
 }
 
@@ -19,18 +19,25 @@ function obter(id) {
   return getDb().prepare(`${SELECT_BASE} WHERE ec.id = ?`).get(id);
 }
 
-function criar({ etapaId, categoriaId, numGrupos, configJson }) {
+function criar({ etapaId, categoriaId, tipo, numGrupos, configJson, formato }) {
   const info = getDb()
-    .prepare(`INSERT INTO etapa_categoria (etapa_id, categoria_id, num_grupos, config_json)
-              VALUES (?, ?, ?, ?)`)
-    .run(etapaId, categoriaId, numGrupos ?? null, configJson ?? null);
+    .prepare(`INSERT INTO etapa_categoria
+                (etapa_id, categoria_id, tipo, num_grupos, config_json, formato)
+              VALUES (?, ?, ?, ?, ?, ?)`)
+    .run(etapaId, categoriaId, tipo, numGrupos ?? null, configJson ?? null,
+         formato || 'todos-contra-todos');
   return obter(info.lastInsertRowid);
 }
 
-function atualizar(id, { numGrupos, configJson }) {
+// atualizar: formato é opcional — quando não vem (ex: salvando só o
+// config_json pela tela de configuração) o valor atual é preservado.
+function atualizar(id, { numGrupos, configJson, formato }) {
+  const atual = obter(id);
   getDb()
-    .prepare('UPDATE etapa_categoria SET num_grupos = ?, config_json = ? WHERE id = ?')
-    .run(numGrupos ?? null, configJson ?? null, id);
+    .prepare(`UPDATE etapa_categoria
+              SET num_grupos = ?, config_json = ?, formato = ? WHERE id = ?`)
+    .run(numGrupos ?? null, configJson ?? null,
+         formato || (atual && atual.formato) || 'todos-contra-todos', id);
   return obter(id);
 }
 

@@ -21,6 +21,11 @@ function jogo(d1, d2, p1, p2, tipo = 'normal') {
   return { fase: 'grupo', dupla1_id: d1, dupla2_id: d2,
            placar1: p1, placar2: p2, tipo_resultado: tipo };
 }
+// Jogo da dupla eliminatória (precisa de grupo + num para a ordem da chave).
+function jogoDE(num, d1, d2, p1, p2) {
+  return { fase: 'grupo', grupo: 'A', num, dupla1_id: d1, dupla2_id: d2,
+           placar1: p1, placar2: p2, tipo_resultado: 'normal' };
+}
 
 console.log('\n=== TESTES — Motor de classificação ===\n');
 
@@ -116,6 +121,38 @@ t('separa as duplas por grupo', () => {
   const r = calcularClassificacao(duplas, jogos);
   eq(Object.keys(r.grupos).join(','), 'A,B', 'grupos');
   eq(r.grupos.A.length, 2, 'tamanho do grupo A');
+});
+
+t('dupla eliminatória: classifica o grupo pela chave (5 jogos)', () => {
+  const duplas = [dupla(1, 'A'), dupla(2, 'A'), dupla(3, 'A'), dupla(4, 'A')];
+  const jogos = [
+    jogoDE(1, 1, 4, 21, 15), // J1: 1 vence 4
+    jogoDE(2, 2, 3, 21, 15), // J2: 2 vence 3
+    jogoDE(3, 1, 2, 21, 18), // J3 vencedores: 1 vence 2 -> 1º = dupla 1 (invicto)
+    jogoDE(4, 4, 3, 18, 21), // J4 perdedores: 3 vence 4 -> 4º = dupla 4
+    jogoDE(5, 2, 3, 21, 15), // J5 repescagem: 2 vence 3 -> 2º = dupla 2, 3º = dupla 3
+  ];
+  const r = calcularClassificacao(duplas, jogos, { formato: 'dupla-eliminatoria' });
+  const A = r.grupos.A;
+  eq(A[0].id, 1, '1º (vencedor do jogo dos vencedores, invicto)');
+  eq(A[1].id, 2, '2º (vencedor da repescagem)');
+  eq(A[2].id, 3, '3º (perdedor da repescagem)');
+  eq(A[3].id, 4, '4º (perdedor do jogo dos perdedores)');
+  eq(A[0].posicao, 1, 'posição do 1º');
+});
+
+t('dupla eliminatória: posição já decidida vale antes da chave fechar', () => {
+  const duplas = [dupla(1, 'A'), dupla(2, 'A'), dupla(3, 'A'), dupla(4, 'A')];
+  const jogos = [
+    jogoDE(1, 1, 4, 21, 15),
+    jogoDE(2, 2, 3, 21, 15),
+    jogoDE(3, null, null, null, null),  // vencedores ainda não jogado
+    jogoDE(4, 4, 3, 18, 21),            // perdedores: 3 vence 4 -> 4º = dupla 4
+    jogoDE(5, null, null, null, null),  // repescagem ainda não jogada
+  ];
+  const r = calcularClassificacao(duplas, jogos, { formato: 'dupla-eliminatoria' });
+  eq(r.grupos.A.length, 4, 'grupo tem 4 duplas');
+  eq(r.grupos.A[3].id, 4, '4º já conhecido (perdeu o jogo dos perdedores)');
 });
 
 console.log(`\n=== ${ok} passou(aram), ${fail} falhou(aram) ===\n`);

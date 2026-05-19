@@ -3,13 +3,16 @@
 (() => {
   App.registrarTela('categoria-detalhe', { render });
 
+  const ROTULO_TIPO = { masculino: 'Masculino', feminino: 'Feminino' };
+
   async function render(container, params) {
     const { etapaCategoriaId } = params;
     const ec = await window.electronAPI.db.etapaCategoria.obter(etapaCategoriaId);
+    const tipo = ROTULO_TIPO[ec.tipo] || ec.tipo || '';
 
     container.innerHTML = `
       <div class="topo-tela">
-        <h2>Categoria ${App.escapar(ec.categoria_nome)}</h2>
+        <h2>Categoria ${App.escapar(ec.categoria_nome)} — ${App.escapar(tipo)}</h2>
       </div>
       <div class="hub">
         <button class="hub-card" data-ir="duplas">

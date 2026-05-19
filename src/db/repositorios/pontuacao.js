@@ -13,4 +13,21 @@ function faixas(etapaCategoriaId) {
   return rows.map(r => ({ ini: r.pos_ini, fim: r.pos_fim, pontos: r.pontos }));
 }
 
-module.exports = { faixas };
+// salvar(etapaCategoriaId, faixas): substitui as faixas de pontuação da
+// categoria. faixas = [{ ini, fim, pontos }]. Lista vazia = volta ao padrão.
+function salvar(etapaCategoriaId, faixasNovas) {
+  const db = getDb();
+  const inserir = db.prepare(
+    `INSERT INTO pontuacao (etapa_categoria_id, pos_ini, pos_fim, pontos)
+     VALUES (?, ?, ?, ?)`);
+  db.transaction(() => {
+    db.prepare('DELETE FROM pontuacao WHERE etapa_categoria_id = ?')
+      .run(etapaCategoriaId);
+    for (const f of (faixasNovas || [])) {
+      inserir.run(etapaCategoriaId, f.ini, f.fim, f.pontos);
+    }
+  })();
+  return faixas(etapaCategoriaId);
+}
+
+module.exports = { faixas, salvar };

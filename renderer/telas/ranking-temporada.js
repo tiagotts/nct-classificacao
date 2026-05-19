@@ -17,6 +17,11 @@
             ${categorias.map(c =>
               `<option value="${c.id}">${App.escapar(c.nome)}</option>`).join('')}
           </select>
+          <label for="combo-tipo">Tipo</label>
+          <select id="combo-tipo">
+            <option value="masculino">Masculino</option>
+            <option value="feminino">Feminino</option>
+          </select>
         </div>
       </div>
       <p class="dica">Pontos por atleta somando todas as etapas da temporada.
@@ -24,15 +29,19 @@
       <div id="ranking"></div>`;
 
     const combo = container.querySelector('#combo-cat');
-    combo.onchange = () => carregar(temporadaId, Number(combo.value));
-    if (categorias.length) carregar(temporadaId, Number(combo.value));
+    const comboTipo = container.querySelector('#combo-tipo');
+    const atualizar = () =>
+      carregar(temporadaId, Number(combo.value), comboTipo.value);
+    combo.onchange = atualizar;
+    comboTipo.onchange = atualizar;
+    if (categorias.length) atualizar();
   }
 
-  async function carregar(temporadaId, categoriaId) {
+  async function carregar(temporadaId, categoriaId, tipo) {
     const div = document.getElementById('ranking');
     div.innerHTML = '<div class="carregando">Carregando…</div>';
     const lista = await window.electronAPI.db.rankingTemporada
-      .calcular(temporadaId, categoriaId);
+      .calcular(temporadaId, categoriaId, tipo);
 
     if (!lista.length) {
       div.innerHTML = `<div class="vazio">Nenhum resultado nesta categoria ainda.

@@ -206,8 +206,17 @@ app.whenReady().then(() => {
   diag('whenReady: inicio');
   try {
     // Abre o banco SQLite e aplica as migrações pendentes.
-    diag('antes database.abrir | userData=' + app.getPath('userData'));
-    database.abrir(path.join(app.getPath('userData'), 'nct.db'));
+    // Em desenvolvimento (npm start) o banco fica em data/nct.db dentro do
+    // projeto, para facilitar inspeção e reset. No app empacotado, fica no
+    // diretório userData do sistema.
+    const dbPath = app.isPackaged
+      ? path.join(app.getPath('userData'), 'nct.db')
+      : path.join(__dirname, 'data', 'nct.db');
+    if (!app.isPackaged) {
+      fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+    }
+    diag('antes database.abrir | dbPath=' + dbPath);
+    database.abrir(dbPath);
     diag('depois database.abrir');
 
     // Handlers IPC expostos ao renderer via preload.js

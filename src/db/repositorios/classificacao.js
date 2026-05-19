@@ -12,6 +12,8 @@ function calcular(etapaCategoriaId) {
   if (ec && ec.config_json) {
     try { config = JSON.parse(ec.config_json); } catch { config = {}; }
   }
+  // O formato decide o esquema de classificação (pontos x chave do grupo).
+  if (ec) config.formato = ec.formato;
   const duplas = dupla.listar(etapaCategoriaId);
   const jogos = jogo.listar(etapaCategoriaId);
   return motor.calcularClassificacao(duplas, jogos, config);

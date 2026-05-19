@@ -6,6 +6,7 @@
 (() => {
   const apiJogo = () => window.electronAPI.db.jogo;
   const apiDupla = () => window.electronAPI.db.dupla;
+  const apiEC = () => window.electronAPI.db.etapaCategoria;
 
   App.registrarTela('chave', { render });
 
@@ -25,9 +26,18 @@
   async function render(container, params) {
     const { etapaCategoriaId } = params;
     const duplas = await apiDupla().listar(etapaCategoriaId);
+    const ec = await apiEC().obter(etapaCategoriaId);
     const jogos = (await apiJogo().listar(etapaCategoriaId))
       .filter(j => j.fase !== 'grupo')
       .sort((a, b) => a.num - b.num);
+
+    // Nº de sets da final (1º lugar): 1 ou melhor de 3, vindo da configuração.
+    let setsFinal = 1;
+    if (ec && ec.config_json) {
+      try {
+        setsFinal = JSON.parse(ec.config_json).setsFinal === 3 ? 3 : 1;
+      } catch (e) { setsFinal = 1; }
+    }
 
     if (jogos.length === 0) {
       container.innerHTML = `
@@ -56,7 +66,7 @@
         : `${ROTULO_CURTO[j.fase]} ${contagem[j.fase]}`;
     }
 
-    estado = { etapaCategoriaId, jogos, duplaMap, labelMap };
+    estado = { etapaCategoriaId, jogos, duplaMap, labelMap, setsFinal };
 
     container.innerHTML = `
       <div class="topo-tela">
@@ -114,6 +124,10 @@
   function linhaHtml(j) {
     const definido = j.dupla1_id && j.dupla2_id;
     const dis = definido ? '' : ' disabled';
+    // Final em melhor de 3: placar lançado set a set.
+    if (j.fase === 'final' && estado.setsFinal === 3) {
+      return linhaFinalSets(j, dis);
+    }
     const tipo = j.tipo_resultado || 'normal';
     const op = (v, txt) =>
       `<option value="${v}"${tipo === v ? ' selected' : ''}>${txt}</option>`;
@@ -129,6 +143,31 @@
         <td class="col-tipo"><select class="tipo"${dis}>
           ${op('normal', 'Normal')}${op('wx0', 'W×0')}${op('desistencia', 'Desistência')}
         </select></td>
+      </tr>`;
+  }
+
+  // Linha da final em melhor de 3: três pares de inputs (um por set). Os
+  // sets ficam empilhados na célula de placar; sets em branco são ignorados.
+  function linhaFinalSets(j, dis) {
+    let sets = [];
+    if (j.sets) { try { sets = JSON.parse(j.sets); } catch (e) { sets = []; } }
+    const val = (k, lado) => {
+      const s = sets[k - 1];
+      return s && s[lado] != null ? s[lado] : '';
+    };
+    const inputs = (lado, cls) => [1, 2, 3].map(k =>
+      `<input type="number" min="0" class="${cls}" data-set="${k}"${dis}
+         placeholder="Set ${k}" value="${val(k, lado)}">`).join('');
+    const resumo = (j.placar1 != null && j.placar2 != null)
+      ? `${j.placar1} × ${j.placar2}` : 'melhor de 3';
+    return `
+      <tr data-id="${j.id}" data-multiset="1">
+        <td class="col-jogo">${App.escapar(estado.labelMap[j.id])}</td>
+        <td>${ladoHtml(j.dupla1_id, j.origem1_jogo_id, j.origem1_tipo)}</td>
+        <td class="col-placar col-sets">${inputs(0, 'ms-p1')}</td>
+        <td class="col-placar col-sets">${inputs(1, 'ms-p2')}</td>
+        <td>${ladoHtml(j.dupla2_id, j.origem2_jogo_id, j.origem2_tipo)}</td>
+        <td class="col-tipo">${resumo}</td>
       </tr>`;
   }
 
@@ -154,9 +193,25 @@
     erroEl.textContent = '';
     try {
       for (const tr of document.querySelectorAll('#blocos tbody tr')) {
+        const id = Number(tr.dataset.id);
+
+        // Final em melhor de 3: monta o array de sets preenchidos.
+        if (tr.dataset.multiset) {
+          const primeiro = tr.querySelector('.ms-p1');
+          if (!primeiro || primeiro.disabled) continue;
+          const sets = [];
+          for (let k = 1; k <= 3; k++) {
+            const v1 = tr.querySelector(`.ms-p1[data-set="${k}"]`).value;
+            const v2 = tr.querySelector(`.ms-p2[data-set="${k}"]`).value;
+            if (v1 !== '' && v2 !== '') sets.push([Number(v1), Number(v2)]);
+          }
+          await apiJogo().registrarPlacar(id,
+            sets.length ? { sets } : { placar1: null, placar2: null });
+          continue;
+        }
+
         const p1in = tr.querySelector('.p1');
         if (p1in.disabled) continue; // jogo ainda sem as duas duplas
-        const id = Number(tr.dataset.id);
         const p1 = p1in.value;
         const p2 = tr.querySelector('.p2').value;
         await apiJogo().registrarPlacar(id, {

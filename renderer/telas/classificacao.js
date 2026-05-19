@@ -22,13 +22,17 @@
 
     const avgTexto = r.formulaAvg === 'diferenca'
       ? 'diferença PP − PC' : 'razão PP ÷ PC';
+    const dica = r.formato === 'dupla-eliminatoria'
+      ? 'Classificação pela chave de dupla eliminatória de cada grupo: '
+        + '1º vencedor da decisão, 2º vice, 3º perdedor da repescagem, '
+        + '4º perdedor do jogo dos perdedores.'
+      : 'Critérios de desempate: '
+        + `${r.criterios.map(c => ROTULO[c] || c).join(' › ')}. `
+        + `Average: ${avgTexto}. As 2 primeiras de cada grupo aparecem destacadas.`;
 
     container.innerHTML = `
       <div class="topo-tela"><h2>Classificação dos grupos</h2></div>
-      <p class="dica">
-        Critérios de desempate: ${r.criterios.map(c => ROTULO[c] || c).join(' › ')}.
-        Average: ${avgTexto}. As 2 primeiras de cada grupo aparecem destacadas.
-      </p>
+      <p class="dica">${dica}</p>
       ${grupos.map(g => blocoGrupo(g, r.grupos[g], r.formulaAvg)).join('')}`;
   }
 

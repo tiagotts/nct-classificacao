@@ -30,17 +30,19 @@ function calcularRankingGeral(duplas, jogos, config = {}) {
     ? config.criterios : CONFIG_PADRAO.criterios;
 
   const diretos = [];
-  const candidatosRepescagem = [];
+  // naoDiretos: duplas não classificadas direto. posGrupo (posição no grupo)
+  // é guardado em todas para a repescagem priorizar os terceiros, depois os
+  // quartos, etc., e para o ranqueamento em blocos.
+  const naoDiretos = [];
   for (const g of Object.keys(cls.grupos)) {
     cls.grupos[g].forEach((s, i) => {
       // motivo é zerado: o desempate relevante aqui é o do ranking geral.
-      const copia = { ...s, motivo: null };
+      const copia = { ...s, motivo: null, posGrupo: i + 1, grupoOrigem: g };
       if (i < classPorGrupo) {
         copia.classificadoPor = `${i + 1}º do grupo ${g}`;
         diretos.push(copia);
-      } else if (i === classPorGrupo) {
-        copia.classificadoPor = `${i + 1}º do grupo ${g} (repescagem)`;
-        candidatosRepescagem.push(copia);
+      } else {
+        naoDiretos.push(copia);
       }
     });
   }
@@ -56,12 +58,44 @@ function calcularRankingGeral(duplas, jogos, config = {}) {
     repescagem = alvo ? alvo - diretos.length : 0;
   }
 
-  // Escolhe os melhores terceiros (ou n-ésimos) para a repescagem.
-  const repescados = ordenarPorCriterios(candidatosRepescagem, jogos, criterios)
-    .slice(0, repescagem);
+  // Ordena os candidatos à repescagem por faixa de posição no grupo: todos
+  // os terceiros antes de todos os quartos, etc.; dentro da faixa, pelos
+  // critérios de desempate. Assim os "melhores terceiros" têm prioridade e
+  // os quartos só entram para completar uma chave válida (ex.: 4 duplas em
+  // 1 grupo -> os 4 vão ao mata-mata).
+  const porPosicao = {};
+  for (const c of naoDiretos) {
+    (porPosicao[c.posGrupo] = porPosicao[c.posGrupo] || []).push(c);
+  }
+  const candidatos = [];
+  for (const pos of Object.keys(porPosicao).map(Number).sort((a, b) => a - b)) {
+    candidatos.push(...ordenarPorCriterios(porPosicao[pos], jogos, criterios));
+  }
+  const repescados = candidatos.slice(0, repescagem);
+  repescados.forEach(c => {
+    c.classificadoPor = `${c.posGrupo}º do grupo ${c.grupoOrigem} (repescagem)`;
+  });
 
-  // Ranking geral 1..N de todos os classificados.
-  const ranking = ordenarPorCriterios([...diretos, ...repescados], jogos, criterios);
+  // Ranking geral, em dois modos (config.rankingGeral):
+  //  - 'blocos' (padrão): ordena primeiro pela posição no grupo (todos os 1º
+  //    colocados, depois os 2º, depois os repescados...) e, dentro de cada
+  //    bloco, pelos critérios. Um 2º nunca passa à frente de um 1º.
+  //  - 'independente': ordena todos os classificados só pelos critérios de
+  //    desempate, independente da posição que tiveram no grupo.
+  const classificados = [...diretos, ...repescados];
+  let ranking;
+  if (config.rankingGeral === 'independente') {
+    ranking = ordenarPorCriterios(classificados, jogos, criterios);
+  } else {
+    const porBloco = {};
+    for (const c of classificados) {
+      (porBloco[c.posGrupo] = porBloco[c.posGrupo] || []).push(c);
+    }
+    ranking = [];
+    for (const pos of Object.keys(porBloco).map(Number).sort((a, b) => a - b)) {
+      ranking.push(...ordenarPorCriterios(porBloco[pos], jogos, criterios));
+    }
+  }
   ranking.forEach((s, i) => { s.seed = i + 1; });
 
   return {

@@ -65,8 +65,8 @@ t('chave de 16: 16 jogos', () => {
 
 t('tamanho não suportado lança erro', () => {
   let lancou = false;
-  try { gerarChave(6); } catch { lancou = true; }
-  if (!lancou) throw new Error('deveria lançar erro para N=6');
+  try { gerarChave(5); } catch { lancou = true; }
+  if (!lancou) throw new Error('deveria lançar erro para N=5');
 });
 
 t('3º lugar vem dos perdedores das semifinais', () => {
@@ -111,13 +111,59 @@ t('ranking geral completa a repescagem automaticamente (3 grupos -> 8)', () => {
   eq(r.ranking.length, 8, 'classificados com repescagem automática');
 });
 
+t('ranking geral: 4 duplas em 1 grupo -> as 4 vão ao mata-mata', () => {
+  // 1 grupo de 4, 2 diretos: a repescagem puxa o 3º e o 4º para fechar a
+  // chave de 4 (antes só ia o 3º e a chave de 3 quebrava).
+  const duplas = [1, 2, 3, 4].map(n => ({
+    id: `A${n}`, codigo: `A${n}`, grupo: 'A',
+    atleta1_nome: 'x', atleta2_nome: 'y',
+  }));
+  const jogos = [];
+  for (let i = 0; i < duplas.length; i++) {
+    for (let j = i + 1; j < duplas.length; j++) {
+      jogos.push({
+        fase: 'grupo', dupla1_id: duplas[i].id, dupla2_id: duplas[j].id,
+        placar1: 21, placar2: 10, tipo_resultado: 'normal',
+      });
+    }
+  }
+  const r = calcularRankingGeral(duplas, jogos, { classPorGrupo: 2 });
+  eq(r.ranking.length, 4, '2 diretos + 2 repescagem = chave de 4');
+});
+
+t('ranking geral em blocos: 1º de grupo nunca fica atrás de 2º', () => {
+  // 2 grupos de 3. No grupo A o 2º colocado (A2) tem average altíssimo
+  // (venceu o A3 por 21x1) — maior que o de qualquer 1º colocado.
+  const mk = (g, n) => ({
+    id: `${g}${n}`, codigo: `${g}${n}`, grupo: g,
+    atleta1_nome: 'x', atleta2_nome: 'y',
+  });
+  const duplas = ['A', 'B'].flatMap(g => [1, 2, 3].map(n => mk(g, n)));
+  const jg = (d1, d2, p1, p2) => ({
+    fase: 'grupo', dupla1_id: d1, dupla2_id: d2,
+    placar1: p1, placar2: p2, tipo_resultado: 'normal',
+  });
+  const jogos = [
+    jg('A1', 'A2', 21, 19), jg('A1', 'A3', 21, 10), jg('A2', 'A3', 21, 1),
+    jg('B1', 'B2', 21, 15), jg('B1', 'B3', 21, 15), jg('B2', 'B3', 21, 15),
+  ];
+  // Critérios só por average: sem o bloco, A2 (average maior) seria seed 1.
+  const r = calcularRankingGeral(duplas, jogos,
+    { classPorGrupo: 2, repescagem: 0, criterios: ['AVG', 'SORTEIO'] });
+  eq(r.ranking[0].posGrupo, 1, 'seed 1 é 1º de grupo');
+  eq(r.ranking[1].posGrupo, 1, 'seed 2 é 1º de grupo');
+  eq(r.ranking[2].posGrupo, 2, 'seed 3 é 2º de grupo');
+  eq(r.ranking[3].posGrupo, 2, 'seed 4 é 2º de grupo');
+});
+
 // --- ranking geral + gerarMataMata (com banco) -------------------------
 abrir(':memory:');
 
 const temp = temporada.criar({ nome: 'T', ano: 2025 });
 const et = etapa.criar({ temporadaId: temp.id, nome: 'E1' });
-const sub17 = categoria.listar().find(c => c.slug === 'sub17');
-const ec = etapaCategoria.criar({ etapaId: et.id, categoriaId: sub17.id, numGrupos: 2 });
+const cat = categoria.listar().find(c => c.slug === 'sub18');
+const ec = etapaCategoria.criar({
+  etapaId: et.id, categoriaId: cat.id, tipo: 'masculino', numGrupos: 2 });
 
 // 2 grupos de 4 duplas (16 atletas).
 const atletas = [];
@@ -208,6 +254,97 @@ t('apuração: duplas não classificadas ficam na faixa N+1', () => {
   // 8 duplas, 4 classificadas (chave de 4) -> não classificadas na faixa 5.
   const naoClassificadas = dupla.listar(ec.id).filter(d => d.colocacao_final === 5);
   eq(naoClassificadas.length, 4, 'duplas fora do mata-mata');
+});
+
+t('chave de 6: 6 jogos, com bye das seeds 1 e 2 à semifinal', () => {
+  const c = gerarChave(6);
+  eq(c.partidas.length, 6, 'nº de partidas');
+  const fases = c.partidas.map(p => p.fase);
+  eq(fases.filter(f => f === 'quartas').length, 2, 'quartas');
+  eq(fases.filter(f => f === 'semi').length, 2, 'semis');
+  eq(fases.filter(f => f === 'final').length, 1, 'final');
+  eq(fases.filter(f => f === 'terceiro').length, 1, 'terceiro');
+  const semisComBye = c.partidas.filter(p =>
+    p.fase === 'semi' && (p.slot1.seed === 1 || p.slot1.seed === 2));
+  eq(semisComBye.length, 2, 'as duas semis recebem uma seed com bye');
+});
+
+t('ranking geral independente: 2º de grupo pode passar à frente de um 1º', () => {
+  const mk = (g, n) => ({
+    id: `${g}${n}`, codigo: `${g}${n}`, grupo: g,
+    atleta1_nome: 'x', atleta2_nome: 'y',
+  });
+  const ds = ['A', 'B'].flatMap(g => [1, 2, 3].map(n => mk(g, n)));
+  const jg = (d1, d2, p1, p2) => ({
+    fase: 'grupo', dupla1_id: d1, dupla2_id: d2,
+    placar1: p1, placar2: p2, tipo_resultado: 'normal',
+  });
+  // Grupo A com averages altos; grupo B com averages baixos.
+  const js = [
+    jg('A1', 'A2', 21, 19), jg('A1', 'A3', 21, 5), jg('A2', 'A3', 21, 5),
+    jg('B1', 'B2', 21, 19), jg('B1', 'B3', 21, 19), jg('B2', 'B3', 21, 19),
+  ];
+  const cfg = {
+    classPorGrupo: 2, repescagem: 0, criterios: ['AVG', 'SORTEIO'],
+  };
+  const indep = calcularRankingGeral(ds, js,
+    { ...cfg, rankingGeral: 'independente' });
+  // Por average: A1, A2, B1, B2 -> o 2º de A (seed 2) fica à frente do 1º de B.
+  eq(indep.ranking[1].id, 'A2', 'seed 2 é A2 (2º colocado de grupo)');
+  eq(indep.ranking[1].posGrupo, 2, 'A2 é 2º colocado');
+  eq(indep.ranking[2].id, 'B1', 'seed 3 é B1 (1º de grupo, atrás de um 2º)');
+
+  // Em blocos, o 1º de B vem antes de qualquer 2º colocado.
+  const blocos = calcularRankingGeral(ds, js, { ...cfg, rankingGeral: 'blocos' });
+  eq(blocos.ranking[1].posGrupo, 1, 'em blocos, seed 2 ainda é 1º de grupo');
+});
+
+t('mata-mata com bye: 2 grupos classificando 3 -> chave de 6 jogos', () => {
+  const et2 = etapa.criar({ temporadaId: temp.id, nome: 'E-bye' });
+  const ec2 = etapaCategoria.criar({
+    etapaId: et2.id, categoriaId: cat.id, tipo: 'feminino', numGrupos: 2,
+    configJson: JSON.stringify({ classPorGrupo: 3, repescagem: 0 }),
+  });
+  const dups = [];
+  ['A', 'B'].forEach(g => {
+    for (let n = 1; n <= 4; n++) {
+      const a1 = atleta.criar({ nome: `Bye ${g}${n}a` });
+      const a2 = atleta.criar({ nome: `Bye ${g}${n}b` });
+      dups.push(dupla.criar({
+        etapaCategoriaId: ec2.id, codigo: `${g}${n}`, grupo: g,
+        atleta1Id: a1.id, atleta2Id: a2.id }));
+    }
+  });
+  jogo.gerarFaseGrupos(ec2.id);
+  for (const j of jogo.listar(ec2.id).filter(x => x.fase === 'grupo')) {
+    const ordem = id => dups.findIndex(d => d.id === id);
+    const venceu1 = ordem(j.dupla1_id) < ordem(j.dupla2_id);
+    jogo.registrarPlacar(j.id, {
+      placar1: venceu1 ? 21 : 15, placar2: venceu1 ? 15 : 21 });
+  }
+
+  const mata = jogo.gerarMataMata(ec2.id).filter(j => j.fase !== 'grupo');
+  eq(mata.length, 6, 'chave de 6 jogos');
+  eq(mata.filter(j => j.fase === 'quartas').length, 2, 'quartas');
+  eq(mata.filter(j => j.fase === 'semi').length, 2, 'semis');
+  for (const s of mata.filter(j => j.fase === 'semi')) {
+    if (!s.dupla1_id) throw new Error('semi sem o campeão de grupo (bye)');
+  }
+
+  // Joga a chave até o fim e confere as colocações.
+  jogo.listar(ec2.id).filter(j => j.fase === 'quartas')
+    .forEach(j => jogo.registrarPlacar(j.id, { placar1: 21, placar2: 15 }));
+  jogo.listar(ec2.id).filter(j => j.fase === 'semi')
+    .forEach(j => jogo.registrarPlacar(j.id, { placar1: 21, placar2: 15 }));
+  const fin = jogo.listar(ec2.id).find(j => j.fase === 'final');
+  const ter = jogo.listar(ec2.id).find(j => j.fase === 'terceiro');
+  jogo.registrarPlacar(fin.id, { placar1: 21, placar2: 18 });
+  jogo.registrarPlacar(ter.id, { placar1: 21, placar2: 18 });
+  const colocs = dupla.listar(ec2.id).map(d => d.colocacao_final)
+    .filter(c => c != null).sort((a, b) => a - b);
+  // 1, 2 (final), 3, 4 (3º lugar), e 5 para quartas/não classificadas.
+  eq(JSON.stringify(colocs), JSON.stringify([1, 2, 3, 4, 5, 5, 5, 5]),
+    'colocações da chave com bye');
 });
 
 fechar();

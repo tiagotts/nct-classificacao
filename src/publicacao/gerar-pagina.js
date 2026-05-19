@@ -17,6 +17,7 @@ const ROTULO_FASE = {
   oitavas: 'Oitavas de final', quartas: 'Quartas de final',
   semi: 'Semifinais', final: 'Final', terceiro: 'Disputa de 3º lugar',
 };
+const ROTULO_TIPO = { masculino: 'Masculino', feminino: 'Feminino' };
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"]/g, c => ({
@@ -56,10 +57,26 @@ function tabelaClassificacao(grupo, lista, formula) {
     <th class="c">AVG</th></tr></thead><tbody>${linhas}</tbody></table>`;
 }
 
+// Placar do jogo. Em jogo de múltiplos sets, mostra os sets vencidos e,
+// abaixo, o placar de cada set (ex.: 2 × 1 / 21-18, 19-21, 15-12).
+function placarJogo(j) {
+  let txt = `${j.placar1 ?? '–'} × ${j.placar2 ?? '–'}`;
+  if (j.sets) {
+    try {
+      const sets = JSON.parse(j.sets);
+      if (sets.length) {
+        txt += `<br><span class="sets">`
+          + sets.map(s => `${esc(s[0])}-${esc(s[1])}`).join(', ') + '</span>';
+      }
+    } catch (e) { /* ignora */ }
+  }
+  return txt;
+}
+
 function tabelaJogos(jogos, mapa) {
   const linhas = jogos.map(j => `<tr>
         <td>${nomeDupla(j.dupla1_id, mapa)}</td>
-        <td class="c placar">${j.placar1 ?? '–'} × ${j.placar2 ?? '–'}</td>
+        <td class="c placar">${placarJogo(j)}</td>
         <td>${nomeDupla(j.dupla2_id, mapa)}</td></tr>`).join('');
   return `<table><tbody>${linhas}</tbody></table>`;
 }
@@ -128,7 +145,9 @@ function blocoCategoria(ec, temporada) {
   const mapa = {};
   duplas.forEach(d => { mapa[d.id] = d; });
 
-  let html = `<section class="categoria"><h2>${esc(ec.categoria_nome)}</h2>`;
+  const tipo = ROTULO_TIPO[ec.tipo] || ec.tipo || '';
+  let html = `<section class="categoria">`
+    + `<h2>${esc(ec.categoria_nome)}${tipo ? ' — ' + esc(tipo) : ''}</h2>`;
 
   const grupos = Object.keys(cls.grupos);
   if (grupos.length) {
@@ -154,7 +173,8 @@ function blocoCategoria(ec, temporada) {
   }
 
   if (temporada) {
-    const ranking = rankingTemporadaRepo.calcular(temporada.id, ec.categoria_id);
+    const ranking = rankingTemporadaRepo.calcular(
+      temporada.id, ec.categoria_id, ec.tipo);
     if (ranking.length) {
       html += `<h3>Ranking da temporada</h3>${tabelaRanking(ranking)}`;
     }
@@ -184,6 +204,7 @@ text-transform:uppercase;color:#6b7280}
 td{padding:6px 8px;border-top:1px solid #f1ecdd}
 td.c,th.c{text-align:center}
 td.placar{font-weight:700;white-space:nowrap}
+.sets{font-size:11px;font-weight:400;color:#6b7280}
 .podio{background:#fffbeb;border:1px solid #f59e0b;border-radius:8px;padding:10px 14px;margin-top:10px}
 .podio h4{margin:0 0 6px;color:#92400e}
 .podio ul{margin:0;padding-left:18px}

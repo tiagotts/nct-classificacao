@@ -10,6 +10,10 @@
 //   - Disputa de 3º lugar . entre os perdedores das semis
 // Total: N jogos.
 //
+// N = 6 é um caso especial (chave com bye): as 2 melhores seeds vão direto
+// à semifinal; as seeds 3-6 jogam as quartas. Usado quando dois grupos
+// classificam três duplas cada (campeão de grupo com bye).
+//
 // Cada partida traz slot1/slot2, que indicam a origem da dupla:
 //   { seed: n }                       -> a dupla de seed n entra direto
 //   { origem: 'R1J2', tipo: 'vencedor' | 'perdedor' } -> vem de outra partida
@@ -38,16 +42,42 @@ function nomeFase(numJogos) {
   return 'oitavas';
 }
 
+// Chave de 6 com bye: as seeds 1 e 2 entram direto na semifinal; as seeds
+// 3-6 jogam as quartas. opts.cruzamentos define os pares das quartas.
+function gerarChave6(opts) {
+  let cruz = opts.cruzamentos;
+  if (!Array.isArray(cruz) || cruz.length !== 2) cruz = [[3, 6], [4, 5]];
+  return {
+    N: 6,
+    partidas: [
+      { id: 'R1J1', rodada: 1, fase: 'quartas',
+        slot1: { seed: cruz[0][0] }, slot2: { seed: cruz[0][1] } },
+      { id: 'R1J2', rodada: 1, fase: 'quartas',
+        slot1: { seed: cruz[1][0] }, slot2: { seed: cruz[1][1] } },
+      { id: 'R2J1', rodada: 2, fase: 'semi',
+        slot1: { seed: 1 }, slot2: { origem: 'R1J1', tipo: 'vencedor' } },
+      { id: 'R2J2', rodada: 2, fase: 'semi',
+        slot1: { seed: 2 }, slot2: { origem: 'R1J2', tipo: 'vencedor' } },
+      { id: 'TERCEIRO', rodada: 3, fase: 'terceiro',
+        slot1: { origem: 'R2J1', tipo: 'perdedor' },
+        slot2: { origem: 'R2J2', tipo: 'perdedor' } },
+      { id: 'R3J1', rodada: 3, fase: 'final',
+        slot1: { origem: 'R2J1', tipo: 'vencedor' },
+        slot2: { origem: 'R2J2', tipo: 'vencedor' } },
+    ],
+  };
+}
+
 /**
  * Gera a chave do mata-mata.
- * @param {number} n - quantidade de classificados (4, 8 ou 16)
+ * @param {number} n - quantidade de classificados (4, 6, 8 ou 16)
  * @param {Object} opts - { cruzamentos?: [[seedA, seedB], ...] } para a rodada 1
  * @returns {Object} { partidas, N }
  */
 function gerarChave(n, opts = {}) {
+  if (n === 6) return gerarChave6(opts);
   if (!TAMANHOS_SUPORTADOS.includes(n)) {
-    throw new Error(
-      `Mata-mata exige ${TAMANHOS_SUPORTADOS.join(', ')} duplas; recebeu ${n}.`);
+    throw new Error(`Mata-mata exige 4, 6, 8 ou 16 duplas; recebeu ${n}.`);
   }
 
   // Cruzamentos da rodada 1: usa os informados ou deriva da ordem canônica.

@@ -56,7 +56,18 @@
       "Bash(codesign -dv --verbose=4 \"node_modules/electron/dist/Electron.app\")",
       "Bash(rm -rf \"/Applications/NCT Classificação.app\")",
       "Bash(cp -R \"/Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/dist/mac-arm64/NCT Classificação.app\" \"/Applications/\")",
-      "Bash(codesign --verify --deep --strict \"/Applications/NCT Classificação.app\")"
+      "Bash(codesign --verify --deep --strict \"/Applications/NCT Classificação.app\")",
+      "Bash(sed -n '115,125p' tests/test-mata-mata.js)",
+      "Bash(sed -n '58,66p' tests/test-jogos-grupo.js)",
+      "Bash(sed -n '24,34p' tests/test-publicacao.js)",
+      "Bash(sed -n '48,58p' tests/seed-teste.js)",
+      "Bash(sed -n '82,87p' tests/seed-teste.js)",
+      "Bash(sed -n '1,60p' tests/test-classificacao.js)",
+      "Bash(sed -n '1,40p' renderer/telas/classificacao.js)",
+      "Bash(ELECTRON_RUN_AS_NODE=1 npx electron tests/test-mata-mata.js)",
+      "Bash(python3 -c \"import openpyxl; print\\('openpyxl ok'\\)\")",
+      "Bash(node -e \"require\\('./renderer/app.js'\\)\")",
+      "Bash(node --check renderer/app.js)"
     ],
     "additionalDirectories": [
       "/tmp"

@@ -143,12 +143,61 @@ function resolveBlock(block, critIdx, jogos, criterios) {
   return saida;
 }
 
+// Vencedor e perdedor de um jogo, pelos placares. null se não decidido.
+function vencedorPerdedorJogo(g) {
+  if (!g || g.placar1 == null || g.placar2 == null
+      || g.placar1 === g.placar2) return null;
+  const venceu1 = g.placar1 > g.placar2;
+  return {
+    vencedor: venceu1 ? g.dupla1_id : g.dupla2_id,
+    perdedor: venceu1 ? g.dupla2_id : g.dupla1_id,
+  };
+}
+
+// Ordena um grupo do formato dupla eliminatória pela chave (não por pontos):
+//   1º = vencedor do jogo dos vencedores (invicto, 2V/0D)
+//   2º = vencedor da repescagem (2V/1D)
+//   3º = perdedor da repescagem    4º = perdedor do jogo dos perdedores
+// Os 5 jogos do grupo vêm na ordem de geração (num): games[2]=vencedores,
+// games[3]=perdedores, games[4]=repescagem. Posições ainda não decididas
+// recebem as duplas pendentes em ordem provisória — a classificação fecha
+// quando a chave acaba.
+function classificarGrupoDuplaElim(statsDoGrupo, jogosDoGrupo) {
+  const games = jogosDoGrupo.slice().sort((a, b) => (a.num || 0) - (b.num || 0));
+  const slots = [null, null, null, null]; // ids das duplas em 1º..4º
+
+  if (games.length === 5) {
+    const venc = vencedorPerdedorJogo(games[2]); // jogo dos vencedores
+    const perd = vencedorPerdedorJogo(games[3]); // jogo dos perdedores
+    const rep = vencedorPerdedorJogo(games[4]);  // repescagem
+    if (venc) slots[0] = venc.vencedor;
+    if (rep) { slots[1] = rep.vencedor; slots[2] = rep.perdedor; }
+    if (perd) slots[3] = perd.perdedor;
+  }
+
+  const statById = new Map(statsDoGrupo.map(s => [s.id, s]));
+  const usados = new Set(slots.filter(id => id != null));
+  const pendentes = statsDoGrupo.filter(s => !usados.has(s.id));
+
+  const ordenado = [];
+  let pi = 0;
+  for (let i = 0; i < 4; i++) {
+    if (slots[i] != null && statById.has(slots[i])) {
+      ordenado.push(statById.get(slots[i]));
+    } else if (pi < pendentes.length) {
+      ordenado.push(pendentes[pi++]);
+    }
+  }
+  while (pi < pendentes.length) ordenado.push(pendentes[pi++]);
+  return ordenado;
+}
+
 /**
  * Calcula a classificação de cada grupo.
  * @param {Array} duplas - [{ id, codigo, grupo, atleta1_nome, atleta2_nome }]
  * @param {Array} jogos  - jogos da etapa_categoria (só os de fase 'grupo' contam)
- * @param {Object} config - { formulaAvg, criterios } (opcional; usa padrões)
- * @returns {Object} { formulaAvg, criterios, grupos: { 'A': [duplaStat...] } }
+ * @param {Object} config - { formulaAvg, criterios, formato } (opcional)
+ * @returns {Object} { formulaAvg, criterios, formato, grupos: { 'A': [...] } }
  */
 function calcularClassificacao(duplas, jogos, config = {}) {
   const cfg = {
@@ -156,6 +205,7 @@ function calcularClassificacao(duplas, jogos, config = {}) {
     criterios: (config.criterios && config.criterios.length)
       ? config.criterios : CONFIG_PADRAO.criterios,
   };
+  const formato = config.formato || 'todos-contra-todos';
 
   const jogosGrupo = jogos.filter(j => (j.fase || 'grupo') === 'grupo');
   const stats = buildStats(duplas, jogosGrupo, cfg.formulaAvg);
@@ -168,12 +218,14 @@ function calcularClassificacao(duplas, jogos, config = {}) {
 
   const grupos = {};
   for (const g of Object.keys(porGrupo).sort()) {
-    const ordenado = resolveBlock(porGrupo[g], 0, jogosGrupo, cfg.criterios);
+    const ordenado = formato === 'dupla-eliminatoria'
+      ? classificarGrupoDuplaElim(porGrupo[g], jogosGrupo.filter(j => j.grupo === g))
+      : resolveBlock(porGrupo[g], 0, jogosGrupo, cfg.criterios);
     ordenado.forEach((s, i) => { s.posicao = i + 1; });
     grupos[g] = ordenado;
   }
 
-  return { formulaAvg: cfg.formulaAvg, criterios: cfg.criterios, grupos };
+  return { formulaAvg: cfg.formulaAvg, criterios: cfg.criterios, formato, grupos };
 }
 
 // Ordena uma lista de estatísticas de duplas pelos critérios informados.

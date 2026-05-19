@@ -24,9 +24,9 @@ const temp = temporada.criar({ nome: 'Circuito NCT 2025', ano: 2025 });
 const et = etapa.criar({
   temporadaId: temp.id, nome: '4ª Etapa', data: '2025-08-01', local: 'Arena 61',
 });
-const sub17 = categoria.listar().find(c => c.slug === 'sub17');
+const cat = categoria.listar().find(c => c.slug === 'sub18');
 const ec = etapaCategoria.criar({
-  etapaId: et.id, categoriaId: sub17.id, numGrupos: 1,
+  etapaId: et.id, categoriaId: cat.id, tipo: 'masculino', numGrupos: 1,
 });
 const a1 = atleta.criar({ nome: 'João Silva' });
 const a2 = atleta.criar({ nome: 'Pedro Souza' });
@@ -44,7 +44,7 @@ t('gera um documento HTML completo', () => {
 t('inclui o nome da etapa e da categoria', () => {
   const html = gerarPaginaEtapa(et.id);
   if (!html.includes('4ª Etapa')) throw new Error('faltou o nome da etapa');
-  if (!html.includes('Sub 17')) throw new Error('faltou a categoria');
+  if (!html.includes('Sub 18')) throw new Error('faltou a categoria');
 });
 
 t('inclui a dupla cadastrada na classificação', () => {

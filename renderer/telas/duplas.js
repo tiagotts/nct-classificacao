@@ -52,7 +52,11 @@
       <p class="dica">Código e grupo já vêm preenchidos — ajuste se precisar.
         Limpar todos os campos de uma linha remove a dupla ao salvar.
         "Distribuir em grupos" reparte as duplas em serpentina pelos grupos,
-        seguindo a ordem das linhas (1ª colocada do ranking no topo).</p>
+        seguindo a ordem das linhas (1ª colocada do ranking no topo).
+        Dica: dá para colar (Ctrl+V) uma coluna copiada de uma planilha —
+        clique na primeira célula e cole; preenche para baixo. Se cada célula
+        tiver os dois nomes ("Atleta 1 / Atleta 2"), cole na coluna Atleta 1
+        que o app separa pela barra.</p>
       <div id="grid"></div>
       <div class="form-erro" id="grid-erro"></div>
       <div class="form-acoes">
@@ -72,6 +76,60 @@
     };
     container.querySelector('#btn-serpentina').onclick = distribuirSerpentina;
     container.querySelector('#btn-salvar').onclick = (e) => salvar(e.target);
+    container.querySelector('#grid').addEventListener('paste', aoColar);
+  }
+
+  // Campos do grid, na ordem das colunas — usado para colar de planilha.
+  const COLUNAS = ['codigo', 'grupo', 'atleta1', 'atleta2'];
+  const CLASSE_CAMPO = {
+    'c-cod': 'codigo', 'c-grupo': 'grupo', 'c-at1': 'atleta1', 'c-at2': 'atleta2',
+  };
+
+  // Atribui um valor a um campo da linha. Quando o campo é o Atleta 1 e o
+  // valor traz os dois nomes na mesma célula ("Atleta 1 / Atleta 2"), separa
+  // pela barra — é como as planilhas do circuito guardam a dupla.
+  function atribuir(linha, campo, valor) {
+    const v = valor.trim();
+    if (campo === 'atleta1' && v.includes('/')) {
+      const i = v.indexOf('/');
+      linha.atleta1 = v.slice(0, i).trim();
+      linha.atleta2 = v.slice(i + 1).trim();
+    } else {
+      linha[campo] = v;
+    }
+  }
+
+  // Colar do Excel: o usuário copia uma coluna (ou bloco) de células, clica
+  // numa célula do grid e cola — os valores preenchem para baixo/direita.
+  // Se a célula da dupla tiver "Atleta 1 / Atleta 2", a barra separa os dois.
+  function aoColar(e) {
+    const input = e.target;
+    if (!input.matches || !input.matches('input')) return;
+    const campo = CLASSE_CAMPO[[...input.classList].find(c => CLASSE_CAMPO[c])];
+    if (!campo) return;
+
+    const texto = (e.clipboardData || window.clipboardData).getData('text');
+    const linhas = texto.replace(/\r/g, '').split('\n');
+    if (linhas.length && linhas[linhas.length - 1] === '') linhas.pop();
+
+    const varias = linhas.length > 1 || texto.includes('\t');
+    const duplaNaCelula = campo === 'atleta1' && texto.includes('/');
+    // Colagem de uma célula simples (sem barra) segue o comportamento normal.
+    if (!varias && !duplaNaCelula) return;
+
+    e.preventDefault();
+    lerGridParaEstado();
+    const linhaInicio = Number(input.closest('tr').dataset.i);
+    const colInicio = COLUNAS.indexOf(campo);
+    linhas.forEach((linhaTexto, r) => {
+      const alvo = estado.linhas[linhaInicio + r];
+      if (!alvo) return;
+      linhaTexto.split('\t').forEach((valor, c) => {
+        const campoAlvo = COLUNAS[colInicio + c];
+        if (campoAlvo) atribuir(alvo, campoAlvo, valor);
+      });
+    });
+    desenharGrid();
   }
 
   // Sugere uma quantidade inicial quando ainda não há duplas.
@@ -123,6 +181,10 @@
   // Distribui as duplas pelos grupos em serpentina, seguindo a ordem das
   // linhas: A, B, C, D, depois D, C, B, A, e assim por diante. Reescreve
   // o grupo e o código de cada linha.
+  // A última linha sempre vai no sentido D->A, para o último colocado cair
+  // no grupo do primeiro (grupo A) — regra do regulamento. Para 8 e 16
+  // duplas isso já acontece naturalmente; o caso de 12 (nº ímpar de linhas)
+  // depende dessa correção.
   function distribuirSerpentina() {
     const ng = estado.ec.num_grupos;
     if (!ng || ng < 1) {
@@ -131,10 +193,12 @@
     }
     lerGridParaEstado();
     const contador = {};
+    const ultimaRodada = Math.floor((estado.linhas.length - 1) / ng);
     estado.linhas.forEach((linha, i) => {
       const rodada = Math.floor(i / ng);
       const pos = i % ng;
-      const indiceGrupo = rodada % 2 === 0 ? pos : ng - 1 - pos;
+      const inverter = rodada % 2 === 1 || rodada === ultimaRodada;
+      const indiceGrupo = inverter ? ng - 1 - pos : pos;
       const letra = String.fromCharCode(65 + indiceGrupo);
       contador[letra] = (contador[letra] || 0) + 1;
       linha.grupo = letra;

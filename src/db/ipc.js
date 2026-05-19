@@ -12,6 +12,7 @@ const dupla = require('./repositorios/dupla');
 const jogo = require('./repositorios/jogo');
 const classificacao = require('./repositorios/classificacao');
 const rankingTemporada = require('./repositorios/ranking-temporada');
+const pontuacao = require('./repositorios/pontuacao');
 const { gerarPaginaEtapa } = require('../publicacao/gerar-pagina');
 const github = require('../publicacao/github');
 const QRCode = require('qrcode');
@@ -51,8 +52,12 @@ function registrar(ipcMain) {
     jogo.gerarMataMata(etapaCategoriaId, opts));
   ipcMain.handle('classificacao:calcular', (e, etapaCategoriaId) =>
     classificacao.calcular(etapaCategoriaId));
-  ipcMain.handle('rankingTemporada:calcular', (e, temporadaId, categoriaId) =>
-    rankingTemporada.calcular(temporadaId, categoriaId));
+  ipcMain.handle('rankingTemporada:calcular', (e, temporadaId, categoriaId, tipo) =>
+    rankingTemporada.calcular(temporadaId, categoriaId, tipo));
+  ipcMain.handle('pontuacao:faixas', (e, etapaCategoriaId) =>
+    pontuacao.faixas(etapaCategoriaId));
+  ipcMain.handle('pontuacao:salvar', (e, etapaCategoriaId, faixas) =>
+    pontuacao.salvar(etapaCategoriaId, faixas));
 
   // Publica a página da etapa no GitHub Pages.
   ipcMain.handle('publicacao:publicar', async (e, etapaId, cfg) => {

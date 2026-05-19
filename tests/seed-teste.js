@@ -1,5 +1,5 @@
 // Popula o banco do app com dados de teste: 1 temporada, 1 etapa, 1 categoria
-// (Sub 17) com 4 grupos, 32 atletas e 16 duplas (4 por grupo).
+// (Sub 18) com 4 grupos, 32 atletas e 16 duplas (4 por grupo).
 // Escreve no MESMO banco que o app usa, então os dados aparecem ao abrir o app.
 // Rodar com:  npm run seed
 //
@@ -49,8 +49,9 @@ const etapa = etapaRepo.criar({
   temporadaId: temporada.id, nome: '4ª Etapa (teste)',
   data: '2025-08-01', local: 'Arena 61',
 });
-const sub17 = categoriaRepo.listar().find(c => c.slug === 'sub17');
-const ec = ecRepo.criar({ etapaId: etapa.id, categoriaId: sub17.id, numGrupos: 4 });
+const cat = categoriaRepo.listar().find(c => c.slug === 'sub18');
+const ec = ecRepo.criar({
+  etapaId: etapa.id, categoriaId: cat.id, tipo: 'masculino', numGrupos: 4 });
 
 // 32 atletas com nomes únicos (primeiro nome embaralhado + sobrenome embaralhado).
 const nomes = embaralhar(NOMES);
@@ -82,7 +83,7 @@ fechar();
 console.log('Dados de teste criados:');
 console.log(`  Temporada: ${temporada.nome} (id ${temporada.id})`);
 console.log(`  Etapa:     ${etapa.nome} (id ${etapa.id})`);
-console.log(`  Categoria: ${sub17.nome}, 4 grupos (etapa_categoria id ${ec.id})`);
+console.log(`  Categoria: ${cat.nome} masculino, 4 grupos (etapa_categoria id ${ec.id})`);
 console.log(`  Atletas:   ${atletas.length}`);
 console.log(`  Duplas:    ${totalDuplas}`);
 console.log(`Banco: ${caminhoBanco}`);

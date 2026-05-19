@@ -31,20 +31,20 @@ t('todas as tabelas do modelo foram criadas', () => {
   }
 });
 
-t('catálogo fixo de categorias foi semeado (4 categorias)', () => {
+t('catálogo fixo de categorias foi semeado (6 categorias)', () => {
   const n = db.prepare('SELECT COUNT(*) AS c FROM categoria').get().c;
-  eq(n, 4, 'nº de categorias');
+  eq(n, 6, 'nº de categorias');
 });
 
 t('slugs das categorias são os esperados', () => {
   const slugs = db.prepare('SELECT slug FROM categoria ORDER BY slug')
     .all().map(r => r.slug);
   eq(JSON.stringify(slugs),
-     JSON.stringify(['master','open','sub17','sub21']));
+     JSON.stringify(['aberto','intermediario','master45','master50','sub15','sub18']));
 });
 
-t('user_version reflete a migração aplicada', () => {
-  eq(db.pragma('user_version', { simple: true }), 1, 'user_version');
+t('user_version reflete as migrações aplicadas', () => {
+  eq(db.pragma('user_version', { simple: true }), 4, 'user_version');
 });
 
 t('foreign keys estão habilitadas', () => {
@@ -55,14 +55,15 @@ t('migração é idempotente (reabrir não duplica categorias)', () => {
   fechar();
   abrir(':memory:'); // banco novo, mas valida que o runner não quebra
   const n = getDb().prepare('SELECT COUNT(*) AS c FROM categoria').get().c;
-  eq(n, 4, 'nº de categorias após reabrir');
+  eq(n, 6, 'nº de categorias após reabrir');
 });
 
 t('check constraint de tipo_resultado rejeita valor inválido', () => {
   const d = getDb();
   d.exec(`INSERT INTO temporada (nome, ano) VALUES ('T', 2025);
           INSERT INTO etapa (temporada_id, nome) VALUES (1, 'E1');
-          INSERT INTO etapa_categoria (etapa_id, categoria_id) VALUES (1, 1);`);
+          INSERT INTO etapa_categoria (etapa_id, categoria_id, tipo)
+            VALUES (1, 1, 'masculino');`);
   let lancou = false;
   try {
     d.prepare(`INSERT INTO jogo (etapa_categoria_id, fase, tipo_resultado)

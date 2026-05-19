@@ -16,13 +16,19 @@
     formulaAvg: 'razao',
     criterios: ['V', 'AVG', 'H2H', 'SORTEIO'],
     classPorGrupo: 2,
+    rankingGeral: 'blocos',
+    setsFinal: 1,
   };
+  const ROTULO_TIPO = { masculino: 'Masculino', feminino: 'Feminino' };
+  const rotuloTipo = (t) => ROTULO_TIPO[t] || t || '';
 
   let estado = null; // { ecId, ec, cfg }
 
   async function render(container, params) {
     const { etapaCategoriaId } = params;
     const ec = await window.electronAPI.db.etapaCategoria.obter(etapaCategoriaId);
+    const faixasSalvas =
+      await window.electronAPI.db.pontuacao.faixas(etapaCategoriaId);
 
     let salvo = {};
     if (ec.config_json) {
@@ -34,12 +40,17 @@
         ? salvo.criterios.slice() : PADRAO.criterios.slice(),
       classPorGrupo: salvo.classPorGrupo ?? PADRAO.classPorGrupo,
       repescagem: salvo.repescagem ?? null,
+      rankingGeral: salvo.rankingGeral || PADRAO.rankingGeral,
+      setsFinal: salvo.setsFinal === 3 ? 3 : PADRAO.setsFinal,
     };
-    estado = { ecId: etapaCategoriaId, ec, cfg };
+    estado = {
+      ecId: etapaCategoriaId, ec, cfg,
+      faixas: faixasSalvas.map(f => ({ ini: f.ini, fim: f.fim, pontos: f.pontos })),
+    };
 
     container.innerHTML = `
       <div class="topo-tela">
-        <h2>Configuração — ${App.escapar(ec.categoria_nome)}</h2>
+        <h2>Configuração — ${App.escapar(ec.categoria_nome)} ${App.escapar(rotuloTipo(ec.tipo))}</h2>
       </div>
       <p class="dica">Regras usadas no cálculo da classificação dos grupos e
         na montagem do mata-mata desta categoria.</p>
@@ -71,6 +82,29 @@
           até a próxima chave válida (4, 8 ou 16 duplas). Ex.: 3 grupos com 2
           classificados (6) recebem 2 melhores terceiros para fechar 8.</p>
 
+        <h3>Ranqueamento geral</h3>
+        <p class="dica">Como os classificados são ordenados para virar as
+          seeds do mata-mata.</p>
+        <div class="radio-linha">
+          <label><input type="radio" name="rkg" value="blocos"
+            ${cfg.rankingGeral === 'blocos' ? 'checked' : ''}>
+            Em blocos (1º colocados sempre à frente dos 2º)</label>
+          <label><input type="radio" name="rkg" value="independente"
+            ${cfg.rankingGeral === 'independente' ? 'checked' : ''}>
+            Independente da posição no grupo</label>
+        </div>
+
+        <h3>Final</h3>
+        <div class="form-row">
+          <label>Sets da final (1º lugar)</label>
+          <select id="c-sets-final">
+            <option value="1"${cfg.setsFinal === 3 ? '' : ' selected'}>Set único (21 pontos)</option>
+            <option value="3"${cfg.setsFinal === 3 ? ' selected' : ''}>Melhor de 3 sets</option>
+          </select>
+        </div>
+        <p class="dica">Na final em melhor de 3, o placar é lançado set a set
+          na tela do mata-mata. Só vale para a final de 1º lugar.</p>
+
         <h3>Critérios de desempate</h3>
         <p class="dica">Aplicados em ordem. O empate em um critério é resolvido
           pelo próximo.</p>
@@ -79,6 +113,22 @@
           <select id="crit-novo"></select>
           <button class="btn ghost sm" id="crit-add-btn">Adicionar critério</button>
         </div>
+      </div>
+
+      <div class="form-card">
+        <h3>Pontuação por colocação</h3>
+        <p class="dica">Pontos que cada dupla ganha conforme a colocação final
+          da etapa — usados no ranking da temporada. Use intervalos para faixas
+          (ex.: da 5ª à 8ª colocação). A última faixa pode ir até 9999 para
+          cobrir todas as colocações seguintes.</p>
+        <table class="grid-duplas">
+          <thead><tr>
+            <th>Da colocação</th><th>Até a colocação</th>
+            <th>Pontos</th><th class="idx"></th>
+          </tr></thead>
+          <tbody id="faixas-corpo"></tbody>
+        </table>
+        <button class="btn ghost sm" id="faixa-add-btn">Adicionar faixa</button>
       </div>
 
       <div class="form-acoes">
@@ -90,8 +140,13 @@
     container.querySelectorAll('input[name="avg"]').forEach(r => {
       r.onchange = () => { estado.cfg.formulaAvg = r.value; };
     });
+    container.querySelectorAll('input[name="rkg"]').forEach(r => {
+      r.onchange = () => { estado.cfg.rankingGeral = r.value; };
+    });
     renderCriterios();
+    renderFaixas();
     container.querySelector('#crit-add-btn').onclick = adicionarCriterio;
+    container.querySelector('#faixa-add-btn').onclick = adicionarFaixa;
     container.querySelector('#b-salvar').onclick = (e) => salvar(e.target);
   }
 
@@ -146,6 +201,50 @@
     }
   }
 
+  // --- pontuação por colocação ----------------------------------------
+
+  function renderFaixas() {
+    const corpo = document.getElementById('faixas-corpo');
+    corpo.innerHTML = estado.faixas.map((f, i) => `
+      <tr data-i="${i}">
+        <td><input type="number" class="f-ini" min="1" value="${f.ini}"></td>
+        <td><input type="number" class="f-fim" min="1" value="${f.fim}"></td>
+        <td><input type="number" class="f-pontos" min="0" value="${f.pontos}"></td>
+        <td class="idx">
+          <button class="btn danger sm" data-rem-faixa="${i}">×</button></td>
+      </tr>`).join('');
+    corpo.querySelectorAll('[data-rem-faixa]').forEach(b => {
+      b.onclick = () => removerFaixa(Number(b.dataset.remFaixa));
+    });
+  }
+
+  // Captura o que está digitado no grid de faixas de volta para o estado.
+  function lerFaixas() {
+    const linhas = [];
+    document.querySelectorAll('#faixas-corpo tr').forEach(tr => {
+      linhas.push({
+        ini: Number(tr.querySelector('.f-ini').value),
+        fim: Number(tr.querySelector('.f-fim').value),
+        pontos: Number(tr.querySelector('.f-pontos').value),
+      });
+    });
+    estado.faixas = linhas;
+  }
+
+  function adicionarFaixa() {
+    lerFaixas();
+    const ultima = estado.faixas[estado.faixas.length - 1];
+    const ini = ultima ? ultima.fim + 1 : 1;
+    estado.faixas.push({ ini, fim: ini, pontos: 0 });
+    renderFaixas();
+  }
+
+  function removerFaixa(i) {
+    lerFaixas();
+    estado.faixas.splice(i, 1);
+    renderFaixas();
+  }
+
   async function salvar(botao) {
     const erro = document.getElementById('cfg-erro');
     const ok = document.getElementById('cfg-ok');
@@ -159,10 +258,24 @@
     }
     const repescTxt = document.getElementById('c-repescagem').value.trim();
 
+    // Faixas de pontuação.
+    lerFaixas();
+    for (const f of estado.faixas) {
+      if (!f.ini || !f.fim || Number.isNaN(f.pontos)
+          || f.ini < 1 || f.fim < f.ini || f.pontos < 0) {
+        erro.textContent = 'Pontuação: confira as faixas '
+          + '(colocação inicial ≤ final, pontos ≥ 0).';
+        return;
+      }
+    }
+
     const cfg = {
       formulaAvg: estado.cfg.formulaAvg,
       criterios: estado.cfg.criterios,
       classPorGrupo: porGrupo,
+      rankingGeral: estado.cfg.rankingGeral,
+      setsFinal: Number(document.getElementById('c-sets-final').value) === 3
+        ? 3 : 1,
     };
     // Repescagem só vai ao config quando informada; em branco fica automática.
     if (repescTxt !== '') cfg.repescagem = Number(repescTxt);
@@ -173,6 +286,7 @@
         numGrupos: estado.ec.num_grupos,
         configJson: JSON.stringify(cfg),
       });
+      await window.electronAPI.db.pontuacao.salvar(estado.ecId, estado.faixas);
       ok.innerHTML = '<div class="ok">Configuração salva.</div>';
     } catch (err) {
       erro.textContent = 'Erro ao salvar: ' + err.message;

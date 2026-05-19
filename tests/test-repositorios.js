@@ -9,6 +9,7 @@ const categoria = require('../src/db/repositorios/categoria');
 const atleta = require('../src/db/repositorios/atleta');
 const dupla = require('../src/db/repositorios/dupla');
 const jogo = require('../src/db/repositorios/jogo');
+const pontuacao = require('../src/db/repositorios/pontuacao');
 
 let ok = 0, fail = 0;
 function t(nome, fn) {
@@ -51,18 +52,19 @@ t('etapa: listar por temporada', () => {
 });
 
 // --- categoria (catálogo fixo) -----------------------------------------
-let catSub17;
-t('categoria: catálogo fixo tem 4 categorias', () => {
-  eq(categoria.listar().length, 4);
-  catSub17 = categoria.listar().find(c => c.slug === 'sub17');
-  if (!catSub17) throw new Error('categoria sub17 não encontrada');
+let categoriaTeste;
+t('categoria: catálogo fixo tem 6 categorias', () => {
+  eq(categoria.listar().length, 6);
+  categoriaTeste = categoria.listar().find(c => c.slug === 'sub18');
+  if (!categoriaTeste) throw new Error('categoria sub18 não encontrada');
 });
 
 // --- etapa_categoria ---------------------------------------------------
 let ec;
 t('etapaCategoria: criar e trazer nome da categoria no join', () => {
-  ec = etapaCategoria.criar({ etapaId: et.id, categoriaId: catSub17.id, numGrupos: 3 });
-  eq(ec.categoria_nome, 'Sub 17');
+  ec = etapaCategoria.criar({
+    etapaId: et.id, categoriaId: categoriaTeste.id, tipo: 'masculino', numGrupos: 3 });
+  eq(ec.categoria_nome, 'Sub 18');
   eq(ec.num_grupos, 3);
 });
 t('etapaCategoria: listar por etapa', () => {
@@ -123,6 +125,12 @@ t('jogo: registrar resultado Wx0', () => {
   const jp = jogo.registrarPlacar(j.id, { placar1: null, placar2: null, tipoResultado: 'wx0' });
   eq(jp.tipo_resultado, 'wx0');
 });
+t('jogo: registrar placar por sets (melhor de 3)', () => {
+  const jp = jogo.registrarPlacar(j.id, { sets: [[21, 18], [19, 21], [15, 12]] });
+  eq(jp.placar1, 2, 'sets vencidos pela dupla 1');
+  eq(jp.placar2, 1, 'sets vencidos pela dupla 2');
+  eq(JSON.parse(jp.sets).length, 3, 'placar de cada set gravado');
+});
 t('jogo: criar jogo de mata-mata com ponteiros de origem', () => {
   const jm = jogo.criar({ etapaCategoriaId: ec.id, fase: 'semi', num: 5,
                           origem1JogoId: j.id, origem1Tipo: 'vencedor',
@@ -133,6 +141,23 @@ t('jogo: criar jogo de mata-mata com ponteiros de origem', () => {
 });
 t('jogo: listar por etapa_categoria', () => {
   eq(jogo.listar(ec.id).length, 2);
+});
+
+// --- pontuação ---------------------------------------------------------
+t('pontuacao: sem faixas cadastradas usa o padrão', () => {
+  const f = pontuacao.faixas(ec.id);
+  if (!f.length) throw new Error('deveria devolver as faixas padrão');
+});
+t('pontuacao: salvar e ler faixas customizadas', () => {
+  pontuacao.salvar(ec.id, [
+    { ini: 1, fim: 1, pontos: 300 },
+    { ini: 2, fim: 2, pontos: 240 },
+    { ini: 5, fim: 8, pontos: 120 },
+  ]);
+  const f = pontuacao.faixas(ec.id);
+  eq(f.length, 3, 'nº de faixas');
+  eq(f[0].pontos, 300, 'pontos da 1ª colocação');
+  eq(f[2].fim, 8, 'fim da faixa 5-8');
 });
 
 // --- remoção -----------------------------------------------------------
@@ -155,7 +180,8 @@ function contar(tabela, coluna, valor) {
 // Monta uma árvore completa (etapa_categoria + 2 duplas + jogo de grupo +
 // jogo de mata-mata que referencia o de grupo) e devolve os ids.
 function montarArvore(etapaId) {
-  const ecx = etapaCategoria.criar({ etapaId, categoriaId: catSub17.id, numGrupos: 1 });
+  const ecx = etapaCategoria.criar({
+    etapaId, categoriaId: categoriaTeste.id, tipo: 'masculino', numGrupos: 1 });
   const dx1 = dupla.criar({ etapaCategoriaId: ecx.id, codigo: 'A1', grupo: 'A',
                             atleta1Id: a1.id, atleta2Id: a2.id });
   const dx2 = dupla.criar({ etapaCategoriaId: ecx.id, codigo: 'A2', grupo: 'A',

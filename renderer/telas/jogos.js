@@ -21,9 +21,17 @@
 
     // Geração automática na primeira visita, quando ainda não há jogos.
     if (jogos.length === 0 && comGrupo.length >= 2) {
-      await apiJogo().gerarFaseGrupos(etapaCategoriaId);
-      jogos = (await apiJogo().listar(etapaCategoriaId))
-        .filter(j => j.fase === 'grupo');
+      try {
+        await apiJogo().gerarFaseGrupos(etapaCategoriaId);
+        jogos = (await apiJogo().listar(etapaCategoriaId))
+          .filter(j => j.fase === 'grupo');
+      } catch (err) {
+        container.innerHTML = `
+          <div class="topo-tela"><h2>Jogos da fase de grupos</h2></div>
+          <div class="vazio">Não foi possível gerar os jogos:
+            ${App.escapar(err.message)}</div>`;
+        return;
+      }
     }
 
     if (jogos.length === 0) {
@@ -48,7 +56,9 @@
           <button class="btn ghost sm" id="btn-regerar">Regerar jogos</button>
         </div>
       </div>
-      <p class="dica">${jogos.length} jogos gerados automaticamente (todos contra todos).
+      <p class="dica">${jogos.length} jogos gerados automaticamente
+        (${ec.formato === 'dupla-eliminatoria'
+          ? 'dupla eliminatória no grupo' : 'todos contra todos'}).
         Em W&times;0, informe o placar indicando o vencedor (ex.: 1 e 0).</p>
       <div id="pub-status"></div>
       <div id="grid-jogos"></div>
@@ -63,32 +73,29 @@
     container.querySelector('#btn-publicar').onclick = (e) => publicar(e.target);
   }
 
+  // Tabela única, com os jogos em sequência (ordem do nº do jogo) — os
+  // grupos aparecem intercalados, como na planilha do circuito.
   function desenhar() {
-    const porGrupo = {};
-    estado.jogos.forEach(j => {
-      (porGrupo[j.grupo] = porGrupo[j.grupo] || []).push(j);
-    });
-    document.getElementById('grid-jogos').innerHTML =
-      Object.keys(porGrupo).sort().map(g => `
-        <div class="bloco-grupo">
-          <h3>Grupo ${App.escapar(g)}</h3>
-          <table class="tab-jogos">
-            <thead><tr>
-              <th class="idx">#</th>
-              <th>Dupla 1</th>
-              <th class="col-placar">Placar</th>
-              <th class="col-placar">Placar</th>
-              <th>Dupla 2</th>
-              <th class="col-tipo">Resultado</th>
-            </tr></thead>
-            <tbody>${porGrupo[g].map(linhaHtml).join('')}</tbody>
-          </table>
-        </div>`).join('');
+    const jogos = estado.jogos.slice().sort((a, b) => (a.num || 0) - (b.num || 0));
+    document.getElementById('grid-jogos').innerHTML = `
+      <table class="tab-jogos">
+        <thead><tr>
+          <th class="idx">#</th>
+          <th class="col-grp">Grupo</th>
+          <th>Dupla 1</th>
+          <th class="col-placar">Placar</th>
+          <th class="col-placar">Placar</th>
+          <th>Dupla 2</th>
+          <th class="col-tipo">Resultado</th>
+        </tr></thead>
+        <tbody>${jogos.map(linhaHtml).join('')}</tbody>
+      </table>`;
   }
 
   function nomeDupla(id) {
     const d = estado.duplaMap[id];
-    if (!d) return '<span class="cod">?</span>';
+    // Jogo da dupla eliminatória ainda sem vencedor/perdedor definido.
+    if (!d) return '<i>a definir</i>';
     return `<span class="cod">${App.escapar(d.codigo)}</span>`
       + App.escapar(`${d.atleta1_nome} / ${d.atleta2_nome}`);
   }
@@ -100,6 +107,7 @@
     return `
       <tr data-id="${j.id}">
         <td class="idx">${j.num}</td>
+        <td class="col-grp">${App.escapar(j.grupo || '')}</td>
         <td>${nomeDupla(j.dupla1_id)}</td>
         <td class="col-placar">
           <input type="number" min="0" class="p1"
@@ -142,8 +150,12 @@
     if (!confirm('Regerar os jogos apaga todos os placares já lançados. Continuar?')) {
       return;
     }
-    await apiJogo().gerarFaseGrupos(estado.etapaCategoriaId, { recriar: true });
-    await App.recarregar();
+    try {
+      await apiJogo().gerarFaseGrupos(estado.etapaCategoriaId, { recriar: true });
+      await App.recarregar();
+    } catch (err) {
+      alert('Não foi possível regerar os jogos: ' + err.message);
+    }
   }
 
   // Publica a página da etapa sem sair desta tela. O módulo Publicar cuida

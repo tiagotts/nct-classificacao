@@ -129,19 +129,36 @@
     if (v === 'wx0-duplo') return { p1: 0, p2: 0 };
     return null;
   }
+  function rotuloWO(v, lado) {
+    if (v === 'wx0-d1') return lado === 1 ? 'W' : '0';
+    if (v === 'wx0-d2') return lado === 1 ? '0' : 'W';
+    return '0';
+  }
   function aoMudarTipo(sel) {
     const tr = sel.closest('tr');
     const v = sel.value;
     const p1 = tr.querySelector('.p1');
     const p2 = tr.querySelector('.p2');
     if (!p1 || !p2) return; // final em multi-set não tem .p1/.p2
-    const placares = placaresDaVariante(v);
-    if (placares) {
-      p1.value = placares.p1; p2.value = placares.p2;
-      p1.disabled = true; p2.disabled = true;
-    } else if (!tr.hasAttribute('data-pendente')) {
-      p1.disabled = false; p2.disabled = false;
-    }
+    const ehWO = ehVarianteWO(v);
+    [1, 2].forEach(lado => {
+      const input = tr.querySelector('.p' + lado);
+      const rotulo = tr.querySelector('.p' + lado + '-wo');
+      if (ehWO) {
+        const placares = placaresDaVariante(v);
+        input.value = lado === 1 ? placares.p1 : placares.p2;
+        input.style.display = 'none';
+        if (rotulo) {
+          const txt = rotuloWO(v, lado);
+          rotulo.textContent = txt;
+          rotulo.classList.toggle('venceu', txt === 'W');
+          rotulo.style.display = '';
+        }
+      } else {
+        input.style.display = '';
+        if (rotulo) rotulo.style.display = 'none';
+      }
+    });
   }
 
   // Exibe um lado do jogo: a dupla, ou o ponteiro de origem ("Vencedor de...").
@@ -169,15 +186,28 @@
     const v = variante(j);
     const op = (val, txt) =>
       `<option value="${val}"${v === val ? ' selected' : ''}>${txt}</option>`;
-    const disPlacar = !definido || ehVarianteWO(v) ? ' disabled' : '';
+    const ehWO = ehVarianteWO(v);
+    const disPlacar = !definido ? ' disabled' : '';
+    const inputStyle = ehWO ? ' style="display:none"' : '';
+    const woStyle = ehWO ? '' : ' style="display:none"';
+    const woTxt1 = ehWO ? rotuloWO(v, 1) : '';
+    const woTxt2 = ehWO ? rotuloWO(v, 2) : '';
+    const venceu1 = woTxt1 === 'W' ? ' venceu' : '';
+    const venceu2 = woTxt2 === 'W' ? ' venceu' : '';
     return `
       <tr data-id="${j.id}"${pendente}>
         <td class="col-jogo">${App.escapar(estado.labelMap[j.id])}</td>
         <td>${ladoHtml(j.dupla1_id, j.origem1_jogo_id, j.origem1_tipo)}</td>
-        <td class="col-placar"><input type="number" min="0" class="p1"${disPlacar}
-            value="${j.placar1 != null ? j.placar1 : ''}"></td>
-        <td class="col-placar"><input type="number" min="0" class="p2"${disPlacar}
-            value="${j.placar2 != null ? j.placar2 : ''}"></td>
+        <td class="col-placar">
+          <input type="number" min="0" class="p1"${disPlacar}${inputStyle}
+            value="${j.placar1 != null ? j.placar1 : ''}">
+          <span class="placar-wo p1-wo${venceu1}"${woStyle}>${woTxt1}</span>
+        </td>
+        <td class="col-placar">
+          <input type="number" min="0" class="p2"${disPlacar}${inputStyle}
+            value="${j.placar2 != null ? j.placar2 : ''}">
+          <span class="placar-wo p2-wo${venceu2}"${woStyle}>${woTxt2}</span>
+        </td>
         <td>${ladoHtml(j.dupla2_id, j.origem2_jogo_id, j.origem2_tipo)}</td>
         <td class="col-tipo"><select class="tipo"${dis}>
           ${op('normal', 'Normal')}

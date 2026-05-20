@@ -71,7 +71,8 @@
 
     ajustarQuantidade(qtdInicial);
     desenharGrid();
-    atualizarTotalRanking();
+    // Os pontos do ranking só aparecem quando o usuário clica em
+    // "Aplicar ranking". Até lá a coluna fica em branco.
 
     container.querySelector('#combo-qtd').onchange = (e) => {
       lerGridParaEstado();
@@ -117,18 +118,9 @@
     }
   }
 
-  // Busca a pontuação de ranking de cada dupla salva e atualiza o grid e
-  // o total no rodapé. Útil para conferir contra a planilha do circuito.
-  async function atualizarTotalRanking() {
-    try {
-      const ranking = await window.electronAPI.db.rankingEntrada
-        .calcular(estado.etapaCategoriaId);
-      mostrarTotalRanking(ranking);
-    } catch {
-      mostrarTotalRanking([]);
-    }
-  }
-
+  // Atualiza a coluna Pontos do grid e o totalizador no rodapé a partir do
+  // ranking calculado. Só é chamada depois que o usuário clica em
+  // "Aplicar ranking" — até lá os pontos ficam zerados/em branco.
   function mostrarTotalRanking(ranking) {
     estado.pontosPorDupla = {};
     (ranking || []).forEach(d => {

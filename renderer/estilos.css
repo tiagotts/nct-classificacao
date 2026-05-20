@@ -217,6 +217,12 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
 .tab-jogos input:disabled,.tab-jogos select:disabled{
   background:#efe9d8;color:var(--muted);cursor:not-allowed;
 }
+.tab-jogos .placar-wo{
+  display:block;text-align:center;padding:6px 8px;border:1px solid var(--line);
+  border-radius:5px;font-size:13px;background:#efe9d8;color:var(--muted);
+  font-weight:700;
+}
+.tab-jogos .placar-wo.venceu{color:var(--ocean);background:#e0f2f4}
 .tab-jogos td.col-jogo,.tab-jogos th.col-jogo{
   width:96px;color:var(--muted);font-size:12px;
 }

@@ -99,20 +99,36 @@
     return null;
   }
 
-  // Reage à troca de tipo: nos W×0 preenche o placar e bloqueia os inputs;
-  // voltar para Normal/Desistência libera.
+  // Rótulo do placar do W×0: vencedor mostra "W", perdedor "0".
+  function rotuloWO(v, lado) {
+    if (v === 'wx0-d1') return lado === 1 ? 'W' : '0';
+    if (v === 'wx0-d2') return lado === 1 ? '0' : 'W';
+    return '0'; // duplo W×0 — ambos "0"
+  }
+
+  // Reage à troca de tipo: nos W×0 esconde o input e mostra o rótulo
+  // (W para o vencedor, 0 para o perdedor); voltar para Normal/Desistência
+  // mostra os inputs editáveis de novo.
   function aoMudarTipo(sel) {
     const tr = sel.closest('tr');
     const v = sel.value;
-    const p1 = tr.querySelector('.p1');
-    const p2 = tr.querySelector('.p2');
-    const placares = placaresDaVariante(v);
-    if (placares) {
-      p1.value = placares.p1; p2.value = placares.p2;
-      p1.disabled = true; p2.disabled = true;
-    } else {
-      p1.disabled = false; p2.disabled = false;
-    }
+    const ehWO = ehVarianteWO(v);
+    [1, 2].forEach(lado => {
+      const input = tr.querySelector('.p' + lado);
+      const rotulo = tr.querySelector('.p' + lado + '-wo');
+      if (ehWO) {
+        const placares = placaresDaVariante(v);
+        input.value = lado === 1 ? placares.p1 : placares.p2;
+        input.style.display = 'none';
+        const txt = rotuloWO(v, lado);
+        rotulo.textContent = txt;
+        rotulo.classList.toggle('venceu', txt === 'W');
+        rotulo.style.display = '';
+      } else {
+        input.style.display = '';
+        rotulo.style.display = 'none';
+      }
+    });
   }
 
   // Tabela única, com os jogos em sequência (ordem do nº do jogo) — os
@@ -149,18 +165,28 @@
     const v = variante(j);
     const op = (val, txt) =>
       `<option value="${val}"${v === val ? ' selected' : ''}>${txt}</option>`;
-    const dis = ehVarianteWO(v) ? ' disabled' : '';
+    const ehWO = ehVarianteWO(v);
+    const inputStyle = ehWO ? ' style="display:none"' : '';
+    const woStyle = ehWO ? '' : ' style="display:none"';
+    const woTxt1 = ehWO ? rotuloWO(v, 1) : '';
+    const woTxt2 = ehWO ? rotuloWO(v, 2) : '';
+    const venceu1 = woTxt1 === 'W' ? ' venceu' : '';
+    const venceu2 = woTxt2 === 'W' ? ' venceu' : '';
     return `
       <tr data-id="${j.id}">
         <td class="idx">${j.num}</td>
         <td class="col-grp">${App.escapar(j.grupo || '')}</td>
         <td>${nomeDupla(j.dupla1_id)}</td>
         <td class="col-placar">
-          <input type="number" min="0" class="p1"${dis}
-                 value="${j.placar1 != null ? j.placar1 : ''}"></td>
+          <input type="number" min="0" class="p1"${inputStyle}
+                 value="${j.placar1 != null ? j.placar1 : ''}">
+          <span class="placar-wo p1-wo${venceu1}"${woStyle}>${woTxt1}</span>
+        </td>
         <td class="col-placar">
-          <input type="number" min="0" class="p2"${dis}
-                 value="${j.placar2 != null ? j.placar2 : ''}"></td>
+          <input type="number" min="0" class="p2"${inputStyle}
+                 value="${j.placar2 != null ? j.placar2 : ''}">
+          <span class="placar-wo p2-wo${venceu2}"${woStyle}>${woTxt2}</span>
+        </td>
         <td>${nomeDupla(j.dupla2_id)}</td>
         <td class="col-tipo">
           <select class="tipo">

@@ -102,13 +102,24 @@ function blocoMataMata(mata, mapa, duplas) {
   return html;
 }
 
-function tabelaRanking(ranking) {
-  const linhas = ranking.map(a => `<tr>
+function tabelaRanking(ranking, etapas) {
+  const colsEtapa = etapas.map(e =>
+    `<th class="c">${esc(e.nome)}</th>`).join('');
+  const linhas = ranking.map(a => {
+    const cels = etapas.map(e => {
+      const p = a.pontosPorEtapa && a.pontosPorEtapa[e.id];
+      return `<td class="c">${p || 0}</td>`;
+    }).join('');
+    return `<tr>
         <td class="c">${a.posicao}</td><td>${esc(a.nome)}</td>
-        <td class="c">${a.pontos}</td><td class="c">${a.etapas}</td></tr>`).join('');
-  return `<table><thead><tr><th class="c">#</th><th>Atleta</th>
-    <th class="c">Pontos</th><th class="c">Etapas</th></tr></thead>
-    <tbody>${linhas}</tbody></table>`;
+        <td class="c">${a.pontosIniciais || 0}</td>
+        ${cels}
+        <td class="c"><strong>${a.pontos}</strong></td></tr>`;
+  }).join('');
+  return `<table><thead><tr>
+      <th class="c">#</th><th>Atleta</th>
+      <th class="c">Inicial</th>${colsEtapa}<th class="c">Total</th>
+    </tr></thead><tbody>${linhas}</tbody></table>`;
 }
 
 // Ranking final da etapa: as duplas ordenadas pela colocação final, com os
@@ -173,10 +184,10 @@ function blocoCategoria(ec, temporada) {
   }
 
   if (temporada) {
-    const ranking = rankingTemporadaRepo.calcular(
+    const { etapas, ranking } = rankingTemporadaRepo.calcular(
       temporada.id, ec.categoria_id, ec.tipo);
     if (ranking.length) {
-      html += `<h3>Ranking da temporada</h3>${tabelaRanking(ranking)}`;
+      html += `<h3>Ranking da temporada</h3>${tabelaRanking(ranking, etapas)}`;
     }
   }
 

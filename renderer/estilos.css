@@ -171,6 +171,14 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
 .grid-duplas td.col-cod,.grid-duplas th.col-cod{width:96px}
 .grid-duplas td.col-grupo,.grid-duplas th.col-grupo{width:84px}
 .grid-duplas td.col-pts,.grid-duplas th.col-pts{width:96px;text-align:right}
+.grid-duplas td.col-ordem,.grid-duplas th.col-ordem{width:78px;text-align:center}
+.grid-duplas td.col-ordem .btn{padding:2px 6px;font-size:14px;line-height:1}
+.grid-duplas tr.sorteada{background:#fff7ed}
+.grid-duplas .tag-sorteio{
+  display:inline-block;margin-left:4px;padding:1px 6px;border-radius:8px;
+  background:#fed7aa;color:#9a3412;font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.04em;
+}
 .grid-duplas input,.grid-duplas select{
   width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:5px;
   font-size:13px;background:#fdfaf2;font-family:inherit;
@@ -243,6 +251,8 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
   border-radius:50%;background:var(--sand);font-size:12px;font-weight:700;
 }
 .tab-class .pos.pos-q{background:var(--ocean);color:#fff}
+.tab-class tr.eliminado td{color:var(--warn)}
+.tab-class tr.eliminado .pos{background:#fee2e2;color:var(--warn)}
 .tab-class .motivo{color:var(--muted);font-size:12px;font-style:italic}
 .carregando{color:var(--muted);padding:24px;text-align:center}
 .erro{background:#fee2e2;color:#991b1b;padding:12px 16px;border-radius:8px;font-size:13px}

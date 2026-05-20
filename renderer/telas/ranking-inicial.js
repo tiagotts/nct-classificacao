@@ -1,11 +1,14 @@
 // Tela de cadastro do ranking inicial da temporada.
-// Pontos pré-cadastrados de cada atleta numa categoria + tipo da temporada.
-// Servem como ranking de entrada da 1ª etapa e são somados aos pontos das
-// etapas seguintes (acúmulo da temporada).
+// O ranking de cada atleta numa categoria+tipo pode ser cadastrado em:
+//   - "Inicial": pontos pré-temporada (bônus que entra sem etapa específica).
+//   - Uma coluna por etapa já realizada: para importar resultados anteriores
+//     no formato da planilha do circuito.
+// O "Total" é a soma de tudo e é exibido só pra conferência.
 // params: { temporadaId }
 (() => {
   const apiTemp = () => window.electronAPI.db.temporada;
   const apiCat = () => window.electronAPI.db.categoria;
+  const apiEtapa = () => window.electronAPI.db.etapa;
   const apiAtl = () => window.electronAPI.db.atleta;
   const apiRI = () => window.electronAPI.db.rankingInicial;
 
@@ -15,14 +18,15 @@
 
   async function render(container, params) {
     const { temporadaId } = params;
-    const [temp, categorias, atletas] = await Promise.all([
+    const [temp, categorias, atletas, etapas] = await Promise.all([
       apiTemp().obter(temporadaId),
       apiCat().listar(),
       apiAtl().listar(),
+      apiEtapa().listar(temporadaId),
     ]);
 
     estado = {
-      temporadaId, temp, categorias, atletas,
+      temporadaId, temp, categorias, atletas, etapas,
       categoriaId: categorias[0] ? categorias[0].id : null,
       tipo: 'masculino',
       linhas: [],
@@ -32,11 +36,12 @@
       <div class="topo-tela">
         <h2>Ranking inicial — ${App.escapar(temp.nome)}</h2>
       </div>
-      <p class="dica">Pontos pré-cadastrados de cada atleta para a temporada,
-        por categoria e tipo. Servem como ranking de entrada da 1ª etapa
-        e são somados aos pontos ganhos nas etapas seguintes. Para colar
-        do Excel, use a ordem das colunas: apelido, nome completo, pontos.
-        O ranking publicado mostra o nome completo (ou o apelido, se vazio).</p>
+      <p class="dica">Pontos pré-cadastrados de cada atleta na temporada,
+        por categoria e tipo. "Inicial" é um bônus pré-temporada; depois,
+        uma coluna por etapa já realizada (use para importar a planilha do
+        circuito). Tudo soma no ranking de entrada das próximas etapas e
+        no ranking da temporada. Para colar do Excel, clique numa célula e
+        cole — preenche para baixo e para a direita.</p>
       <div class="grid-toolbar">
         <label for="ri-cat">Categoria</label>
         <select id="ri-cat">
@@ -73,51 +78,85 @@
     await carregar();
   }
 
-  // Colar do Excel: o usuário copia uma coluna (apelidos, nomes completos
-  // ou pontos), clica numa célula do grid e cola — os valores preenchem
-  // para baixo. Se a colagem for maior que o grid, novas linhas são
-  // criadas para caber. A ordem das colunas é apelido, nome completo,
-  // pontos.
-  const COLUNAS = ['nome', 'nome_completo', 'pontos'];
-  const CLASSE_CAMPO = {
-    'ri-nome': 'nome',
-    'ri-nome-completo': 'nome_completo',
-    'ri-pts': 'pontos',
-  };
+  // Ordem das colunas do grid (pra colar do Excel coluna a coluna). É
+  // montada dinamicamente porque o nº de etapas muda por temporada.
+  function colunas() {
+    return [
+      { chave: 'nome', tipo: 'texto' },
+      { chave: 'nome_completo', tipo: 'texto' },
+      { chave: 'inicial', tipo: 'numero' },
+      ...estado.etapas.map(e => (
+        { chave: `etapa:${e.id}`, etapaId: e.id, tipo: 'numero' })),
+    ];
+  }
 
   function linhaNova() {
-    return { nome: '', nome_completo: '', pontos: 0 };
+    return { nome: '', nome_completo: '', inicial: 0, etapas: {} };
+  }
+
+  function valorDaLinha(linha, col) {
+    if (col.chave === 'nome') return linha.nome;
+    if (col.chave === 'nome_completo') return linha.nome_completo;
+    if (col.chave === 'inicial') return linha.inicial;
+    return linha.etapas[col.etapaId] || 0;
+  }
+
+  function gravarNaLinha(linha, col, valor) {
+    if (col.tipo === 'numero') {
+      const n = Number(valor) || 0;
+      if (col.chave === 'inicial') linha.inicial = n;
+      else linha.etapas[col.etapaId] = n;
+    } else {
+      if (col.chave === 'nome') linha.nome = valor;
+      else linha.nome_completo = valor;
+    }
+  }
+
+  function totalDaLinha(linha) {
+    let t = Number(linha.inicial) || 0;
+    for (const v of Object.values(linha.etapas)) t += Number(v) || 0;
+    return t;
+  }
+
+  // Identifica em qual coluna do grid o input pertence (pra suportar paste).
+  function colunaDoInput(input) {
+    const cs = [...input.classList];
+    if (cs.includes('ri-nome')) return 0;
+    if (cs.includes('ri-nome-completo')) return 1;
+    if (cs.includes('ri-inicial')) return 2;
+    const m = cs.find(c => c.startsWith('ri-etapa-'));
+    if (!m) return -1;
+    const id = Number(m.slice('ri-etapa-'.length));
+    const idx = estado.etapas.findIndex(e => e.id === id);
+    return idx < 0 ? -1 : 3 + idx;
   }
 
   function aoColar(e) {
     const input = e.target;
     if (!input.matches || !input.matches('input')) return;
-    const campo = CLASSE_CAMPO[[...input.classList].find(c => CLASSE_CAMPO[c])];
-    if (!campo) return;
+    const colInicio = colunaDoInput(input);
+    if (colInicio < 0) return;
 
     const texto = (e.clipboardData || window.clipboardData).getData('text');
-    const linhas = texto.replace(/\r/g, '').split('\n');
-    if (linhas.length && linhas[linhas.length - 1] === '') linhas.pop();
+    const linhasTxt = texto.replace(/\r/g, '').split('\n');
+    if (linhasTxt.length && linhasTxt[linhasTxt.length - 1] === '') linhasTxt.pop();
     // Colagem de uma única célula segue o comportamento normal do navegador.
-    if (linhas.length <= 1 && !texto.includes('\t')) return;
+    if (linhasTxt.length <= 1 && !texto.includes('\t')) return;
 
     e.preventDefault();
     lerGrid();
     const linhaInicio = Number(input.closest('tr').dataset.i);
-    const colInicio = COLUNAS.indexOf(campo);
-    // Cresce o grid se a colagem for maior que o que está visível.
-    while (estado.linhas.length < linhaInicio + linhas.length) {
+    while (estado.linhas.length < linhaInicio + linhasTxt.length) {
       estado.linhas.push(linhaNova());
     }
-    linhas.forEach((linhaTexto, r) => {
+    const cols = colunas();
+    linhasTxt.forEach((linhaTexto, r) => {
       const alvo = estado.linhas[linhaInicio + r];
       if (!alvo) return;
       linhaTexto.split('\t').forEach((valor, c) => {
-        const campoAlvo = COLUNAS[colInicio + c];
-        if (!campoAlvo) return;
-        const v = valor.trim();
-        if (campoAlvo === 'pontos') alvo.pontos = Number(v) || 0;
-        else alvo[campoAlvo] = v;
+        const col = cols[colInicio + c];
+        if (!col) return;
+        gravarNaLinha(alvo, col, (valor || '').trim());
       });
     });
     desenhar();
@@ -126,13 +165,23 @@
   async function carregar() {
     const rows = await apiRI().listar(
       estado.temporadaId, estado.categoriaId, estado.tipo);
-    estado.linhas = rows.map(r => ({
-      nome: r.atleta_nome,
-      nome_completo: r.atleta_nome_completo || '',
-      pontos: r.pontos,
-    }));
+    // O backend devolve uma linha por (atleta, etapa). Agrupa por atleta.
+    const porAtleta = new Map();
+    for (const r of rows) {
+      if (!porAtleta.has(r.atleta_id)) {
+        porAtleta.set(r.atleta_id, {
+          nome: r.atleta_nome,
+          nome_completo: r.atleta_nome_completo || '',
+          inicial: 0,
+          etapas: {},
+        });
+      }
+      const a = porAtleta.get(r.atleta_id);
+      if (r.etapa_id == null) a.inicial += r.pontos;
+      else a.etapas[r.etapa_id] = (a.etapas[r.etapa_id] || 0) + r.pontos;
+    }
+    estado.linhas = [...porAtleta.values()];
     if (!estado.linhas.length) {
-      // Começa com uma linha em branco para facilitar o primeiro cadastro.
       estado.linhas.push(linhaNova());
     }
     document.getElementById('ri-qtd').value = estado.linhas.length;
@@ -153,13 +202,17 @@
   function desenhar() {
     const qtdEl = document.getElementById('ri-qtd');
     if (qtdEl) qtdEl.value = estado.linhas.length;
+    const colsEtapas = estado.etapas.map(e =>
+      `<th class="col-pts">${App.escapar(e.nome)}</th>`).join('');
     document.getElementById('grid-ri').innerHTML = `
       <table class="grid-duplas">
         <thead><tr>
           <th class="idx">#</th>
           <th>Apelido</th>
           <th>Nome completo</th>
-          <th class="col-pts">Pontos</th>
+          <th class="col-pts">Inicial</th>
+          ${colsEtapas}
+          <th class="col-pts">Total</th>
           <th class="idx"></th>
         </tr></thead>
         <tbody>${estado.linhas.map(linhaHtml).join('')}</tbody>
@@ -171,9 +224,17 @@
         desenhar();
       };
     });
+    document.querySelectorAll('#grid-ri input.num').forEach(inp => {
+      inp.oninput = atualizarTotalDaLinha;
+    });
   }
 
   function linhaHtml(l, i) {
+    const celulasEtapa = estado.etapas.map(e => {
+      const v = l.etapas[e.id] || 0;
+      return `<td class="col-pts"><input type="number" min="0"
+        class="num ri-etapa-${e.id}" value="${v}"></td>`;
+    }).join('');
     return `
       <tr data-i="${i}">
         <td class="idx">${i + 1}</td>
@@ -183,12 +244,29 @@
         <td><input type="text" class="ri-nome-completo"
                    autocomplete="off" placeholder="Nome completo"
                    value="${App.escapar(l.nome_completo || '')}"></td>
-        <td class="col-pts"><input type="number" min="0" class="ri-pts"
-                   value="${l.pontos != null ? l.pontos : ''}"></td>
+        <td class="col-pts"><input type="number" min="0"
+                   class="num ri-inicial"
+                   value="${l.inicial != null ? l.inicial : 0}"></td>
+        ${celulasEtapa}
+        <td class="col-pts ri-total">${totalDaLinha(l)}</td>
         <td class="idx">
           <button class="btn danger sm" data-remover="${i}">×</button>
         </td>
       </tr>`;
+  }
+
+  function atualizarTotalDaLinha(ev) {
+    const tr = ev.target.closest('tr');
+    const i = Number(tr.dataset.i);
+    const l = estado.linhas[i];
+    if (!l) return;
+    l.inicial = Number(tr.querySelector('.ri-inicial').value) || 0;
+    estado.etapas.forEach(e => {
+      const inp = tr.querySelector(`.ri-etapa-${e.id}`);
+      if (inp) l.etapas[e.id] = Number(inp.value) || 0;
+    });
+    const totalEl = tr.querySelector('.ri-total');
+    if (totalEl) totalEl.textContent = totalDaLinha(l);
   }
 
   // Captura o que está digitado no grid de volta para estado.linhas.
@@ -199,7 +277,11 @@
       if (!l) return;
       l.nome = tr.querySelector('.ri-nome').value.trim();
       l.nome_completo = tr.querySelector('.ri-nome-completo').value.trim();
-      l.pontos = Number(tr.querySelector('.ri-pts').value) || 0;
+      l.inicial = Number(tr.querySelector('.ri-inicial').value) || 0;
+      estado.etapas.forEach(e => {
+        const inp = tr.querySelector(`.ri-etapa-${e.id}`);
+        l.etapas[e.id] = inp ? (Number(inp.value) || 0) : 0;
+      });
     });
   }
 
@@ -220,7 +302,8 @@
       .map(l => ({
         nome: l.nome,
         nome_completo: l.nome_completo || null,
-        pontos: l.pontos,
+        inicial: Number(l.inicial) || 0,
+        porEtapa: l.etapas,
       }));
     botao.disabled = true;
     try {

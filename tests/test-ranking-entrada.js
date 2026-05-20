@@ -58,16 +58,21 @@ t('empate até no melhor atleta: desempate pelo segundo atleta', () => {
   eq(r[0].id, 2, 'dupla com 2º atleta melhor vence');
 });
 
-t('empate total: o app sorteia e marca como sorteada', () => {
+t('empate total: marca como sorteada (sorteio manual no app)', () => {
   const duplas = [mk(1, 10, 11), mk(2, 20, 21), mk(3, 30, 31)];
-  // random determinístico para o teste.
-  const seq = [0.9, 0.1, 0.5, 0.0, 0.7];
-  let i = 0;
-  const r = calcularRankingEntrada(duplas,
-    { random: () => seq[i++ % seq.length] });
+  const r = calcularRankingEntrada(duplas);
   eq(r.length, 3);
   for (const d of r) {
     if (!d.sorteada) throw new Error('empate total deveria marcar sorteada');
+  }
+});
+
+t('empate total preserva a ordem (motor não sorteia automaticamente)', () => {
+  const duplas = [mk(1, 10, 11), mk(2, 20, 21), mk(3, 30, 31)];
+  const r1 = calcularRankingEntrada(duplas).map(d => d.id).join(',');
+  const r2 = calcularRankingEntrada(duplas).map(d => d.id).join(',');
+  if (r1 !== r2) {
+    throw new Error('deveria ser determinístico, veio ' + r1 + ' / ' + r2);
   }
 });
 

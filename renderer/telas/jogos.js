@@ -59,7 +59,8 @@
       <p class="dica">${jogos.length} jogos gerados automaticamente
         (${ec.formato === 'dupla-eliminatoria'
           ? 'dupla eliminatória no grupo' : 'todos contra todos'}).
-        Em W&times;0, informe o placar indicando o vencedor (ex.: 1 e 0).</p>
+        Em W&times;0 escolha no resultado quem venceu — o app preenche
+        o placar sozinho.</p>
       <div id="pub-status"></div>
       <div id="grid-jogos"></div>
       <div class="form-erro" id="jogos-erro"></div>
@@ -71,6 +72,47 @@
     container.querySelector('#btn-salvar').onclick = (e) => salvar(e.target);
     container.querySelector('#btn-regerar').onclick = regerar;
     container.querySelector('#btn-publicar').onclick = (e) => publicar(e.target);
+  }
+
+  // Variantes do dropdown de resultado: o backend só conhece 'normal',
+  // 'wx0' e 'desistencia'; o W×0 tem 3 variantes na UI para já indicar
+  // o vencedor sem o usuário precisar digitar o placar.
+  function variante(j) {
+    const t = j.tipo_resultado || 'normal';
+    if (t !== 'wx0') return t;
+    const p1 = Number(j.placar1) || 0;
+    const p2 = Number(j.placar2) || 0;
+    if (p1 > p2) return 'wx0-d1';
+    if (p2 > p1) return 'wx0-d2';
+    return 'wx0-duplo';
+  }
+
+  function ehVarianteWO(v) {
+    return v === 'wx0-d1' || v === 'wx0-d2' || v === 'wx0-duplo';
+  }
+
+  // Placares automáticos para cada variante de W×0.
+  function placaresDaVariante(v) {
+    if (v === 'wx0-d1') return { p1: 1, p2: 0 };
+    if (v === 'wx0-d2') return { p1: 0, p2: 1 };
+    if (v === 'wx0-duplo') return { p1: 0, p2: 0 };
+    return null;
+  }
+
+  // Reage à troca de tipo: nos W×0 preenche o placar e bloqueia os inputs;
+  // voltar para Normal/Desistência libera.
+  function aoMudarTipo(sel) {
+    const tr = sel.closest('tr');
+    const v = sel.value;
+    const p1 = tr.querySelector('.p1');
+    const p2 = tr.querySelector('.p2');
+    const placares = placaresDaVariante(v);
+    if (placares) {
+      p1.value = placares.p1; p2.value = placares.p2;
+      p1.disabled = true; p2.disabled = true;
+    } else {
+      p1.disabled = false; p2.disabled = false;
+    }
   }
 
   // Tabela única, com os jogos em sequência (ordem do nº do jogo) — os
@@ -90,6 +132,9 @@
         </tr></thead>
         <tbody>${jogos.map(linhaHtml).join('')}</tbody>
       </table>`;
+    document.querySelectorAll('#grid-jogos .tipo').forEach(sel => {
+      sel.onchange = () => aoMudarTipo(sel);
+    });
   }
 
   function nomeDupla(id) {
@@ -101,24 +146,29 @@
   }
 
   function linhaHtml(j) {
-    const tipo = j.tipo_resultado || 'normal';
-    const op = (v, txt) =>
-      `<option value="${v}"${tipo === v ? ' selected' : ''}>${txt}</option>`;
+    const v = variante(j);
+    const op = (val, txt) =>
+      `<option value="${val}"${v === val ? ' selected' : ''}>${txt}</option>`;
+    const dis = ehVarianteWO(v) ? ' disabled' : '';
     return `
       <tr data-id="${j.id}">
         <td class="idx">${j.num}</td>
         <td class="col-grp">${App.escapar(j.grupo || '')}</td>
         <td>${nomeDupla(j.dupla1_id)}</td>
         <td class="col-placar">
-          <input type="number" min="0" class="p1"
+          <input type="number" min="0" class="p1"${dis}
                  value="${j.placar1 != null ? j.placar1 : ''}"></td>
         <td class="col-placar">
-          <input type="number" min="0" class="p2"
+          <input type="number" min="0" class="p2"${dis}
                  value="${j.placar2 != null ? j.placar2 : ''}"></td>
         <td>${nomeDupla(j.dupla2_id)}</td>
         <td class="col-tipo">
           <select class="tipo">
-            ${op('normal', 'Normal')}${op('wx0', 'W×0')}${op('desistencia', 'Desistência')}
+            ${op('normal', 'Normal')}
+            ${op('wx0-d1', 'W×0: Dupla 1 venceu')}
+            ${op('wx0-d2', 'W×0: Dupla 2 venceu')}
+            ${op('wx0-duplo', 'Duplo W×0')}
+            ${op('desistencia', 'Desistência')}
           </select>
         </td>
       </tr>`;
@@ -133,10 +183,12 @@
         const id = Number(tr.dataset.id);
         const p1 = tr.querySelector('.p1').value;
         const p2 = tr.querySelector('.p2').value;
+        const v = tr.querySelector('.tipo').value;
+        const tipo = ehVarianteWO(v) ? 'wx0' : v;
         await apiJogo().registrarPlacar(id, {
           placar1: p1 === '' ? null : Number(p1),
           placar2: p2 === '' ? null : Number(p2),
-          tipoResultado: tr.querySelector('.tipo').value,
+          tipoResultado: tipo,
         });
       }
       await App.recarregar();

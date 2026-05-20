@@ -44,7 +44,15 @@ t('slugs das categorias são os esperados', () => {
 });
 
 t('user_version reflete as migrações aplicadas', () => {
-  eq(db.pragma('user_version', { simple: true }), 6, 'user_version');
+  eq(db.pragma('user_version', { simple: true }), 7, 'user_version');
+});
+
+t('ranking_inicial tem coluna etapa_id após a migração 0007', () => {
+  const cols = db.prepare("PRAGMA table_info(ranking_inicial)").all()
+    .map(c => c.name);
+  if (!cols.includes('etapa_id')) {
+    throw new Error('faltou coluna etapa_id em ranking_inicial');
+  }
 });
 
 t('atleta tem coluna nome_completo após a migração 0006', () => {

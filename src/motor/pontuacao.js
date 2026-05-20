@@ -43,11 +43,18 @@ function compararAtletas(a, b) {
  * Cada dupla rende os seus pontos para os DOIS atletas. Pontos iniciais
  * pré-cadastrados são somados (e garantem que o atleta apareça no ranking
  * mesmo sem ter jogado uma etapa ainda).
- * @param {Array} resultados - [{ atleta1_id, atleta2_id, pontos_ganhos, colocacao_final }]
+ *
+ * Formato de `pontosIniciais`:
+ *   { atletaId: numero }                                — só "Inicial".
+ *   { atletaId: { inicial, porEtapa: { etapaId: n } } } — Inicial + etapas.
+ *
+ * @param {Array} resultados - [{ atleta1_id, atleta2_id, pontos_ganhos,
+ *   colocacao_final, etapa_id? }]
  * @param {Object} nomePorAtleta - mapa { atletaId: nome }
- * @param {Object} pontosIniciais - mapa { atletaId: pontos } (opcional)
- * @returns {Array} atletas ordenados, com { posicao, atletaId, nome, pontos,
- *   etapas, colocacoes }
+ * @param {Object} pontosIniciais - veja formato acima (opcional)
+ * @returns {Array} atletas ordenados, com { posicao, atletaId, nome,
+ *   pontosIniciais, pontosPorEtapa: { etapaId: pontos }, pontos, etapas,
+ *   colocacoes }
  */
 function calcularRankingTemporada(resultados, nomePorAtleta = {}, pontosIniciais = {}) {
   const porAtleta = new Map();
@@ -55,15 +62,26 @@ function calcularRankingTemporada(resultados, nomePorAtleta = {}, pontosIniciais
     if (!porAtleta.has(id)) {
       porAtleta.set(id, {
         atletaId: id, nome: nomePorAtleta[id] || `Atleta ${id}`,
+        pontosIniciais: 0, pontosPorEtapa: {},
         pontos: 0, etapas: 0, colocacoes: [],
       });
     }
     return porAtleta.get(id);
   };
 
-  for (const [id, pontos] of Object.entries(pontosIniciais || {})) {
+  for (const [id, valor] of Object.entries(pontosIniciais || {})) {
     const a = garantir(Number(id));
-    a.pontos += Number(pontos) || 0;
+    // Aceita número (formato antigo) ou objeto { inicial, porEtapa }.
+    const obj = typeof valor === 'number' ? { inicial: valor } : (valor || {});
+    const inicial = Number(obj.inicial) || 0;
+    a.pontosIniciais += inicial;
+    a.pontos += inicial;
+    for (const [etapaId, pts] of Object.entries(obj.porEtapa || {})) {
+      const p = Number(pts) || 0;
+      if (!p) continue;
+      a.pontosPorEtapa[etapaId] = (a.pontosPorEtapa[etapaId] || 0) + p;
+      a.pontos += p;
+    }
   }
 
   for (const r of resultados) {
@@ -73,6 +91,10 @@ function calcularRankingTemporada(resultados, nomePorAtleta = {}, pontosIniciais
       const a = garantir(atletaId);
       a.pontos += r.pontos_ganhos;
       a.etapas += 1;
+      if (r.etapa_id != null) {
+        a.pontosPorEtapa[r.etapa_id] =
+          (a.pontosPorEtapa[r.etapa_id] || 0) + r.pontos_ganhos;
+      }
       if (r.colocacao_final != null) a.colocacoes.push(r.colocacao_final);
     }
   }

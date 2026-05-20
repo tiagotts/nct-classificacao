@@ -9,7 +9,9 @@
 //      seus 2 atletas pelo histórico de colocações (melhor primeiro), depois
 //      compara o "melhor atleta" de A com o de B; persistindo, o "segundo
 //      atleta" de cada uma.
-//   3) Persistindo o empate: sorteio (ordem aleatória entre as empatadas).
+//   3) Persistindo o empate: o motor marca a dupla com `sorteada: true` e
+//      mantém a ordem natural. Quem resolve o empate é o usuário (sorteio
+//      manual) — a tela exibe as duplas empatadas e permite reordenar.
 //
 // Histórico de um atleta = lista de colocação_final que ele teve em duplas
 // de etapas anteriores na mesma temporada + categoria + tipo. "Melhor" é
@@ -38,13 +40,12 @@ function ordenarAtletas(atletas, colocs) {
 /**
  * Calcula o ranking de entrada da etapa.
  * @param {Array} duplas - [{ id, codigo, atleta1_id, atleta2_id, ... }]
- * @param {Object} opts - { pontosPorAtleta, colocacoesPorAtleta, random }
+ * @param {Object} opts - { pontosPorAtleta, colocacoesPorAtleta }
  * @returns {Array} duplas ordenadas, com { ...dupla, pos, score, sorteada }.
  */
 function calcularRankingEntrada(duplas, opts = {}) {
   const pontos = opts.pontosPorAtleta || {};
   const colocs = opts.colocacoesPorAtleta || {};
-  const random = opts.random || Math.random;
 
   const lista = duplas.map(d => {
     const p1 = pontos[d.atleta1_id] || 0;
@@ -64,10 +65,11 @@ function calcularRankingEntrada(duplas, opts = {}) {
     if (c1 !== 0) return c1;
     const c2 = compararColocacoes(a.atletasOrd[1].col, b.atletasOrd[1].col);
     if (c2 !== 0) return c2;
-    return 0; // empate total — vai a sorteio
+    return 0; // empate total — sorteio manual
   });
 
-  // Sorteio dentro de cada bloco contíguo de duplas totalmente empatadas.
+  // Marca como `sorteada` cada bloco contíguo de duplas totalmente empatadas.
+  // O motor NÃO escolhe a ordem — quem resolve o empate é o usuário, no app.
   const empatadas = (a, b) => a.score === b.score
     && compararColocacoes(a.atletasOrd[0].col, b.atletasOrd[0].col) === 0
     && compararColocacoes(a.atletasOrd[1].col, b.atletasOrd[1].col) === 0;
@@ -76,11 +78,6 @@ function calcularRankingEntrada(duplas, opts = {}) {
     let j = i + 1;
     while (j < lista.length && empatadas(lista[i], lista[j])) j++;
     if (j - i > 1) {
-      // Fisher-Yates no bloco [i, j).
-      for (let k = j - 1; k > i; k--) {
-        const x = i + Math.floor(random() * (k - i + 1));
-        [lista[k], lista[x]] = [lista[x], lista[k]];
-      }
       for (let k = i; k < j; k++) lista[k].sorteada = true;
     }
     i = j;

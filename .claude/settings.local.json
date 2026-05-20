@@ -79,7 +79,19 @@
       "Bash(sqlite3 data/nct.db \".headers on\" \".mode column\" \"SELECT COUNT\\(*\\) AS qtd_ranking, categoria_id, tipo FROM ranking_inicial GROUP BY categoria_id, tipo;\" \"SELECT COUNT\\(*\\) AS qtd_atletas FROM atleta;\" \"SELECT COUNT\\(*\\) AS qtd_duplas FROM dupla;\")",
       "Bash(sqlite3 data/nct.db '.headers on' '.mode column' 'SELECT d.id, d.codigo, d.grupo, a1.nome AS atleta1, a2.nome AS atleta2, *)",
       "Bash(sqlite3 data/nct.db '.headers on' '.mode column' 'SELECT categoria_id, tipo, COUNT\\(*\\) AS qtd FROM ranking_inicial GROUP BY categoria_id, tipo;' 'SELECT a.id, a.nome, ri.pontos *)",
-      "Bash(sqlite3 data/nct.db \".headers on\" \".mode column\" \"SELECT id, categoria_id, tipo, COUNT\\(*\\) AS qtd FROM ranking_inicial GROUP BY temporada_id, categoria_id, tipo;\" \"SELECT id, etapa_id, categoria_id, tipo FROM etapa_categoria;\" \"SELECT COUNT\\(*\\) AS qtd_duplas, etapa_categoria_id FROM dupla GROUP BY etapa_categoria_id;\")"
+      "Bash(sqlite3 data/nct.db \".headers on\" \".mode column\" \"SELECT id, categoria_id, tipo, COUNT\\(*\\) AS qtd FROM ranking_inicial GROUP BY temporada_id, categoria_id, tipo;\" \"SELECT id, etapa_id, categoria_id, tipo FROM etapa_categoria;\" \"SELECT COUNT\\(*\\) AS qtd_duplas, etapa_categoria_id FROM dupla GROUP BY etapa_categoria_id;\")",
+      "Bash(sqlite3 data/nct.db \"SELECT COUNT\\(*\\) FROM ranking_inicial;\")",
+      "Bash(sqlite3 data/nct.db \".headers on\" \"SELECT categoria_id, tipo, COUNT\\(*\\) AS qtd FROM ranking_inicial GROUP BY categoria_id, tipo;\")",
+      "Bash(sqlite3 data/nct.db \".headers on\" \"SELECT COUNT\\(*\\) AS qtd_atletas, categoria_id, tipo FROM ranking_inicial GROUP BY categoria_id, tipo;\" \"SELECT id, nome, data FROM etapa;\")",
+      "Bash(sqlite3 data/nct.db \"PRAGMA user_version;\" \"PRAGMA table_info\\(ranking_inicial\\);\")",
+      "Bash(sqlite3 data/nct.db '.headers on' '.mode column' ' *)",
+      "Bash(sqlite3 data/nct.db \"PRAGMA user_version;\" \"SELECT COUNT\\(*\\) FROM ranking_inicial;\" \"SELECT COUNT\\(*\\) FROM ranking_inicial WHERE etapa_id IS NULL;\" \"SELECT COUNT\\(DISTINCT atleta_id\\) FROM ranking_inicial WHERE etapa_id IS NULL AND categoria_id=3 AND tipo='masculino';\")",
+      "Bash(sqlite3 data/nct.db \".indexes ranking_inicial\" \"SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name='ranking_inicial';\")",
+      "Bash(sqlite3 data/nct.db \".headers on\" \"SELECT temporada_id, atleta_id, categoria_id, tipo, etapa_id, COUNT\\(*\\) AS qtd FROM ranking_inicial GROUP BY temporada_id, atleta_id, categoria_id, tipo, etapa_id HAVING qtd > 1 LIMIT 10;\")",
+      "Bash(sqlite3 data/nct.db \".headers on\" \"SELECT categoria_id, tipo, etapa_id, COUNT\\(*\\) FROM ranking_inicial GROUP BY categoria_id, tipo, etapa_id;\")",
+      "Bash(sqlite3 data/nct.db \".headers on\" \"SELECT temporada_id, COUNT\\(DISTINCT atleta_id\\) AS atletas, COUNT\\(*\\) AS linhas FROM ranking_inicial WHERE categoria_id=3 AND tipo='masculino' GROUP BY temporada_id;\")",
+      "Bash(sqlite3 data/nct.db \".headers on\" \"SELECT * FROM temporada;\" \"SELECT id, temporada_id, nome FROM etapa;\")",
+      "Bash(sqlite3 data/nct.db \"UPDATE ranking_inicial SET pontos=500 WHERE temporada_id=1 AND categoria_id=3 AND tipo='masculino' AND etapa_id IS NULL AND atleta_id IN \\(1,5,6,7,12,16\\);\")"
     ],
     "additionalDirectories": [
       "/tmp"

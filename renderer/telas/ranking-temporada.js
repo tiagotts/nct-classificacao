@@ -40,36 +40,45 @@
   async function carregar(temporadaId, categoriaId, tipo) {
     const div = document.getElementById('ranking');
     div.innerHTML = '<div class="carregando">Carregando…</div>';
-    const lista = await window.electronAPI.db.rankingTemporada
+    const { etapas, ranking } = await window.electronAPI.db.rankingTemporada
       .calcular(temporadaId, categoriaId, tipo);
 
-    if (!lista.length) {
+    if (!ranking.length) {
       div.innerHTML = `<div class="vazio">Nenhum resultado nesta categoria ainda.
         Os pontos aparecem conforme as colocações das etapas são apuradas.</div>`;
       return;
     }
+
+    const colsEtapa = etapas.map(e =>
+      `<th class="n">${App.escapar(e.nome)}</th>`).join('');
 
     div.innerHTML = `
       <table class="tab-class">
         <thead><tr>
           <th class="idx">#</th>
           <th>Atleta</th>
-          <th class="n">Pontos</th>
-          <th class="n">Etapas</th>
+          <th class="n">Inicial</th>
+          ${colsEtapa}
+          <th class="n">Total</th>
           <th>Colocações</th>
         </tr></thead>
-        <tbody>${lista.map(linhaHtml).join('')}</tbody>
+        <tbody>${ranking.map(a => linhaHtml(a, etapas)).join('')}</tbody>
       </table>`;
   }
 
-  function linhaHtml(a) {
+  function linhaHtml(a, etapas) {
     const destaque = a.posicao <= 3 ? ' pos-q' : '';
+    const cels = etapas.map(e => {
+      const pts = a.pontosPorEtapa && a.pontosPorEtapa[e.id];
+      return `<td class="n">${pts || 0}</td>`;
+    }).join('');
     return `
       <tr>
         <td class="idx"><span class="pos${destaque}">${a.posicao}</span></td>
         <td>${App.escapar(a.nome)}</td>
-        <td class="n">${a.pontos}</td>
-        <td class="n">${a.etapas}</td>
+        <td class="n">${a.pontosIniciais || 0}</td>
+        ${cels}
+        <td class="n"><strong>${a.pontos}</strong></td>
         <td class="motivo">${resumoColocacoes(a.colocacoes)}</td>
       </tr>`;
   }

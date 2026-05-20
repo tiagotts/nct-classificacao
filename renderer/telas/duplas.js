@@ -86,8 +86,9 @@
 
   // Reordena as linhas pelo ranking de entrada: pontos somados dos atletas
   // (iniciais + etapas anteriores), com desempate por melhores colocações
-  // dos atletas e sorteio nas que persistirem empatadas. As linhas ainda
-  // não salvas (sem duplaId) ficam no final.
+  // dos atletas. Duplas que ficam empatadas até nisso vêm marcadas
+  // (sorteada=true) para o usuário ajustar a ordem manualmente — o app NÃO
+  // sorteia. Linhas ainda não salvas (sem duplaId) ficam no final.
   async function aplicarRankingEntrada() {
     lerGridParaEstado();
     const ranking = await window.electronAPI.db.rankingEntrada
@@ -97,7 +98,11 @@
       return;
     }
     const ordem = {};
-    ranking.forEach(d => { ordem[d.id] = d.pos; });
+    estado.sorteadas = new Set();
+    ranking.forEach(d => {
+      ordem[d.id] = d.pos;
+      if (d.sorteada) estado.sorteadas.add(d.id);
+    });
     estado.linhas.sort((a, b) => {
       const pa = a.duplaId != null ? (ordem[a.duplaId] || 9999) : 9999;
       const pb = b.duplaId != null ? (ordem[b.duplaId] || 9999) : 9999;
@@ -105,6 +110,11 @@
     });
     desenharGrid();
     mostrarTotalRanking(ranking);
+    if (estado.sorteadas.size) {
+      const n = estado.sorteadas.size;
+      alert(`${n} dupla(s) ficaram empatadas após os critérios — use as `
+        + `setas ↑↓ para definir manualmente a ordem do sorteio.`);
+    }
   }
 
   // Busca a pontuação de ranking de cada dupla salva e atualiza o grid e
@@ -294,20 +304,36 @@
             <th>Atleta 1</th>
             <th>Atleta 2</th>
             <th class="col-pts">Pontos</th>
+            <th class="col-ordem">Ordem</th>
           </tr>
         </thead>
         <tbody>
           ${estado.linhas.map(linhaHtml).join('')}
         </tbody>
       </table>`;
+    document.querySelectorAll('#grid [data-mover]').forEach(b => {
+      b.onclick = () => moverLinha(Number(b.dataset.i), b.dataset.mover);
+    });
+  }
+
+  function moverLinha(i, direcao) {
+    const j = direcao === 'cima' ? i - 1 : i + 1;
+    if (j < 0 || j >= estado.linhas.length) return;
+    lerGridParaEstado();
+    [estado.linhas[i], estado.linhas[j]] = [estado.linhas[j], estado.linhas[i]];
+    desenharGrid();
   }
 
   function linhaHtml(linha, i) {
     const info = linha.duplaId != null ? estado.pontosPorDupla[linha.duplaId] : null;
     const txt = info ? `${info.p1} + ${info.p2} = ${info.total}` : '';
+    const empate = estado.sorteadas && linha.duplaId != null
+      && estado.sorteadas.has(linha.duplaId);
+    const trCls = empate ? ' class="sorteada"' : '';
+    const tagEmpate = empate ? ' <span class="tag-sorteio">sorteio</span>' : '';
     return `
-      <tr data-i="${i}">
-        <td class="idx">${i + 1}</td>
+      <tr data-i="${i}"${trCls}>
+        <td class="idx">${i + 1}${tagEmpate}</td>
         <td class="col-cod">
           <input type="text" class="c-cod" value="${App.escapar(linha.codigo)}"></td>
         <td class="col-grupo">${celulaGrupo(linha.grupo)}</td>
@@ -316,6 +342,12 @@
         <td><input type="text" class="c-at2" list="lista-atletas" autocomplete="off"
                    placeholder="Atleta 2" value="${App.escapar(linha.atleta2)}"></td>
         <td class="col-pts">${App.escapar(txt)}</td>
+        <td class="col-ordem">
+          <button class="btn ghost sm" data-mover="cima" data-i="${i}"
+                  title="Subir" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button class="btn ghost sm" data-mover="baixo" data-i="${i}"
+                  title="Descer" ${i === estado.linhas.length - 1 ? 'disabled' : ''}>↓</button>
+        </td>
       </tr>`;
   }
 

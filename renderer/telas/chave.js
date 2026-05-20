@@ -105,6 +105,43 @@
             <tbody>${porFase[f].map(linhaHtml).join('')}</tbody>
           </table>
         </div>`).join('');
+    document.querySelectorAll('#blocos .tipo').forEach(sel => {
+      sel.onchange = () => aoMudarTipo(sel);
+    });
+  }
+
+  // Variantes de resultado (mesma lógica da tela de jogos da fase de grupos).
+  function variante(j) {
+    const t = j.tipo_resultado || 'normal';
+    if (t !== 'wx0') return t;
+    const p1 = Number(j.placar1) || 0;
+    const p2 = Number(j.placar2) || 0;
+    if (p1 > p2) return 'wx0-d1';
+    if (p2 > p1) return 'wx0-d2';
+    return 'wx0-duplo';
+  }
+  function ehVarianteWO(v) {
+    return v === 'wx0-d1' || v === 'wx0-d2' || v === 'wx0-duplo';
+  }
+  function placaresDaVariante(v) {
+    if (v === 'wx0-d1') return { p1: 1, p2: 0 };
+    if (v === 'wx0-d2') return { p1: 0, p2: 1 };
+    if (v === 'wx0-duplo') return { p1: 0, p2: 0 };
+    return null;
+  }
+  function aoMudarTipo(sel) {
+    const tr = sel.closest('tr');
+    const v = sel.value;
+    const p1 = tr.querySelector('.p1');
+    const p2 = tr.querySelector('.p2');
+    if (!p1 || !p2) return; // final em multi-set não tem .p1/.p2
+    const placares = placaresDaVariante(v);
+    if (placares) {
+      p1.value = placares.p1; p2.value = placares.p2;
+      p1.disabled = true; p2.disabled = true;
+    } else if (!tr.hasAttribute('data-pendente')) {
+      p1.disabled = false; p2.disabled = false;
+    }
   }
 
   // Exibe um lado do jogo: a dupla, ou o ponteiro de origem ("Vencedor de...").
@@ -123,25 +160,31 @@
 
   function linhaHtml(j) {
     const definido = j.dupla1_id && j.dupla2_id;
+    const pendente = definido ? '' : ' data-pendente="1"';
     const dis = definido ? '' : ' disabled';
     // Final em melhor de 3: placar lançado set a set.
     if (j.fase === 'final' && estado.setsFinal === 3) {
       return linhaFinalSets(j, dis);
     }
-    const tipo = j.tipo_resultado || 'normal';
-    const op = (v, txt) =>
-      `<option value="${v}"${tipo === v ? ' selected' : ''}>${txt}</option>`;
+    const v = variante(j);
+    const op = (val, txt) =>
+      `<option value="${val}"${v === val ? ' selected' : ''}>${txt}</option>`;
+    const disPlacar = !definido || ehVarianteWO(v) ? ' disabled' : '';
     return `
-      <tr data-id="${j.id}">
+      <tr data-id="${j.id}"${pendente}>
         <td class="col-jogo">${App.escapar(estado.labelMap[j.id])}</td>
         <td>${ladoHtml(j.dupla1_id, j.origem1_jogo_id, j.origem1_tipo)}</td>
-        <td class="col-placar"><input type="number" min="0" class="p1"${dis}
+        <td class="col-placar"><input type="number" min="0" class="p1"${disPlacar}
             value="${j.placar1 != null ? j.placar1 : ''}"></td>
-        <td class="col-placar"><input type="number" min="0" class="p2"${dis}
+        <td class="col-placar"><input type="number" min="0" class="p2"${disPlacar}
             value="${j.placar2 != null ? j.placar2 : ''}"></td>
         <td>${ladoHtml(j.dupla2_id, j.origem2_jogo_id, j.origem2_tipo)}</td>
         <td class="col-tipo"><select class="tipo"${dis}>
-          ${op('normal', 'Normal')}${op('wx0', 'W×0')}${op('desistencia', 'Desistência')}
+          ${op('normal', 'Normal')}
+          ${op('wx0-d1', 'W×0: Dupla 1 venceu')}
+          ${op('wx0-d2', 'W×0: Dupla 2 venceu')}
+          ${op('wx0-duplo', 'Duplo W×0')}
+          ${op('desistencia', 'Desistência')}
         </select></td>
       </tr>`;
   }
@@ -210,14 +253,15 @@
           continue;
         }
 
-        const p1in = tr.querySelector('.p1');
-        if (p1in.disabled) continue; // jogo ainda sem as duas duplas
-        const p1 = p1in.value;
+        if (tr.hasAttribute('data-pendente')) continue; // sem as duas duplas
+        const p1 = tr.querySelector('.p1').value;
         const p2 = tr.querySelector('.p2').value;
+        const v = tr.querySelector('.tipo').value;
+        const tipo = ehVarianteWO(v) ? 'wx0' : v;
         await apiJogo().registrarPlacar(id, {
           placar1: p1 === '' ? null : Number(p1),
           placar2: p2 === '' ? null : Number(p2),
-          tipoResultado: tr.querySelector('.tipo').value,
+          tipoResultado: tipo,
         });
       }
       await App.recarregar();

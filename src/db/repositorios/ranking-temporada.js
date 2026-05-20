@@ -7,10 +7,17 @@ const rankingInicial = require('./ranking-inicial');
 // calcular(temporadaId, categoriaId, tipo): ranking de temporada por atleta.
 // Filtra por tipo (masculino|feminino): masculino e feminino são competições
 // separadas e não somam pontos no mesmo ranking.
+// Devolve { etapas: [{id, nome}], ranking: [...] } para a tela poder montar
+// uma coluna por etapa.
 function calcular(temporadaId, categoriaId, tipo) {
   const db = getDb();
+  const etapas = db.prepare(
+    `SELECT id, nome FROM etapa WHERE temporada_id = ? ORDER BY data, id`
+  ).all(temporadaId);
+
   const resultados = db.prepare(`
-    SELECT d.atleta1_id, d.atleta2_id, d.pontos_ganhos, d.colocacao_final
+    SELECT d.atleta1_id, d.atleta2_id, d.pontos_ganhos, d.colocacao_final,
+           e.id AS etapa_id
     FROM dupla d
     JOIN etapa_categoria ec ON ec.id = d.etapa_categoria_id
     JOIN etapa e ON e.id = ec.etapa_id
@@ -23,8 +30,13 @@ function calcular(temporadaId, categoriaId, tipo) {
   for (const a of db.prepare('SELECT id, nome, nome_completo FROM atleta').all()) {
     nomePorAtleta[a.id] = a.nome_completo || a.nome;
   }
-  const pontosIniciais = rankingInicial.porAtleta(temporadaId, categoriaId, tipo);
-  return motor.calcularRankingTemporada(resultados, nomePorAtleta, pontosIniciais);
+  // Formato { atletaId: { inicial, porEtapa: { etapaId: pontos } } } pra
+  // o motor distribuir os pontos iniciais nas colunas certas.
+  const pontosIniciais = rankingInicial.porAtletaPorEtapa(
+    temporadaId, categoriaId, tipo);
+  const ranking = motor.calcularRankingTemporada(
+    resultados, nomePorAtleta, pontosIniciais);
+  return { etapas, ranking };
 }
 
 module.exports = { calcular };

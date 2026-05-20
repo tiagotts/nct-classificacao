@@ -13,6 +13,7 @@
       <div class="topo-tela">
         <h2>Etapas</h2>
         <div class="acoes-topo">
+          <button class="btn ghost" data-acao="ranking-inicial">Ranking inicial</button>
           <button class="btn ghost" data-acao="ranking">Ranking da temporada</button>
           <button class="btn" data-acao="nova">Nova etapa</button>
         </div>
@@ -28,6 +29,8 @@
       () => abrirForm(container, temporadaId);
     container.querySelector('[data-acao="ranking"]').onclick =
       () => App.navegar('ranking-temporada', { temporadaId }, 'Ranking da temporada');
+    container.querySelector('[data-acao="ranking-inicial"]').onclick =
+      () => App.navegar('ranking-inicial', { temporadaId }, 'Ranking inicial');
 
     container.querySelectorAll('[data-acao="editar"]').forEach(b => {
       b.onclick = () => abrirForm(container, temporadaId,

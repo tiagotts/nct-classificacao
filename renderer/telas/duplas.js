@@ -33,6 +33,7 @@
         duplaId: d.id, codigo: d.codigo, grupo: d.grupo || '',
         atleta1: d.atleta1_nome, atleta2: d.atleta2_nome,
       })),
+      pontosPorDupla: {},
     };
 
     const qtdInicial = estado.linhas.length || sugestaoQuantidade(ec);
@@ -46,6 +47,7 @@
           <select id="combo-qtd">
             ${qtds.map(q => `<option value="${q}"${q === qtdInicial ? ' selected' : ''}>${q}</option>`).join('')}
           </select>
+          <button class="btn ghost sm" id="btn-ranking-entrada">Aplicar ranking</button>
           <button class="btn ghost sm" id="btn-serpentina">Distribuir em grupos</button>
         </div>
       </div>
@@ -58,6 +60,7 @@
         tiver os dois nomes ("Atleta 1 / Atleta 2"), cole na coluna Atleta 1
         que o app separa pela barra.</p>
       <div id="grid"></div>
+      <div class="total-ranking" id="total-ranking"></div>
       <div class="form-erro" id="grid-erro"></div>
       <div class="form-acoes">
         <button class="btn" id="btn-salvar">Salvar duplas</button>
@@ -68,6 +71,7 @@
 
     ajustarQuantidade(qtdInicial);
     desenharGrid();
+    atualizarTotalRanking();
 
     container.querySelector('#combo-qtd').onchange = (e) => {
       lerGridParaEstado();
@@ -75,8 +79,67 @@
       desenharGrid();
     };
     container.querySelector('#btn-serpentina').onclick = distribuirSerpentina;
+    container.querySelector('#btn-ranking-entrada').onclick = aplicarRankingEntrada;
     container.querySelector('#btn-salvar').onclick = (e) => salvar(e.target);
     container.querySelector('#grid').addEventListener('paste', aoColar);
+  }
+
+  // Reordena as linhas pelo ranking de entrada: pontos somados dos atletas
+  // (iniciais + etapas anteriores), com desempate por melhores colocações
+  // dos atletas e sorteio nas que persistirem empatadas. As linhas ainda
+  // não salvas (sem duplaId) ficam no final.
+  async function aplicarRankingEntrada() {
+    lerGridParaEstado();
+    const ranking = await window.electronAPI.db.rankingEntrada
+      .calcular(estado.etapaCategoriaId);
+    if (!ranking.length) {
+      alert('Salve as duplas antes de aplicar o ranking de entrada.');
+      return;
+    }
+    const ordem = {};
+    ranking.forEach(d => { ordem[d.id] = d.pos; });
+    estado.linhas.sort((a, b) => {
+      const pa = a.duplaId != null ? (ordem[a.duplaId] || 9999) : 9999;
+      const pb = b.duplaId != null ? (ordem[b.duplaId] || 9999) : 9999;
+      return pa - pb;
+    });
+    desenharGrid();
+    mostrarTotalRanking(ranking);
+  }
+
+  // Busca a pontuação de ranking de cada dupla salva e atualiza o grid e
+  // o total no rodapé. Útil para conferir contra a planilha do circuito.
+  async function atualizarTotalRanking() {
+    try {
+      const ranking = await window.electronAPI.db.rankingEntrada
+        .calcular(estado.etapaCategoriaId);
+      mostrarTotalRanking(ranking);
+    } catch {
+      mostrarTotalRanking([]);
+    }
+  }
+
+  function mostrarTotalRanking(ranking) {
+    estado.pontosPorDupla = {};
+    (ranking || []).forEach(d => {
+      estado.pontosPorDupla[d.id] = {
+        p1: d.pontos1 || 0, p2: d.pontos2 || 0, total: d.score || 0,
+      };
+    });
+    document.querySelectorAll('#grid tbody tr').forEach(tr => {
+      const i = Number(tr.dataset.i);
+      const linha = estado.linhas[i];
+      const cel = tr.querySelector('.col-pts');
+      if (!cel) return;
+      const info = linha && linha.duplaId != null
+        ? estado.pontosPorDupla[linha.duplaId] : null;
+      cel.textContent = info ? `${info.p1} + ${info.p2} = ${info.total}` : '';
+    });
+    const el = document.getElementById('total-ranking');
+    if (!el) return;
+    if (!ranking || !ranking.length) { el.textContent = ''; return; }
+    const total = ranking.reduce((s, d) => s + (d.score || 0), 0);
+    el.textContent = `Soma do ranking das duplas: ${total}`;
   }
 
   // Campos do grid, na ordem das colunas — usado para colar de planilha.
@@ -230,6 +293,7 @@
             <th class="col-grupo">Grupo</th>
             <th>Atleta 1</th>
             <th>Atleta 2</th>
+            <th class="col-pts">Pontos</th>
           </tr>
         </thead>
         <tbody>
@@ -239,6 +303,8 @@
   }
 
   function linhaHtml(linha, i) {
+    const info = linha.duplaId != null ? estado.pontosPorDupla[linha.duplaId] : null;
+    const txt = info ? `${info.p1} + ${info.p2} = ${info.total}` : '';
     return `
       <tr data-i="${i}">
         <td class="idx">${i + 1}</td>
@@ -249,6 +315,7 @@
                    placeholder="Atleta 1" value="${App.escapar(linha.atleta1)}"></td>
         <td><input type="text" class="c-at2" list="lista-atletas" autocomplete="off"
                    placeholder="Atleta 2" value="${App.escapar(linha.atleta2)}"></td>
+        <td class="col-pts">${App.escapar(txt)}</td>
       </tr>`;
   }
 

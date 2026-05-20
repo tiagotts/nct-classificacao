@@ -68,7 +68,18 @@
       "Bash(python3 -c \"import openpyxl; print\\('openpyxl ok'\\)\")",
       "Bash(node -e \"require\\('./renderer/app.js'\\)\")",
       "Bash(node --check renderer/app.js)",
-      "Bash(node --check renderer/telas/classificacao.js)"
+      "Bash(node --check renderer/telas/classificacao.js)",
+      "Bash(node --check renderer/telas/ranking-inicial.js)",
+      "Bash(unzip -o planilha.xlsx -d planilha_xml)",
+      "Bash(python3 -c \"import sys, re; txt = sys.stdin.read\\(\\); m = re.findall\\(r'<sheet [^/]*?/>', txt\\); [print\\(x\\) for x in m]\")",
+      "Bash(node /tmp/dump_xlsx.js /tmp/planilha_xml)",
+      "Bash(sqlite3 data/nct.db \".headers on\" \".mode column\" \"SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;\")",
+      "Bash(sqlite3 data/nct.db \".headers on\" \".mode column\" \"SELECT id, nome, ano FROM temporada;\" \"SELECT id, temporada_id, nome FROM etapa;\" \"SELECT id, slug, nome FROM categoria;\")",
+      "Bash(sqlite3 data/nct.db \".headers on\" \".mode column\" \"SELECT id, etapa_id, categoria_id, tipo, num_grupos FROM etapa_categoria;\")",
+      "Bash(sqlite3 data/nct.db \".headers on\" \".mode column\" \"SELECT COUNT\\(*\\) AS qtd_ranking, categoria_id, tipo FROM ranking_inicial GROUP BY categoria_id, tipo;\" \"SELECT COUNT\\(*\\) AS qtd_atletas FROM atleta;\" \"SELECT COUNT\\(*\\) AS qtd_duplas FROM dupla;\")",
+      "Bash(sqlite3 data/nct.db '.headers on' '.mode column' 'SELECT d.id, d.codigo, d.grupo, a1.nome AS atleta1, a2.nome AS atleta2, *)",
+      "Bash(sqlite3 data/nct.db '.headers on' '.mode column' 'SELECT categoria_id, tipo, COUNT\\(*\\) AS qtd FROM ranking_inicial GROUP BY categoria_id, tipo;' 'SELECT a.id, a.nome, ri.pontos *)",
+      "Bash(sqlite3 data/nct.db \".headers on\" \".mode column\" \"SELECT id, categoria_id, tipo, COUNT\\(*\\) AS qtd FROM ranking_inicial GROUP BY temporada_id, categoria_id, tipo;\" \"SELECT id, etapa_id, categoria_id, tipo FROM etapa_categoria;\" \"SELECT COUNT\\(*\\) AS qtd_duplas, etapa_categoria_id FROM dupla GROUP BY etapa_categoria_id;\")"
     ],
     "additionalDirectories": [
       "/tmp"

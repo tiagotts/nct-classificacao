@@ -86,5 +86,25 @@ t('faixas padrão cobrem da 1ª colocação em diante', () => {
   }
 });
 
+t('pontos iniciais aparecem mesmo sem etapa jogada', () => {
+  const r = calcularRankingTemporada([], { 1: 'Ana', 2: 'Bia' }, { 1: 500, 2: 300 });
+  eq(r.length, 2);
+  eq(r[0].nome, 'Ana');
+  eq(r[0].pontos, 500);
+  eq(r[0].etapas, 0, 'etapas conta só os jogos disputados');
+});
+
+t('pontos iniciais somam com pontos das etapas', () => {
+  const resultados = [
+    { atleta1_id: 1, atleta2_id: 2, pontos_ganhos: 100, colocacao_final: 5 },
+  ];
+  const r = calcularRankingTemporada(resultados,
+    { 1: 'Ana', 2: 'Bia' }, { 1: 500 });
+  const ana = r.find(x => x.atletaId === 1);
+  const bia = r.find(x => x.atletaId === 2);
+  eq(ana.pontos, 600, 'Ana: 500 inicial + 100 da etapa');
+  eq(bia.pontos, 100, 'Bia: só os 100 da etapa');
+});
+
 console.log(`\n=== ${ok} passou(aram), ${fail} falhou(aram) ===\n`);
 process.exit(fail > 0 ? 1 : 0);

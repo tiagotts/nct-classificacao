@@ -2,6 +2,7 @@
 // de uma categoria, em todas as etapas da temporada, e chama o motor.
 const { getDb } = require('../database');
 const motor = require('../../motor/pontuacao');
+const rankingInicial = require('./ranking-inicial');
 
 // calcular(temporadaId, categoriaId, tipo): ranking de temporada por atleta.
 // Filtra por tipo (masculino|feminino): masculino e feminino são competições
@@ -17,10 +18,13 @@ function calcular(temporadaId, categoriaId, tipo) {
   `).all(temporadaId, categoriaId, tipo);
 
   const nomePorAtleta = {};
-  for (const a of db.prepare('SELECT id, nome FROM atleta').all()) {
-    nomePorAtleta[a.id] = a.nome;
+  // No ranking exibido usamos o nome_completo quando disponível; o nome
+  // (apelido) fica como reserva para atletas ainda sem cadastro completo.
+  for (const a of db.prepare('SELECT id, nome, nome_completo FROM atleta').all()) {
+    nomePorAtleta[a.id] = a.nome_completo || a.nome;
   }
-  return motor.calcularRankingTemporada(resultados, nomePorAtleta);
+  const pontosIniciais = rankingInicial.porAtleta(temporadaId, categoriaId, tipo);
+  return motor.calcularRankingTemporada(resultados, nomePorAtleta, pontosIniciais);
 }
 
 module.exports = { calcular };

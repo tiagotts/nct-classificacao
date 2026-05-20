@@ -63,6 +63,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
       salvar: (etapaCategoriaId, faixas) =>
         ipcRenderer.invoke('pontuacao:salvar', etapaCategoriaId, faixas),
     },
+    rankingInicial: {
+      listar: (temporadaId, categoriaId, tipo) =>
+        ipcRenderer.invoke('rankingInicial:listar', temporadaId, categoriaId, tipo),
+      salvar: (temporadaId, categoriaId, tipo, entradas) =>
+        ipcRenderer.invoke('rankingInicial:salvar',
+          temporadaId, categoriaId, tipo, entradas),
+    },
+    rankingEntrada: {
+      calcular: (etapaCategoriaId) =>
+        ipcRenderer.invoke('rankingEntrada:calcular', etapaCategoriaId),
+    },
   },
 
   // Publicação da página de resultados no GitHub Pages.

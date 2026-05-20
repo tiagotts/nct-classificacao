@@ -8,7 +8,7 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "test": "ELECTRON_RUN_AS_NODE=1 electron tests/test-chave-dupla.js && ELECTRON_RUN_AS_NODE=1 electron tests/test-fluxo-integrado.js && ELECTRON_RUN_AS_NODE=1 electron tests/test-db.js && ELECTRON_RUN_AS_NODE=1 electron tests/test-repositorios.js && ELECTRON_RUN_AS_NODE=1 electron tests/test-jogos-grupo.js && ELECTRON_RUN_AS_NODE=1 electron tests/test-classificacao.js && ELECTRON_RUN_AS_NODE=1 electron tests/test-mata-mata.js && ELECTRON_RUN_AS_NODE=1 electron tests/test-pontuacao.js && ELECTRON_RUN_AS_NODE=1 electron tests/test-publicacao.js",
+    "test": "ELECTRON_RUN_AS_NODE=1 electron tests/test-chave-dupla.js && ELECTRON_RUN_AS_NODE=1 electron tests/test-fluxo-integrado.js && ELECTRON_RUN_AS_NODE=1 electron tests/test-db.js && ELECTRON_RUN_AS_NODE=1 electron tests/test-repositorios.js && ELECTRON_RUN_AS_NODE=1 electron tests/test-jogos-grupo.js && ELECTRON_RUN_AS_NODE=1 electron tests/test-classificacao.js && ELECTRON_RUN_AS_NODE=1 electron tests/test-mata-mata.js && ELECTRON_RUN_AS_NODE=1 electron tests/test-pontuacao.js && ELECTRON_RUN_AS_NODE=1 electron tests/test-ranking-entrada.js && ELECTRON_RUN_AS_NODE=1 electron tests/test-publicacao.js",
     "rebuild": "electron-builder install-app-deps",
     "seed": "ELECTRON_RUN_AS_NODE=1 electron tests/seed-teste.js",
     "postinstall": "electron-builder install-app-deps",

@@ -44,7 +44,14 @@ t('slugs das categorias são os esperados', () => {
 });
 
 t('user_version reflete as migrações aplicadas', () => {
-  eq(db.pragma('user_version', { simple: true }), 4, 'user_version');
+  eq(db.pragma('user_version', { simple: true }), 6, 'user_version');
+});
+
+t('atleta tem coluna nome_completo após a migração 0006', () => {
+  const cols = db.prepare("PRAGMA table_info(atleta)").all().map(c => c.name);
+  if (!cols.includes('nome_completo')) {
+    throw new Error('faltou coluna nome_completo em atleta');
+  }
 });
 
 t('foreign keys estão habilitadas', () => {

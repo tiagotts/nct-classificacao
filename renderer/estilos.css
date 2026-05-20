@@ -127,6 +127,7 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
 }
 .form-acoes{display:flex;gap:8px;margin-top:14px}
 .form-erro{color:var(--warn);font-size:13px;margin-top:8px;min-height:18px}
+.total-ranking{font-size:13px;color:var(--muted);margin-top:8px;text-align:right}
 
 .dica{color:var(--muted);font-size:13px;margin:10px 0}
 
@@ -169,6 +170,7 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
 }
 .grid-duplas td.col-cod,.grid-duplas th.col-cod{width:96px}
 .grid-duplas td.col-grupo,.grid-duplas th.col-grupo{width:84px}
+.grid-duplas td.col-pts,.grid-duplas th.col-pts{width:96px;text-align:right}
 .grid-duplas input,.grid-duplas select{
   width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:5px;
   font-size:13px;background:#fdfaf2;font-family:inherit;

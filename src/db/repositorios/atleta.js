@@ -16,13 +16,17 @@ function obter(id) {
   return getDb().prepare('SELECT * FROM atleta WHERE id = ?').get(id);
 }
 
-function criar({ nome }) {
-  const info = getDb().prepare('INSERT INTO atleta (nome) VALUES (?)').run(nome);
+function criar({ nome, nome_completo = null }) {
+  const info = getDb()
+    .prepare('INSERT INTO atleta (nome, nome_completo) VALUES (?, ?)')
+    .run(nome, nome_completo || null);
   return obter(info.lastInsertRowid);
 }
 
-function atualizar(id, { nome }) {
-  getDb().prepare('UPDATE atleta SET nome = ? WHERE id = ?').run(nome, id);
+function atualizar(id, { nome, nome_completo }) {
+  getDb()
+    .prepare('UPDATE atleta SET nome = ?, nome_completo = ? WHERE id = ?')
+    .run(nome, nome_completo || null, id);
   return obter(id);
 }
 

@@ -40,13 +40,16 @@ function compararAtletas(a, b) {
 
 /**
  * Calcula o ranking de temporada por atleta para uma categoria.
- * Cada dupla rende os seus pontos para os DOIS atletas.
+ * Cada dupla rende os seus pontos para os DOIS atletas. Pontos iniciais
+ * pré-cadastrados são somados (e garantem que o atleta apareça no ranking
+ * mesmo sem ter jogado uma etapa ainda).
  * @param {Array} resultados - [{ atleta1_id, atleta2_id, pontos_ganhos, colocacao_final }]
  * @param {Object} nomePorAtleta - mapa { atletaId: nome }
+ * @param {Object} pontosIniciais - mapa { atletaId: pontos } (opcional)
  * @returns {Array} atletas ordenados, com { posicao, atletaId, nome, pontos,
  *   etapas, colocacoes }
  */
-function calcularRankingTemporada(resultados, nomePorAtleta = {}) {
+function calcularRankingTemporada(resultados, nomePorAtleta = {}, pontosIniciais = {}) {
   const porAtleta = new Map();
   const garantir = (id) => {
     if (!porAtleta.has(id)) {
@@ -57,6 +60,11 @@ function calcularRankingTemporada(resultados, nomePorAtleta = {}) {
     }
     return porAtleta.get(id);
   };
+
+  for (const [id, pontos] of Object.entries(pontosIniciais || {})) {
+    const a = garantir(Number(id));
+    a.pontos += Number(pontos) || 0;
+  }
 
   for (const r of resultados) {
     if (r.pontos_ganhos == null) continue; // dupla ainda sem colocação apurada

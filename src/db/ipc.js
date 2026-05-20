@@ -12,6 +12,8 @@ const dupla = require('./repositorios/dupla');
 const jogo = require('./repositorios/jogo');
 const classificacao = require('./repositorios/classificacao');
 const rankingTemporada = require('./repositorios/ranking-temporada');
+const rankingInicial = require('./repositorios/ranking-inicial');
+const rankingEntrada = require('./repositorios/ranking-entrada');
 const pontuacao = require('./repositorios/pontuacao');
 const { gerarPaginaEtapa } = require('../publicacao/gerar-pagina');
 const github = require('../publicacao/github');
@@ -58,6 +60,12 @@ function registrar(ipcMain) {
     pontuacao.faixas(etapaCategoriaId));
   ipcMain.handle('pontuacao:salvar', (e, etapaCategoriaId, faixas) =>
     pontuacao.salvar(etapaCategoriaId, faixas));
+  ipcMain.handle('rankingInicial:listar', (e, temporadaId, categoriaId, tipo) =>
+    rankingInicial.listar(temporadaId, categoriaId, tipo));
+  ipcMain.handle('rankingInicial:salvar', (e, temporadaId, categoriaId, tipo, entradas) =>
+    rankingInicial.salvar(temporadaId, categoriaId, tipo, entradas));
+  ipcMain.handle('rankingEntrada:calcular', (e, etapaCategoriaId) =>
+    rankingEntrada.calcular(etapaCategoriaId));
 
   // Publica a página da etapa no GitHub Pages.
   ipcMain.handle('publicacao:publicar', async (e, etapaId, cfg) => {

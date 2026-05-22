@@ -100,7 +100,17 @@
       "Bash(ELECTRON_RUN_AS_NODE=1 npx electron /tmp/sim9.js)",
       "Bash(sqlite3 data/nct.db \".headers on\" \"SELECT etapa_categoria_id, COUNT\\(*\\) AS jogos, SUM\\(CASE WHEN placar1 IS NOT NULL OR placar2 IS NOT NULL THEN 1 ELSE 0 END\\) AS com_placar FROM jogo WHERE etapa_categoria_id IN \\(2,4\\) GROUP BY etapa_categoria_id;\")",
       "Bash(sqlite3 data/nct.db \"SELECT sql FROM sqlite_master WHERE name='jogo';\")",
-      "Bash(sqlite3 data/nct.db ' *)"
+      "Bash(sqlite3 data/nct.db ' *)",
+      "Bash(sqlite3 data/nct.db \".mode column\" \".headers on\" \"SELECT j.num, j.grupo, d1.codigo, d2.codigo FROM jogo j LEFT JOIN dupla d1 ON d1.id=j.dupla1_id LEFT JOIN dupla d2 ON d2.id=j.dupla2_id WHERE j.etapa_categoria_id=4 AND j.fase='grupo' ORDER BY j.num;\")",
+      "Bash(sqlite3 data/nct.db \".mode column\" \".headers on\" \"SELECT j.num, j.grupo, d1.codigo, d2.codigo FROM jogo j LEFT JOIN dupla d1 ON d1.id=j.dupla1_id LEFT JOIN dupla d2 ON d2.id=j.dupla2_id WHERE j.etapa_categoria_id=3 AND j.fase='grupo' AND j.grupo='A' ORDER BY j.num;\")",
+      "Bash(sed -n '11,20p' /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/src/motor/jogos-grupo.js)",
+      "Bash(sed -n '253,285p' /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/renderer/telas/duplas.js)",
+      "Bash(sqlite3 data/nct.db \".mode column\" \".headers on\" \"SELECT j.num, j.grupo, j.dupla1_id, j.dupla2_id, d1.codigo AS c1, d2.codigo AS c2 FROM jogo j LEFT JOIN dupla d1 ON d1.id=j.dupla1_id LEFT JOIN dupla d2 ON d2.id=j.dupla2_id WHERE j.etapa_categoria_id=3 AND j.fase='grupo' ORDER BY j.num LIMIT 12;\")",
+      "Bash(sqlite3 data/nct.db \"SELECT COUNT\\(*\\) total, SUM\\(CASE WHEN placar1 IS NOT NULL THEN 1 ELSE 0 END\\) com_placar FROM jogo WHERE etapa_categoria_id=3 AND fase='grupo';\")",
+      "Bash(sqlite3 data/nct.db \".mode column\" \".headers on\" \"SELECT grupo, COUNT\\(*\\) FROM dupla WHERE etapa_categoria_id=3 GROUP BY grupo;\")",
+      "Bash(ELECTRON_RUN_AS_NODE=1 npx electron /tmp/regen.js)",
+      "Bash(sqlite3 data/nct.db \".mode column\" \".headers on\" \"SELECT j.num, d1.codigo, d2.codigo FROM jogo j LEFT JOIN dupla d1 ON d1.id=j.dupla1_id LEFT JOIN dupla d2 ON d2.id=j.dupla2_id WHERE j.etapa_categoria_id=4 AND j.fase='grupo' ORDER BY j.num;\")",
+      "Bash(sqlite3 data/nct.db \"SELECT formato FROM etapa_categoria WHERE id=3;\")"
     ],
     "additionalDirectories": [
       "/tmp"

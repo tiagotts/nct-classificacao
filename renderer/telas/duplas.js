@@ -251,12 +251,8 @@
   }
 
   // Distribui as duplas pelos grupos em serpentina, seguindo a ordem das
-  // linhas: A, B, C, D, depois D, C, B, A, e assim por diante. Reescreve
-  // o grupo e o código de cada linha.
-  // Regra do regulamento: com nº PAR de grupos, a serpentina vai pura até o
-  // fim. Com nº ÍMPAR de grupos (ex.: 9 duplas em 3 grupos), a última linha
-  // é forçada no sentido invertido, para o último do ranking cair no grupo
-  // do primeiro colocado (grupo A).
+  // linhas (1ª colocada do ranking no topo). A regra está no motor
+  // src/motor/serpentina.js (distribuirEmGrupos).
   function distribuirSerpentina() {
     const ng = estado.ec.num_grupos;
     if (!ng || ng < 1) {
@@ -264,19 +260,10 @@
       return;
     }
     lerGridParaEstado();
-    const contador = {};
-    const ultimaRodada = Math.floor((estado.linhas.length - 1) / ng);
-    const gruposImpares = ng % 2 === 1;
+    const pos = distribuirEmGrupos(estado.linhas.length, ng);
     estado.linhas.forEach((linha, i) => {
-      const rodada = Math.floor(i / ng);
-      const pos = i % ng;
-      const inverter = rodada % 2 === 1
-        || (gruposImpares && rodada === ultimaRodada);
-      const indiceGrupo = inverter ? ng - 1 - pos : pos;
-      const letra = String.fromCharCode(65 + indiceGrupo);
-      contador[letra] = (contador[letra] || 0) + 1;
-      linha.grupo = letra;
-      linha.codigo = `${letra}${contador[letra]}`;
+      linha.grupo = pos[i].grupo;
+      linha.codigo = pos[i].codigo;
     });
     desenharGrid();
   }

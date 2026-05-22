@@ -91,7 +91,13 @@
       "Bash(sqlite3 data/nct.db \".headers on\" \"SELECT categoria_id, tipo, etapa_id, COUNT\\(*\\) FROM ranking_inicial GROUP BY categoria_id, tipo, etapa_id;\")",
       "Bash(sqlite3 data/nct.db \".headers on\" \"SELECT temporada_id, COUNT\\(DISTINCT atleta_id\\) AS atletas, COUNT\\(*\\) AS linhas FROM ranking_inicial WHERE categoria_id=3 AND tipo='masculino' GROUP BY temporada_id;\")",
       "Bash(sqlite3 data/nct.db \".headers on\" \"SELECT * FROM temporada;\" \"SELECT id, temporada_id, nome FROM etapa;\")",
-      "Bash(sqlite3 data/nct.db \"UPDATE ranking_inicial SET pontos=500 WHERE temporada_id=1 AND categoria_id=3 AND tipo='masculino' AND etapa_id IS NULL AND atleta_id IN \\(1,5,6,7,12,16\\);\")"
+      "Bash(sqlite3 data/nct.db \"UPDATE ranking_inicial SET pontos=500 WHERE temporada_id=1 AND categoria_id=3 AND tipo='masculino' AND etapa_id IS NULL AND atleta_id IN \\(1,5,6,7,12,16\\);\")",
+      "Bash(rm -rf p50)",
+      "Bash(cp \"/Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/planilhas/Master 50+ Masc_1ª ETAPA.xlsx\" p50.xlsx)",
+      "Bash(unzip -o p50.xlsx -d p50)",
+      "Bash(node /tmp/dump_xlsx.js /tmp/p50)",
+      "Bash(sed -i '' \"s#'./src/motor#'$\\(pwd\\)/src/motor#g\" /tmp/sim9.js)",
+      "Bash(ELECTRON_RUN_AS_NODE=1 npx electron /tmp/sim9.js)"
     ],
     "additionalDirectories": [
       "/tmp"

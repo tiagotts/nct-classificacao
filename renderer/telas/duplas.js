@@ -8,7 +8,9 @@
   const apiAtleta = () => window.electronAPI.db.atleta;
   const apiEC = () => window.electronAPI.db.etapaCategoria;
 
-  const QUANTIDADES_BASE = [4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32];
+  // 9 e 15 cobrem os formatos de grupos de 3 (ex.: 9 duplas = 3 grupos de 3,
+  // com mata-mata de 8 e o 9º eliminado).
+  const QUANTIDADES_BASE = [4, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20, 24, 28, 32];
 
   App.registrarTela('duplas', { render });
 
@@ -76,7 +78,9 @@
 
     container.querySelector('#combo-qtd').onchange = (e) => {
       lerGridParaEstado();
-      ajustarQuantidade(Number(e.target.value));
+      // Trocar a quantidade re-distribui código e grupo de todas as linhas
+      // pelo novo layout (ex.: de 12 para 9 vira 3 grupos de 3).
+      ajustarQuantidade(Number(e.target.value), true);
       desenharGrid();
     };
     container.querySelector('#btn-serpentina').onclick = distribuirSerpentina;
@@ -222,16 +226,19 @@
     return pos;
   }
 
-  // Redimensiona estado.linhas para a quantidade pedida, preenchendo código e
-  // grupo das linhas novas (ou das que estiverem vazias).
-  function ajustarQuantidade(qtd) {
+  // Redimensiona estado.linhas para a quantidade pedida.
+  // regenerar = true reescreve código e grupo de TODAS as linhas pelo novo
+  // layout (usado ao trocar a quantidade). regenerar = false só preenche as
+  // linhas novas ou as que estiverem sem código/grupo (usado na carga
+  // inicial, para preservar o que veio do banco).
+  function ajustarQuantidade(qtd, regenerar) {
     const pos = gerarPosicoes(qtd, estado.ec.num_grupos);
     const novas = [];
     for (let i = 0; i < qtd; i++) {
       const linha = estado.linhas[i];
       if (linha) {
-        if (!linha.codigo) linha.codigo = pos[i].codigo;
-        if (!linha.grupo) linha.grupo = pos[i].grupo;
+        if (regenerar || !linha.codigo) linha.codigo = pos[i].codigo;
+        if (regenerar || !linha.grupo) linha.grupo = pos[i].grupo;
         novas.push(linha);
       } else {
         novas.push({

@@ -111,6 +111,40 @@ t('ranking geral completa a repescagem automaticamente (3 grupos -> 8)', () => {
   eq(r.ranking.length, 8, 'classificados com repescagem automática');
 });
 
+t('9 duplas (3 grupos de 3): 8 classificados, 1 eliminado, chave de 8', () => {
+  // Formato Master 50+ do regulamento: 3 grupos de 3, todos-contra-todos.
+  // 2 diretos por grupo = 6, repescagem completa para 8; o pior 3º cai fora.
+  const duplas = [];
+  const jogos = [];
+  for (const g of ['A', 'B', 'C']) {
+    const ds = [1, 2, 3].map(n => ({
+      id: `${g}${n}`, codigo: `${g}${n}`, grupo: g,
+      atleta1_nome: 'x', atleta2_nome: 'y',
+    }));
+    duplas.push(...ds);
+    for (let i = 0; i < ds.length; i++) {
+      for (let j = i + 1; j < ds.length; j++) {
+        jogos.push({
+          fase: 'grupo', dupla1_id: ds[i].id, dupla2_id: ds[j].id,
+          placar1: 21, placar2: 10, tipo_resultado: 'normal',
+        });
+      }
+    }
+  }
+  eq(duplas.length, 9, '9 duplas');
+  const r = calcularRankingGeral(duplas, jogos, { classPorGrupo: 2 });
+  eq(r.ranking.length, 8, '8 classificados (6 diretos + 2 repescagem)');
+  const eliminados = duplas.filter(d => !r.ranking.find(x => x.id === d.id));
+  eq(eliminados.length, 1, '1 dupla eliminada (pior 3º colocado)');
+
+  // Cruzamento da chave de 8 = regulamento: 1×8, 4×5, 2×7, 3×6.
+  const chave = gerarChave(r.ranking.length);
+  eq(chave.partidas.length, 8, '8 jogos no mata-mata');
+  const r1 = chave.partidas.filter(p => p.rodada === 1)
+    .map(p => `${p.slot1.seed}x${p.slot2.seed}`).join(' ');
+  eq(r1, '1x8 4x5 2x7 3x6', 'cruzamento das quartas');
+});
+
 t('ranking geral: 4 duplas em 1 grupo -> as 4 vão ao mata-mata', () => {
   // 1 grupo de 4, 2 diretos: a repescagem puxa o 3º e o 4º para fechar a
   // chave de 4 (antes só ia o 3º e a chave de 3 quebrava).

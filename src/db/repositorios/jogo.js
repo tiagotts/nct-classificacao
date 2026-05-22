@@ -343,7 +343,23 @@ function remover(id) {
   getDb().prepare('DELETE FROM jogo WHERE id = ?').run(id);
 }
 
+// reordenarGrupo: renumera os jogos da fase de grupos conforme a ordem dos
+// ids informada (idsNaOrdem[0] vira num 1, e assim por diante). Usado pela
+// tela de jogos quando o usuário muda a ordem dos jogos manualmente.
+function reordenarGrupo(etapaCategoriaId, idsNaOrdem) {
+  const db = getDb();
+  const atualizar = db.prepare(
+    `UPDATE jogo SET num = ?
+     WHERE id = ? AND etapa_categoria_id = ? AND fase = 'grupo'`);
+  db.transaction(() => {
+    (idsNaOrdem || []).forEach((id, i) => {
+      atualizar.run(i + 1, id, etapaCategoriaId);
+    });
+  })();
+  return listar(etapaCategoriaId);
+}
+
 module.exports = {
   listar, obter, criar, registrarPlacar,
-  gerarFaseGrupos, gerarMataMata, remover,
+  gerarFaseGrupos, gerarMataMata, remover, reordenarGrupo,
 };

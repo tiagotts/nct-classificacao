@@ -46,7 +46,11 @@
     const ec = await apiEC().obter(etapaCategoriaId);
     const duplaMap = {};
     duplas.forEach(d => { duplaMap[d.id] = d; });
-    estado = { etapaCategoriaId, jogos, duplaMap };
+    // A ordem dos jogos só pode ser mudada no formato todos-contra-todos.
+    // Na dupla eliminatória a ordem (nº do jogo) é estrutural — define quem
+    // são os jogos de vencedores/perdedores/repescagem.
+    const reordenavel = ec.formato !== 'dupla-eliminatoria';
+    estado = { etapaCategoriaId, jogos, duplaMap, reordenavel };
 
     container.innerHTML = `
       <div class="topo-tela">
@@ -59,7 +63,8 @@
         (${ec.formato === 'dupla-eliminatoria'
           ? 'dupla eliminatória no grupo' : 'todos contra todos'}).
         Em W&times;0 escolha no resultado quem venceu — o app preenche
-        o placar sozinho.</p>
+        o placar sozinho.${reordenavel
+          ? ' Use as setas ↑↓ para mudar a ordem dos jogos.' : ''}</p>
       <div id="grid-jogos"></div>
       <div class="form-erro" id="jogos-erro"></div>
       <div class="form-acoes">
@@ -128,10 +133,16 @@
     });
   }
 
+  // Jogos na ordem do nº do jogo.
+  function jogosOrdenados() {
+    return estado.jogos.slice().sort((a, b) => (a.num || 0) - (b.num || 0));
+  }
+
   // Tabela única, com os jogos em sequência (ordem do nº do jogo) — os
   // grupos aparecem intercalados, como na planilha do circuito.
   function desenhar() {
-    const jogos = estado.jogos.slice().sort((a, b) => (a.num || 0) - (b.num || 0));
+    const jogos = jogosOrdenados();
+    const colOrdem = estado.reordenavel ? '<th class="col-ordem">Ordem</th>' : '';
     document.getElementById('grid-jogos').innerHTML = `
       <table class="tab-jogos">
         <thead><tr>
@@ -142,11 +153,43 @@
           <th class="col-placar">Placar</th>
           <th>Dupla 2</th>
           <th class="col-tipo">Resultado</th>
+          ${colOrdem}
         </tr></thead>
-        <tbody>${jogos.map(linhaHtml).join('')}</tbody>
+        <tbody>${jogos.map((j, i) => linhaHtml(j, i, jogos.length)).join('')}</tbody>
       </table>`;
     document.querySelectorAll('#grid-jogos .tipo').forEach(sel => {
       sel.onchange = () => aoMudarTipo(sel);
+    });
+    document.querySelectorAll('#grid-jogos [data-mover]').forEach(b => {
+      b.onclick = () => moverJogo(Number(b.dataset.id), b.dataset.mover);
+    });
+  }
+
+  // Move um jogo para cima/baixo na lista, trocando o nº com o vizinho.
+  // Captura antes os placares digitados para não perdê-los no redesenho.
+  function moverJogo(id, direcao) {
+    lerGrid();
+    const jogos = jogosOrdenados();
+    const i = jogos.findIndex(j => j.id === id);
+    const k = direcao === 'cima' ? i - 1 : i + 1;
+    if (i < 0 || k < 0 || k >= jogos.length) return;
+    const tmp = jogos[i].num;
+    jogos[i].num = jogos[k].num;
+    jogos[k].num = tmp;
+    desenhar();
+  }
+
+  // Captura placar e tipo digitados no grid de volta para estado.jogos.
+  function lerGrid() {
+    document.querySelectorAll('#grid-jogos tbody tr').forEach(tr => {
+      const j = estado.jogos.find(x => x.id === Number(tr.dataset.id));
+      if (!j) return;
+      const p1 = tr.querySelector('.p1').value;
+      const p2 = tr.querySelector('.p2').value;
+      j.placar1 = p1 === '' ? null : Number(p1);
+      j.placar2 = p2 === '' ? null : Number(p2);
+      const v = tr.querySelector('.tipo').value;
+      j.tipo_resultado = ehVarianteWO(v) ? 'wx0' : v;
     });
   }
 
@@ -158,7 +201,7 @@
       + App.escapar(`${d.atleta1_nome} / ${d.atleta2_nome}`);
   }
 
-  function linhaHtml(j) {
+  function linhaHtml(j, i, total) {
     const v = variante(j);
     const op = (val, txt) =>
       `<option value="${val}"${v === val ? ' selected' : ''}>${txt}</option>`;
@@ -169,6 +212,13 @@
     const woTxt2 = ehWO ? rotuloWO(v, 2) : '';
     const venceu1 = woTxt1 === 'W' ? ' venceu' : '';
     const venceu2 = woTxt2 === 'W' ? ' venceu' : '';
+    const colOrdem = estado.reordenavel ? `
+        <td class="col-ordem">
+          <button class="btn ghost sm" data-mover="cima" data-id="${j.id}"
+                  title="Subir" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button class="btn ghost sm" data-mover="baixo" data-id="${j.id}"
+                  title="Descer" ${i === total - 1 ? 'disabled' : ''}>↓</button>
+        </td>` : '';
     return `
       <tr data-id="${j.id}">
         <td class="idx">${j.num}</td>
@@ -194,6 +244,7 @@
             ${op('desistencia', 'Desistência')}
           </select>
         </td>
+        ${colOrdem}
       </tr>`;
   }
 
@@ -213,6 +264,11 @@
           placar2: p2 === '' ? null : Number(p2),
           tipoResultado: tipo,
         });
+      }
+      // Persiste a ordem dos jogos (só no formato todos-contra-todos).
+      if (estado.reordenavel) {
+        await apiJogo().reordenarGrupo(
+          estado.etapaCategoriaId, jogosOrdenados().map(j => j.id));
       }
       await App.recarregar();
     } catch (err) {

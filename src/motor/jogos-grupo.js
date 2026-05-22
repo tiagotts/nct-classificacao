@@ -9,6 +9,10 @@
 // grupo de 4, sai 1x4, 2x3 | 1x3, 2x4 | 1x2, 3x4. Para n ímpar entra um
 // "bye" (-1) que apenas folga uma dupla por rodada.
 function paresRoundRobin(n) {
+  // Grupo de 3: o método do círculo geraria 2x3, 1x3, 1x2; o regulamento
+  // NCT usa 1x3, 2x3, 1x2 (cada dupla folga uma rodada — folga a 2, a 1, a 3).
+  if (n === 3) return [[0, 2], [1, 2], [0, 1]];
+
   const arr = [];
   for (let i = 0; i < n; i++) arr.push(i);
   if (arr.length % 2 === 1) arr.push(-1);

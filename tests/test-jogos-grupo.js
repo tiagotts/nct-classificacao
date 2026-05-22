@@ -45,6 +45,13 @@ t('grupo de 4 segue a ordem de rodadas do regulamento', () => {
      JSON.stringify([[1, 4], [2, 3], [1, 3], [2, 4], [1, 2], [3, 4]]));
 });
 
+t('grupo de 3 segue a ordem do regulamento (1x3, 2x3, 1x2)', () => {
+  const duplas = [1, 2, 3].map(id => ({ id, grupo: 'A' }));
+  const pares = gerarConfrontos(duplas).map(c => [c.dupla1Id, c.dupla2Id]);
+  eq(JSON.stringify(pares),
+     JSON.stringify([[1, 3], [2, 3], [1, 2]]));
+});
+
 t('2 grupos de 4 geram 12 confrontos', () => {
   const duplas = [
     ...[1, 2, 3, 4].map(id => ({ id, grupo: 'A' })),

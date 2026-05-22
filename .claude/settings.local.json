@@ -97,7 +97,10 @@
       "Bash(unzip -o p50.xlsx -d p50)",
       "Bash(node /tmp/dump_xlsx.js /tmp/p50)",
       "Bash(sed -i '' \"s#'./src/motor#'$\\(pwd\\)/src/motor#g\" /tmp/sim9.js)",
-      "Bash(ELECTRON_RUN_AS_NODE=1 npx electron /tmp/sim9.js)"
+      "Bash(ELECTRON_RUN_AS_NODE=1 npx electron /tmp/sim9.js)",
+      "Bash(sqlite3 data/nct.db \".headers on\" \"SELECT etapa_categoria_id, COUNT\\(*\\) AS jogos, SUM\\(CASE WHEN placar1 IS NOT NULL OR placar2 IS NOT NULL THEN 1 ELSE 0 END\\) AS com_placar FROM jogo WHERE etapa_categoria_id IN \\(2,4\\) GROUP BY etapa_categoria_id;\")",
+      "Bash(sqlite3 data/nct.db \"SELECT sql FROM sqlite_master WHERE name='jogo';\")",
+      "Bash(sqlite3 data/nct.db ' *)"
     ],
     "additionalDirectories": [
       "/tmp"

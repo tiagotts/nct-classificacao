@@ -46,13 +46,12 @@
     const ec = await apiEC().obter(etapaCategoriaId);
     const duplaMap = {};
     duplas.forEach(d => { duplaMap[d.id] = d; });
-    estado = { etapaCategoriaId, etapaId: ec.etapa_id, jogos, duplaMap };
+    estado = { etapaCategoriaId, jogos, duplaMap };
 
     container.innerHTML = `
       <div class="topo-tela">
         <h2>Jogos da fase de grupos</h2>
         <div class="acoes-topo">
-          <button class="btn ghost sm" id="btn-publicar">Publicar resultados</button>
           <button class="btn ghost sm" id="btn-regerar">Regerar jogos</button>
         </div>
       </div>
@@ -61,7 +60,6 @@
           ? 'dupla eliminatória no grupo' : 'todos contra todos'}).
         Em W&times;0 escolha no resultado quem venceu — o app preenche
         o placar sozinho.</p>
-      <div id="pub-status"></div>
       <div id="grid-jogos"></div>
       <div class="form-erro" id="jogos-erro"></div>
       <div class="form-acoes">
@@ -71,7 +69,6 @@
     desenhar();
     container.querySelector('#btn-salvar').onclick = (e) => salvar(e.target);
     container.querySelector('#btn-regerar').onclick = regerar;
-    container.querySelector('#btn-publicar').onclick = (e) => publicar(e.target);
   }
 
   // Variantes do dropdown de resultado: o backend só conhece 'normal',
@@ -234,12 +231,5 @@
     } catch (err) {
       alert('Não foi possível regerar os jogos: ' + err.message);
     }
-  }
-
-  // Publica a página da etapa sem sair desta tela. O módulo Publicar cuida
-  // de publicar, acompanhar o build do GitHub Pages e notificar quando fica
-  // no ar; usa a configuração do GitHub salva na tela "Publicar resultados".
-  function publicar(botao) {
-    Publicar.publicarEtapa(estado.etapaId, document.getElementById('pub-status'), botao);
   }
 })();

@@ -1,21 +1,20 @@
 // =============================================================================
-// Publicador: publica a página de uma etapa no GitHub Pages, acompanha a
+// Publicador: publica a página de uma categoria no GitHub Pages, acompanha a
 // geração (que leva cerca de 1 minuto) e avisa quando a página fica no ar —
 // inclusive com uma notificação do sistema, caso o app esteja em segundo plano.
 //
-// Uso: Publicar.publicarEtapa(etapaId, elementoDeStatus, botao)
+// Uso: Publicar.publicarCategoria(etapaCategoriaId, elementoDeStatus, botao)
 // =============================================================================
 
 const Publicar = (() => {
   const ESPERA_MAX = 4 * 60 * 1000;  // desiste de acompanhar após 4 min
   const INTERVALO = 6000;            // consulta o build a cada 6 s
 
-  async function publicarEtapa(etapaId, statusEl, botao) {
-    const rotuloBotao = botao ? botao.textContent : '';
-    const restaurarBotao = () => {
-      if (botao) { botao.disabled = false; botao.textContent = rotuloBotao; }
-    };
-    if (botao) { botao.disabled = true; botao.textContent = 'Publicando…'; }
+  async function publicarCategoria(etapaCategoriaId, statusEl, botao) {
+    // Só desabilita o botão (não mexe no texto, para funcionar tanto em
+    // botões simples quanto em cartões com estrutura interna).
+    const restaurarBotao = () => { if (botao) botao.disabled = false; };
+    if (botao) botao.disabled = true;
 
     const config = (await window.electronAPI.loadConfig()) || {};
     const gh = config.github;
@@ -25,9 +24,11 @@ const Publicar = (() => {
       return;
     }
 
+    render(statusEl, 'publicando');
     let res;
     try {
-      res = await window.electronAPI.publicacao.publicar(etapaId, gh);
+      res = await window.electronAPI.publicacao
+        .publicarCategoria(etapaCategoriaId, gh);
     } catch (err) {
       render(statusEl, 'erro', { mensagem: err.message });
       restaurarBotao();
@@ -65,12 +66,17 @@ const Publicar = (() => {
 
     if (estado === 'semconfig') {
       el.innerHTML = `<div class="erro">Configure o GitHub primeiro:
-        tela da etapa &rsaquo; "Publicar resultados".</div>`;
+        tela da etapa &rsaquo; "Configurar publicação".</div>`;
       return;
     }
     if (estado === 'erro') {
       el.innerHTML = `<div class="erro">Falha ao publicar:
         ${App.escapar(dados.mensagem || '')}</div>`;
+      return;
+    }
+    if (estado === 'publicando') {
+      el.innerHTML = '<div class="ok">Publicando… enviando os arquivos '
+        + 'para o GitHub.</div>';
       return;
     }
 
@@ -116,5 +122,5 @@ const Publicar = (() => {
     } catch { /* notificação indisponível */ }
   }
 
-  return { publicarEtapa };
+  return { publicarCategoria };
 })();

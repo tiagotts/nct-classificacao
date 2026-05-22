@@ -76,10 +76,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
   },
 
-  // Publicação da página de resultados no GitHub Pages.
+  // Publicação da página de resultados no GitHub Pages (uma por categoria).
   publicacao: {
-    publicar: (etapaId, cfg) =>
-      ipcRenderer.invoke('publicacao:publicar', etapaId, cfg),
+    publicarCategoria: (etapaCategoriaId, cfg) =>
+      ipcRenderer.invoke('publicacao:publicarCategoria', etapaCategoriaId, cfg),
     statusBuild: (cfg, sha) =>
       ipcRenderer.invoke('publicacao:statusBuild', cfg, sha),
   },

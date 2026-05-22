@@ -1,4 +1,4 @@
-// Testes do gerador da página pública da etapa.
+// Testes do gerador da página pública (uma página por categoria).
 // Rodar com:  npm test
 
 const { abrir, fechar } = require('../src/db/database');
@@ -8,7 +8,7 @@ const etapaCategoria = require('../src/db/repositorios/etapa-categoria');
 const categoria = require('../src/db/repositorios/categoria');
 const atleta = require('../src/db/repositorios/atleta');
 const dupla = require('../src/db/repositorios/dupla');
-const { gerarPaginaEtapa } = require('../src/publicacao/gerar-pagina');
+const { gerarPaginaCategoria } = require('../src/publicacao/gerar-pagina');
 
 let ok = 0, fail = 0;
 function t(nome, fn) {
@@ -36,25 +36,35 @@ dupla.criar({
 });
 
 t('gera um documento HTML completo', () => {
-  const html = gerarPaginaEtapa(et.id);
+  const html = gerarPaginaCategoria(ec.id);
   if (!html.includes('<!DOCTYPE html>')) throw new Error('não é um documento HTML');
   if (!html.includes('</html>')) throw new Error('HTML incompleto');
 });
 
-t('inclui o nome da etapa e da categoria', () => {
-  const html = gerarPaginaEtapa(et.id);
-  if (!html.includes('4ª Etapa')) throw new Error('faltou o nome da etapa');
+t('inclui o nome da categoria e da etapa', () => {
+  const html = gerarPaginaCategoria(ec.id);
   if (!html.includes('Sub 18')) throw new Error('faltou a categoria');
+  if (!html.includes('4ª Etapa')) throw new Error('faltou o nome da etapa');
 });
 
 t('inclui a dupla cadastrada na classificação', () => {
-  const html = gerarPaginaEtapa(et.id);
+  const html = gerarPaginaCategoria(ec.id);
   if (!html.includes('João Silva')) throw new Error('faltou o atleta na página');
 });
 
-t('etapa inexistente lança erro', () => {
+t('não inclui nenhum ranking (só grupos, jogos e mata-mata)', () => {
+  const html = gerarPaginaCategoria(ec.id);
+  if (/Ranking da temporada/i.test(html)) {
+    throw new Error('a página não deveria ter o ranking da temporada');
+  }
+  if (/Ranking da etapa/i.test(html)) {
+    throw new Error('a página não deveria ter o ranking da etapa');
+  }
+});
+
+t('categoria inexistente lança erro', () => {
   let lancou = false;
-  try { gerarPaginaEtapa(999999); } catch { lancou = true; }
+  try { gerarPaginaCategoria(999999); } catch { lancou = true; }
   if (!lancou) throw new Error('deveria lançar erro');
 });
 

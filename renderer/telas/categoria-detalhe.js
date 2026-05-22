@@ -1,5 +1,6 @@
 // Tela hub de uma categoria da etapa: dá acesso às áreas dessa competição
-// (duplas, jogos, classificação, chave). params: { etapaCategoriaId }
+// (duplas, jogos, classificação, chave, ranking) e à publicação.
+// params: { etapaCategoriaId }
 (() => {
   App.registrarTela('categoria-detalhe', { render });
 
@@ -8,6 +9,7 @@
   async function render(container, params) {
     const { etapaCategoriaId } = params;
     const ec = await window.electronAPI.db.etapaCategoria.obter(etapaCategoriaId);
+    const etapa = await window.electronAPI.db.etapa.obter(ec.etapa_id);
     const tipo = ROTULO_TIPO[ec.tipo] || ec.tipo || '';
 
     container.innerHTML = `
@@ -35,7 +37,16 @@
           <div class="hub-titulo">Configuração</div>
           <div class="hub-sub">Critérios de desempate, average e classificação</div>
         </button>
-      </div>`;
+        <button class="hub-card" data-ir="ranking">
+          <div class="hub-titulo">Ranking</div>
+          <div class="hub-sub">Pontos acumulados por atleta na temporada</div>
+        </button>
+        <button class="hub-card" id="card-publicar">
+          <div class="hub-titulo">Publicar resultados</div>
+          <div class="hub-sub">Grupos, jogos e mata-mata no GitHub Pages</div>
+        </button>
+      </div>
+      <div id="pub-status"></div>`;
 
     container.querySelector('[data-ir="duplas"]').onclick =
       () => App.navegarSecao('duplas', { etapaCategoriaId }, 'Duplas');
@@ -47,5 +58,11 @@
       () => App.navegarSecao('chave', { etapaCategoriaId }, 'Mata-mata');
     container.querySelector('[data-ir="config-categoria"]').onclick =
       () => App.navegarSecao('config-categoria', { etapaCategoriaId }, 'Configuração');
+    container.querySelector('[data-ir="ranking"]').onclick =
+      () => App.navegarSecao('ranking-temporada',
+        { temporadaId: etapa.temporada_id }, 'Ranking da temporada');
+    container.querySelector('#card-publicar').onclick = (e) =>
+      Publicar.publicarCategoria(
+        etapaCategoriaId, document.getElementById('pub-status'), e.currentTarget);
   }
 })();

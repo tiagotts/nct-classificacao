@@ -1,18 +1,19 @@
-// Tela de publicação da página de resultados de uma etapa no GitHub Pages.
-// params: { etapaId }
+// Tela de configuração da publicação no GitHub Pages.
+// A publicação em si é feita por categoria, na tela de cada categoria.
+// Aqui só se cadastra/guarda a conta do GitHub usada nas publicações.
 (() => {
   App.registrarTela('publicacao', { render });
 
-  async function render(container, params) {
-    const { etapaId } = params;
+  async function render(container) {
     const config = (await window.electronAPI.loadConfig()) || {};
     const gh = config.github || {};
 
     container.innerHTML = `
-      <div class="topo-tela"><h2>Publicar resultados</h2></div>
-      <p class="dica">Gera a página desta etapa e envia para o GitHub Pages.
-        Os jogadores acessam por um link, apenas leitura. O app continua
-        funcionando offline — só o momento de publicar usa internet.</p>
+      <div class="topo-tela"><h2>Configurar publicação</h2></div>
+      <p class="dica">Conta do GitHub usada para publicar as páginas de
+        resultados. A publicação é feita por categoria, na tela de cada
+        categoria. O app funciona offline — só o momento de publicar usa
+        internet.</p>
 
       <div class="form-card">
         <h3>Configuração do GitHub</h3>
@@ -42,12 +43,13 @@
       </div>
 
       <div class="form-acoes">
-        <button class="btn" id="b-publicar">Publicar agora</button>
+        <button class="btn" id="b-salvar">Salvar configuração</button>
       </div>
-      <div id="pub-status"></div>`;
+      <div class="form-erro" id="cfg-erro"></div>
+      <div id="cfg-ok"></div>`;
 
-    container.querySelector('#b-publicar').onclick =
-      (e) => publicar(container, etapaId, e.target);
+    container.querySelector('#b-salvar').onclick =
+      (e) => salvar(container, e.target);
   }
 
   function lerConfig(container) {
@@ -59,20 +61,26 @@
     };
   }
 
-  async function publicar(container, etapaId, botao) {
-    const status = container.querySelector('#pub-status');
+  async function salvar(container, botao) {
+    const erro = container.querySelector('#cfg-erro');
+    const ok = container.querySelector('#cfg-ok');
+    erro.textContent = '';
+    ok.innerHTML = '';
     const gh = lerConfig(container);
     if (!gh.owner || !gh.repo || !gh.token) {
-      status.innerHTML =
-        '<div class="erro">Preencha usuário, repositório e token.</div>';
+      erro.textContent = 'Preencha usuário, repositório e token.';
       return;
     }
-    // Guarda a configuração para as próximas publicações.
-    const config = (await window.electronAPI.loadConfig()) || {};
-    config.github = gh;
-    await window.electronAPI.saveConfig(config);
-
-    // O módulo Publicar cuida de publicar, acompanhar o build e notificar.
-    Publicar.publicarEtapa(etapaId, status, botao);
+    botao.disabled = true;
+    try {
+      const config = (await window.electronAPI.loadConfig()) || {};
+      config.github = gh;
+      await window.electronAPI.saveConfig(config);
+      ok.innerHTML = '<div class="ok">Configuração salva.</div>';
+    } catch (err) {
+      erro.textContent = 'Erro ao salvar: ' + err.message;
+    } finally {
+      botao.disabled = false;
+    }
   }
 })();

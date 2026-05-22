@@ -15,7 +15,7 @@ const rankingTemporada = require('./repositorios/ranking-temporada');
 const rankingInicial = require('./repositorios/ranking-inicial');
 const rankingEntrada = require('./repositorios/ranking-entrada');
 const pontuacao = require('./repositorios/pontuacao');
-const { gerarPaginaEtapa } = require('../publicacao/gerar-pagina');
+const { gerarPaginaCategoria } = require('../publicacao/gerar-pagina');
 const github = require('../publicacao/github');
 const QRCode = require('qrcode');
 
@@ -67,20 +67,23 @@ function registrar(ipcMain) {
   ipcMain.handle('rankingEntrada:calcular', (e, etapaCategoriaId) =>
     rankingEntrada.calcular(etapaCategoriaId));
 
-  // Publica a página da etapa no GitHub Pages.
-  ipcMain.handle('publicacao:publicar', async (e, etapaId, cfg) => {
-    const html = gerarPaginaEtapa(etapaId);
-    // O ano entra no nome do arquivo para arquivar as etapas por temporada
-    // e não sobrescrever de um ano para o outro.
-    const et = etapa.obter(etapaId);
+  // Publica a página de UMA categoria da etapa no GitHub Pages.
+  ipcMain.handle('publicacao:publicarCategoria', async (e, etapaCategoriaId, cfg) => {
+    const html = gerarPaginaCategoria(etapaCategoriaId);
+    const ec = etapaCategoria.obter(etapaCategoriaId);
+    const et = ec ? etapa.obter(ec.etapa_id) : null;
     const temp = et ? temporada.obter(et.temporada_id) : null;
     const ano = (temp && temp.ano) || new Date().getFullYear();
-    const caminho = `etapa-${ano}-${etapaId}.html`;
+    // O nome do arquivo inclui categoria e tipo para que cada categoria
+    // tenha a sua página própria e não sobrescreva as outras.
+    const slug = (ec && ec.categoria_slug) || `cat${ec ? ec.categoria_id : 0}`;
+    const caminho = `etapa-${ano}-${ec ? ec.etapa_id : 0}-${slug}-${ec ? ec.tipo : ''}.html`;
     const resultado = await github.publicar({
       token: cfg.token, owner: cfg.owner, repo: cfg.repo,
       branch: cfg.branch || 'main',
       caminho, conteudo: html,
-      mensagem: `Resultados da etapa ${etapaId} (${ano})`,
+      mensagem: `Resultados ${slug} ${ec ? ec.tipo : ''} `
+        + `(etapa ${ec ? ec.etapa_id : 0}, ${ano})`,
     });
     const url = `https://${cfg.owner}.github.io/${cfg.repo}/${caminho}`;
     // QR code do link, para os jogadores escanearem.

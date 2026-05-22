@@ -1,7 +1,9 @@
 // =============================================================================
-// Gerador da página pública de uma etapa.
+// Gerador da página pública de uma categoria de uma etapa.
 // Lê os dados do banco e produz um HTML estático e autocontido (CSS embutido,
 // sem JavaScript) — pronto para ser hospedado e aberto pelos jogadores.
+// A página traz só a competição daquela categoria: classificação dos grupos
+// (com average), jogos da fase de grupos e mata-mata. Não inclui rankings.
 // =============================================================================
 
 const etapaRepo = require('../db/repositorios/etapa');
@@ -10,7 +12,6 @@ const ecRepo = require('../db/repositorios/etapa-categoria');
 const duplaRepo = require('../db/repositorios/dupla');
 const jogoRepo = require('../db/repositorios/jogo');
 const classificacaoRepo = require('../db/repositorios/classificacao');
-const rankingTemporadaRepo = require('../db/repositorios/ranking-temporada');
 
 const ORDEM_FASE = ['oitavas', 'quartas', 'semi', 'final', 'terceiro'];
 const ROTULO_FASE = {
@@ -102,64 +103,16 @@ function blocoMataMata(mata, mapa, duplas) {
   return html;
 }
 
-function tabelaRanking(ranking, etapas) {
-  const colsEtapa = etapas.map(e =>
-    `<th class="c">${esc(e.nome)}</th>`).join('');
-  const linhas = ranking.map(a => {
-    const cels = etapas.map(e => {
-      const p = a.pontosPorEtapa && a.pontosPorEtapa[e.id];
-      return `<td class="c">${p || 0}</td>`;
-    }).join('');
-    return `<tr>
-        <td class="c">${a.posicao}</td><td>${esc(a.nome)}</td>
-        <td class="c">${a.pontosIniciais || 0}</td>
-        ${cels}
-        <td class="c"><strong>${a.pontos}</strong></td></tr>`;
-  }).join('');
-  return `<table><thead><tr>
-      <th class="c">#</th><th>Atleta</th>
-      <th class="c">Inicial</th>${colsEtapa}<th class="c">Total</th>
-    </tr></thead><tbody>${linhas}</tbody></table>`;
-}
-
-// Ranking final da etapa: as duplas ordenadas pela colocação final, com os
-// pontos ganhos. Colocações em faixa (5º-8º, 9º-...) aparecem como intervalo.
-function tabelaRankingEtapa(duplas) {
-  const ranqueadas = duplas
-    .filter(d => d.colocacao_final != null)
-    .sort((a, b) => a.colocacao_final - b.colocacao_final);
-  if (!ranqueadas.length) return '';
-
-  const contagem = {};
-  for (const d of ranqueadas) {
-    contagem[d.colocacao_final] = (contagem[d.colocacao_final] || 0) + 1;
-  }
-
-  const linhas = ranqueadas.map(d => {
-    const c = d.colocacao_final;
-    const n = contagem[c];
-    const rotulo = n > 1 ? `${c}º-${c + n - 1}º` : `${c}º`;
-    return `<tr>
-        <td class="c">${rotulo}</td>
-        <td>${esc(d.codigo)} — ${esc(d.atleta1_nome)} / ${esc(d.atleta2_nome)}</td>
-        <td class="c">${d.pontos_ganhos != null ? d.pontos_ganhos : '–'}</td></tr>`;
-  }).join('');
-
-  return `<table><thead><tr><th class="c">Colocação</th><th>Dupla</th>
-    <th class="c">Pontos</th></tr></thead><tbody>${linhas}</tbody></table>`;
-}
-
-function blocoCategoria(ec, temporada) {
+// Corpo da página: classificação dos grupos (com average), jogos da fase de
+// grupos e mata-mata. Sem rankings.
+function corpoCategoria(ec) {
   const cls = classificacaoRepo.calcular(ec.id);
   const jogos = jogoRepo.listar(ec.id);
   const duplas = duplaRepo.listar(ec.id);
   const mapa = {};
   duplas.forEach(d => { mapa[d.id] = d; });
 
-  const tipo = ROTULO_TIPO[ec.tipo] || ec.tipo || '';
-  let html = `<section class="categoria">`
-    + `<h2>${esc(ec.categoria_nome)}${tipo ? ' — ' + esc(tipo) : ''}</h2>`;
-
+  let html = '';
   const grupos = Object.keys(cls.grupos);
   if (grupos.length) {
     html += '<h3>Classificação dos grupos</h3>';
@@ -178,23 +131,10 @@ function blocoCategoria(ec, temporada) {
     html += `<h3>Mata-mata</h3>${blocoMataMata(mata, mapa, duplas)}`;
   }
 
-  const rankingEtapa = tabelaRankingEtapa(duplas);
-  if (rankingEtapa) {
-    html += `<h3>Ranking da etapa</h3>${rankingEtapa}`;
-  }
-
-  if (temporada) {
-    const { etapas, ranking } = rankingTemporadaRepo.calcular(
-      temporada.id, ec.categoria_id, ec.tipo);
-    if (ranking.length) {
-      html += `<h3>Ranking da temporada</h3>${tabelaRanking(ranking, etapas)}`;
-    }
-  }
-
   if (!grupos.length && !mata.length) {
     html += '<p class="vazio">Sem dados cadastrados nesta categoria.</p>';
   }
-  return html + '</section>';
+  return html;
 }
 
 const CSS = `
@@ -237,7 +177,7 @@ function paginaHtml(titulo, subtitulo, corpo) {
 <header><h1>${titulo}</h1><p>${subtitulo}</p></header>
 <main>
 <p class="atualizado">Atualizado em ${esc(agora)}</p>
-${corpo}
+<section class="categoria">${corpo}</section>
 </main>
 <footer>Gerado pelo NCT Classificação</footer>
 </body>
@@ -245,23 +185,24 @@ ${corpo}
 }
 
 /**
- * Gera o HTML público de uma etapa (todas as suas categorias).
- * @param {number} etapaId
+ * Gera o HTML público de UMA categoria de uma etapa.
+ * @param {number} etapaCategoriaId
  * @returns {string} documento HTML completo
  */
-function gerarPaginaEtapa(etapaId) {
-  const etapa = etapaRepo.obter(etapaId);
+function gerarPaginaCategoria(etapaCategoriaId) {
+  const ec = ecRepo.obter(etapaCategoriaId);
+  if (!ec) throw new Error('Categoria da etapa não encontrada.');
+  const etapa = etapaRepo.obter(ec.etapa_id);
   if (!etapa) throw new Error('Etapa não encontrada.');
   const temporada = temporadaRepo.obter(etapa.temporada_id);
-  const ecs = ecRepo.listar(etapaId);
 
-  const subtitulo = [fmtData(etapa.data), etapa.local, temporada && temporada.nome]
-    .filter(Boolean).map(esc).join(' · ');
-  const corpo = ecs.length
-    ? ecs.map(ec => blocoCategoria(ec, temporada)).join('\n')
-    : '<p class="vazio">Nenhuma categoria cadastrada nesta etapa.</p>';
+  const tipo = ROTULO_TIPO[ec.tipo] || ec.tipo || '';
+  const titulo = `${ec.categoria_nome}${tipo ? ' — ' + tipo : ''}`;
+  const subtitulo = [
+    etapa.nome, fmtData(etapa.data), etapa.local, temporada && temporada.nome,
+  ].filter(Boolean).map(esc).join(' · ');
 
-  return paginaHtml(esc(etapa.nome), subtitulo, corpo);
+  return paginaHtml(esc(titulo), subtitulo, corpoCategoria(ec));
 }
 
-module.exports = { gerarPaginaEtapa };
+module.exports = { gerarPaginaCategoria };

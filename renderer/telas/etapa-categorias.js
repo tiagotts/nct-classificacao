@@ -34,7 +34,7 @@
       <div class="topo-tela">
         <h2>Categorias da etapa</h2>
         <div class="acoes-topo">
-          <button class="btn ghost" data-acao="publicar">Publicar resultados</button>
+          <button class="btn ghost" data-acao="publicar">Configurar publicação</button>
           <button class="btn" data-acao="nova" ${cheio ? 'disabled' : ''}>
             Adicionar categoria
           </button>
@@ -53,7 +53,7 @@
     container.querySelector('[data-acao="nova"]').onclick =
       () => abrirForm(container, etapaId, catalogo, combosUsados);
     container.querySelector('[data-acao="publicar"]').onclick =
-      () => App.navegar('publicacao', { etapaId }, 'Publicar');
+      () => App.navegar('publicacao', { etapaId }, 'Configurar publicação');
 
     container.querySelectorAll('[data-acao="editar"]').forEach(b => {
       b.onclick = () => abrirForm(container, etapaId, catalogo, combosUsados,

@@ -78,12 +78,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
   },
 
-  // Publicação da página de resultados no GitHub Pages (uma por categoria).
+  // Publicação no GitHub Pages: página por categoria e página geral da etapa.
   publicacao: {
     publicarCategoria: (etapaCategoriaId, cfg) =>
       ipcRenderer.invoke('publicacao:publicarCategoria', etapaCategoriaId, cfg),
+    publicarEtapa: (etapaId, cfg) =>
+      ipcRenderer.invoke('publicacao:publicarEtapa', etapaId, cfg),
     statusBuild: (cfg, sha) =>
       ipcRenderer.invoke('publicacao:statusBuild', cfg, sha),
+  },
+
+  // Backup do banco no GitHub (repo separado).
+  backup: {
+    fazer: (cfg) => ipcRenderer.invoke('backup:fazer', cfg),
+    listar: (cfg) => ipcRenderer.invoke('backup:listar', cfg),
+    restaurar: (cfg, sha) => ipcRenderer.invoke('backup:restaurar', cfg, sha),
   },
 
   // Para o renderer poder se identificar como rodando em Electron.

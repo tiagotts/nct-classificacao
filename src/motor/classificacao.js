@@ -103,7 +103,10 @@ const ROTULO = {
 
 // Ordena um bloco de duplas aplicando os critérios em ordem; empates em um
 // critério são resolvidos recursivamente pelo próximo.
-function resolveBlock(block, critIdx, jogos, criterios) {
+// prioridadeSorteio (opcional): array de ids de duplas em ordem de prioridade
+// para resolver empates no critério SORTEIO. Ids ausentes vão para o final
+// preservando a ordem natural (sort estável).
+function resolveBlock(block, critIdx, jogos, criterios, prioridadeSorteio) {
   if (block.length <= 1 || critIdx >= criterios.length) return block;
   const crit = criterios[critIdx];
 
@@ -117,10 +120,17 @@ function resolveBlock(block, critIdx, jogos, criterios) {
       }
       if (r === 'd1') { block[1].motivo = ROTULO.H2H; return block; }
     }
-    return resolveBlock(block, critIdx + 1, jogos, criterios);
+    return resolveBlock(block, critIdx + 1, jogos, criterios, prioridadeSorteio);
   }
 
   if (crit === 'SORTEIO') {
+    if (prioridadeSorteio && prioridadeSorteio.length) {
+      const peso = (id) => {
+        const i = prioridadeSorteio.indexOf(id);
+        return i === -1 ? Infinity : i;
+      };
+      block.sort((a, b) => peso(a.id) - peso(b.id));
+    }
     for (let k = 1; k < block.length; k++) block[k].motivo = ROTULO.SORTEIO;
     return block;
   }
@@ -133,7 +143,9 @@ function resolveBlock(block, critIdx, jogos, criterios) {
     let j = i + 1;
     while (j < block.length && critEquals(block[i], block[j], crit)) j++;
     let sub = block.slice(i, j);
-    if (sub.length > 1) sub = resolveBlock(sub, critIdx + 1, jogos, criterios);
+    if (sub.length > 1) {
+      sub = resolveBlock(sub, critIdx + 1, jogos, criterios, prioridadeSorteio);
+    }
     // critIdx > 0: este bloco já era um empate; quem não é o 1º do bloco
     // foi separado do grupo anterior justamente por este critério.
     if (i > 0 && critIdx > 0 && !sub[0].motivo) sub[0].motivo = ROTULO[crit];
@@ -204,6 +216,7 @@ function calcularClassificacao(duplas, jogos, config = {}) {
     formulaAvg: config.formulaAvg || CONFIG_PADRAO.formulaAvg,
     criterios: (config.criterios && config.criterios.length)
       ? config.criterios : CONFIG_PADRAO.criterios,
+    prioridadeSorteio: config.prioridadeSorteio || [],
   };
   const formato = config.formato || 'todos-contra-todos';
 
@@ -220,7 +233,7 @@ function calcularClassificacao(duplas, jogos, config = {}) {
   for (const g of Object.keys(porGrupo).sort()) {
     const ordenado = formato === 'dupla-eliminatoria'
       ? classificarGrupoDuplaElim(porGrupo[g], jogosGrupo.filter(j => j.grupo === g))
-      : resolveBlock(porGrupo[g], 0, jogosGrupo, cfg.criterios);
+      : resolveBlock(porGrupo[g], 0, jogosGrupo, cfg.criterios, cfg.prioridadeSorteio);
     ordenado.forEach((s, i) => { s.posicao = i + 1; });
     grupos[g] = ordenado;
   }
@@ -231,10 +244,10 @@ function calcularClassificacao(duplas, jogos, config = {}) {
 // Ordena uma lista de estatísticas de duplas pelos critérios informados.
 // Usado pelo ranking geral para ordenar duplas de grupos diferentes
 // (H2H entre duplas que não se enfrentaram simplesmente não se aplica).
-function ordenarPorCriterios(stats, jogos, criterios) {
+function ordenarPorCriterios(stats, jogos, criterios, prioridadeSorteio) {
   const jogosGrupo = jogos.filter(j => (j.fase || 'grupo') === 'grupo');
   const crits = (criterios && criterios.length) ? criterios : CONFIG_PADRAO.criterios;
-  return resolveBlock(stats.slice(), 0, jogosGrupo, crits);
+  return resolveBlock(stats.slice(), 0, jogosGrupo, crits, prioridadeSorteio || []);
 }
 
 module.exports = { calcularClassificacao, ordenarPorCriterios };

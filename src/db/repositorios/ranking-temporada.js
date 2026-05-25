@@ -12,7 +12,7 @@ const rankingInicial = require('./ranking-inicial');
 function calcular(temporadaId, categoriaId, tipo) {
   const db = getDb();
   const etapas = db.prepare(
-    `SELECT id, nome FROM etapa WHERE temporada_id = ? ORDER BY data, id`
+    `SELECT id, nome FROM etapa WHERE temporada_id = ? ORDER BY data_inicio, id`
   ).all(temporadaId);
 
   const resultados = db.prepare(`

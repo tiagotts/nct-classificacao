@@ -34,26 +34,34 @@
       <div class="topo-tela">
         <h2>Categorias da etapa</h2>
         <div class="acoes-topo">
-          <button class="btn ghost" data-acao="publicar">Configurar publicação</button>
+          <button class="btn ghost" data-acao="config">Configurar publicação</button>
+          <button class="btn ghost" data-acao="publicar-tudo">Publicar tudo (categorias + geral)</button>
           <button class="btn" data-acao="nova" ${cheio ? 'disabled' : ''}>
             Adicionar categoria
           </button>
         </div>
       </div>
+      <p class="dica">"Publicar tudo" envia cada categoria da etapa e
+        depois a página geral — em um clique. A geral linka para cada
+        categoria; sem republicar todas, os links caem em 404.</p>
       <div id="form-area"></div>
       <div class="lista">
         ${lista.length
           ? lista.map(itemHtml).join('')
           : '<div class="vazio">Nenhuma categoria nesta etapa. Adicione as categorias disputadas.</div>'}
       </div>
+      <div id="pub-status"></div>
       ${cheio
         ? '<p class="dica">Todas as categorias do catálogo já foram adicionadas nos dois tipos.</p>'
         : ''}`;
 
     container.querySelector('[data-acao="nova"]').onclick =
       () => abrirForm(container, etapaId, catalogo, combosUsados);
-    container.querySelector('[data-acao="publicar"]').onclick =
+    container.querySelector('[data-acao="config"]').onclick =
       () => App.navegar('publicacao', { etapaId }, 'Configurar publicação');
+    container.querySelector('[data-acao="publicar-tudo"]').onclick = (e) =>
+      Publicar.publicarTudoDaEtapa(
+        etapaId, document.getElementById('pub-status'), e.currentTarget);
 
     container.querySelectorAll('[data-acao="editar"]').forEach(b => {
       b.onclick = () => abrirForm(container, etapaId, catalogo, combosUsados,

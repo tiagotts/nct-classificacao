@@ -43,7 +43,8 @@ t('temporada: listar', () => {
 // --- etapa -------------------------------------------------------------
 let et;
 t('etapa: criar vinculada à temporada', () => {
-  et = etapa.criar({ temporadaId: temp.id, nome: '4ª Etapa', data: '2025-08-01', local: 'Arena 61' });
+  et = etapa.criar({ temporadaId: temp.id, nome: '4ª Etapa',
+    dataInicio: '2025-08-01', local: 'Arena 61' });
   eq(et.nome, '4ª Etapa');
   eq(et.temporada_id, temp.id);
 });

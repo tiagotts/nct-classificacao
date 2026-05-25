@@ -15,8 +15,9 @@ const rankingTemporada = require('./repositorios/ranking-temporada');
 const rankingInicial = require('./repositorios/ranking-inicial');
 const rankingEntrada = require('./repositorios/ranking-entrada');
 const pontuacao = require('./repositorios/pontuacao');
-const { gerarPaginaCategoria } = require('../publicacao/gerar-pagina');
+const { gerarPaginaCategoria, gerarPaginaEtapa } = require('../publicacao/gerar-pagina');
 const github = require('../publicacao/github');
+const backup = require('./backup');
 const QRCode = require('qrcode');
 
 // Registra os canais CRUD padrão (listar/obter/criar/atualizar/remover) que
@@ -69,6 +70,25 @@ function registrar(ipcMain) {
   ipcMain.handle('rankingEntrada:calcular', (e, etapaCategoriaId) =>
     rankingEntrada.calcular(etapaCategoriaId));
 
+  // Publica a página GERAL da etapa (lista de categorias, pódios, ranking).
+  ipcMain.handle('publicacao:publicarEtapa', async (e, etapaId, cfg) => {
+    const html = gerarPaginaEtapa(etapaId);
+    const et = etapa.obter(etapaId);
+    const temp = et ? temporada.obter(et.temporada_id) : null;
+    const ano = (temp && temp.ano) || new Date().getFullYear();
+    const caminho = `etapa-${ano}-${etapaId}.html`;
+    const resultado = await github.publicar({
+      token: cfg.token, owner: cfg.owner, repo: cfg.repo,
+      branch: cfg.branch || 'main',
+      caminho, conteudo: html,
+      mensagem: `Página geral da etapa ${etapaId} (${ano})`,
+    });
+    const url = `https://${cfg.owner}.github.io/${cfg.repo}/${caminho}`;
+    const qrcode = await QRCode.toString(url, { type: 'svg', margin: 1 });
+    const sha = resultado && resultado.commit ? resultado.commit.sha : null;
+    return { url, qrcode, sha };
+  });
+
   // Publica a página de UMA categoria da etapa no GitHub Pages.
   ipcMain.handle('publicacao:publicarCategoria', async (e, etapaCategoriaId, cfg) => {
     const html = gerarPaginaCategoria(etapaCategoriaId);
@@ -105,6 +125,12 @@ function registrar(ipcMain) {
     if (info.status === 'built' && info.commit === sha) return 'pronto';
     return 'aguardando';
   });
+
+  // Backup do banco no GitHub: faz, lista e restaura.
+  ipcMain.handle('backup:fazer', (e, cfg) => backup.fazerBackup(cfg));
+  ipcMain.handle('backup:listar', (e, cfg) => backup.listarBackups(cfg));
+  ipcMain.handle('backup:restaurar', (e, cfg, sha) =>
+    backup.restaurarBackup(cfg, sha));
 }
 
 module.exports = { registrar };

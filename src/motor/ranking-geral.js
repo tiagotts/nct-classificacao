@@ -28,6 +28,7 @@ function calcularRankingGeral(duplas, jogos, config = {}) {
   const classPorGrupo = config.classPorGrupo ?? CONFIG_PADRAO.classPorGrupo;
   const criterios = (config.criterios && config.criterios.length)
     ? config.criterios : CONFIG_PADRAO.criterios;
+  const prioridadeSorteio = config.prioridadeSorteio || [];
 
   const diretos = [];
   // naoDiretos: duplas não classificadas direto. posGrupo (posição no grupo)
@@ -69,7 +70,7 @@ function calcularRankingGeral(duplas, jogos, config = {}) {
   }
   const candidatos = [];
   for (const pos of Object.keys(porPosicao).map(Number).sort((a, b) => a - b)) {
-    candidatos.push(...ordenarPorCriterios(porPosicao[pos], jogos, criterios));
+    candidatos.push(...ordenarPorCriterios(porPosicao[pos], jogos, criterios, prioridadeSorteio));
   }
   const repescados = candidatos.slice(0, repescagem);
   repescados.forEach(c => {
@@ -85,7 +86,7 @@ function calcularRankingGeral(duplas, jogos, config = {}) {
   const classificados = [...diretos, ...repescados];
   let ranking;
   if (config.rankingGeral === 'independente') {
-    ranking = ordenarPorCriterios(classificados, jogos, criterios);
+    ranking = ordenarPorCriterios(classificados, jogos, criterios, prioridadeSorteio);
   } else {
     const porBloco = {};
     for (const c of classificados) {
@@ -93,7 +94,7 @@ function calcularRankingGeral(duplas, jogos, config = {}) {
     }
     ranking = [];
     for (const pos of Object.keys(porBloco).map(Number).sort((a, b) => a - b)) {
-      ranking.push(...ordenarPorCriterios(porBloco[pos], jogos, criterios));
+      ranking.push(...ordenarPorCriterios(porBloco[pos], jogos, criterios, prioridadeSorteio));
     }
   }
   ranking.forEach((s, i) => { s.seed = i + 1; });

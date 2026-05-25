@@ -59,8 +59,11 @@
     container.querySelector('[data-ir="config-categoria"]').onclick =
       () => App.navegarSecao('config-categoria', { etapaCategoriaId }, 'Configuração');
     container.querySelector('[data-ir="ranking"]').onclick =
-      () => App.navegarSecao('ranking-temporada',
-        { temporadaId: etapa.temporada_id }, 'Ranking da temporada');
+      () => App.navegarSecao('ranking-temporada', {
+        temporadaId: etapa.temporada_id,
+        categoriaId: ec.categoria_id,
+        tipo: ec.tipo,
+      }, 'Ranking da temporada');
     container.querySelector('#card-publicar').onclick = (e) =>
       Publicar.publicarCategoria(
         etapaCategoriaId, document.getElementById('pub-status'), e.currentTarget);

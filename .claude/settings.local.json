@@ -110,7 +110,15 @@
       "Bash(sqlite3 data/nct.db \".mode column\" \".headers on\" \"SELECT grupo, COUNT\\(*\\) FROM dupla WHERE etapa_categoria_id=3 GROUP BY grupo;\")",
       "Bash(ELECTRON_RUN_AS_NODE=1 npx electron /tmp/regen.js)",
       "Bash(sqlite3 data/nct.db \".mode column\" \".headers on\" \"SELECT j.num, d1.codigo, d2.codigo FROM jogo j LEFT JOIN dupla d1 ON d1.id=j.dupla1_id LEFT JOIN dupla d2 ON d2.id=j.dupla2_id WHERE j.etapa_categoria_id=4 AND j.fase='grupo' ORDER BY j.num;\")",
-      "Bash(sqlite3 data/nct.db \"SELECT formato FROM etapa_categoria WHERE id=3;\")"
+      "Bash(sqlite3 data/nct.db \"SELECT formato FROM etapa_categoria WHERE id=3;\")",
+      "Bash(sqlite3 data/nct.db \".headers on\" \"SELECT COUNT\\(*\\) total, SUM\\(CASE WHEN placar1 IS NOT NULL THEN 1 ELSE 0 END\\) com_placar FROM jogo WHERE etapa_categoria_id=6;\" \"SELECT COUNT\\(*\\) FROM dupla WHERE etapa_categoria_id=6 AND colocacao_final IS NOT NULL;\")",
+      "Bash(sqlite3 data/nct.db \".headers on\" \".mode column\" \"SELECT codigo, colocacao_final, pontos_ganhos FROM dupla WHERE etapa_categoria_id=6 ORDER BY colocacao_final;\")",
+      "Bash(sqlite3 data/nct.db \".headers on\" \"SELECT * FROM etapa;\")",
+      "Bash(grep -n \"color\\\\|background\\\\|#[0-9a-fA-F]\\\\{3,6\\\\}\\\\|--ocean\\\\|--sun\" /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/src/publicacao/gerar-pagina.js)",
+      "WebFetch(domain:tiagotts.github.io)",
+      "Bash(curl -s \"https://tiagotts.github.io/nct-resultados/etapa-2026-1-sub15-feminino.html\")",
+      "Bash(xargs -I {} git show --stat {})",
+      "Bash(sqlite3 data/nct.db \"PRAGMA user_version;\" \"PRAGMA table_info\\(etapa\\);\")"
     ],
     "additionalDirectories": [
       "/tmp"

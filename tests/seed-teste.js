@@ -47,7 +47,7 @@ abrir(caminhoBanco);
 const temporada = temporadaRepo.criar({ nome: 'Circuito NCT 2025 (teste)', ano: 2025 });
 const etapa = etapaRepo.criar({
   temporadaId: temporada.id, nome: '4ª Etapa (teste)',
-  data: '2025-08-01', local: 'Arena 61',
+  dataInicio: '2025-08-01', local: 'Arena 61',
 });
 const cat = categoriaRepo.listar().find(c => c.slug === 'sub18');
 const ec = ecRepo.criar({

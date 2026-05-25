@@ -4,7 +4,7 @@ const { getDb } = require('../database');
 // listar(temporadaId): etapas de uma temporada.
 function listar(temporadaId) {
   return getDb()
-    .prepare('SELECT * FROM etapa WHERE temporada_id = ? ORDER BY data, nome')
+    .prepare('SELECT * FROM etapa WHERE temporada_id = ? ORDER BY data_inicio, nome')
     .all(temporadaId);
 }
 
@@ -12,17 +12,19 @@ function obter(id) {
   return getDb().prepare('SELECT * FROM etapa WHERE id = ?').get(id);
 }
 
-function criar({ temporadaId, nome, data, local }) {
+function criar({ temporadaId, nome, dataInicio, dataFim, local }) {
   const info = getDb()
-    .prepare('INSERT INTO etapa (temporada_id, nome, data, local) VALUES (?, ?, ?, ?)')
-    .run(temporadaId, nome, data ?? null, local ?? null);
+    .prepare(`INSERT INTO etapa (temporada_id, nome, data_inicio, data_fim, local)
+              VALUES (?, ?, ?, ?, ?)`)
+    .run(temporadaId, nome, dataInicio ?? null, dataFim ?? null, local ?? null);
   return obter(info.lastInsertRowid);
 }
 
-function atualizar(id, { nome, data, local }) {
+function atualizar(id, { nome, dataInicio, dataFim, local }) {
   getDb()
-    .prepare('UPDATE etapa SET nome = ?, data = ?, local = ? WHERE id = ?')
-    .run(nome, data ?? null, local ?? null, id);
+    .prepare(`UPDATE etapa SET nome = ?, data_inicio = ?, data_fim = ?, local = ?
+              WHERE id = ?`)
+    .run(nome, dataInicio ?? null, dataFim ?? null, local ?? null, id);
   return obter(id);
 }
 

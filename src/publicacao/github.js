@@ -37,9 +37,13 @@ async function publicar({ token, owner, repo, branch, caminho, conteudo, mensage
     throw new Error(`GitHub respondeu ${consulta.status} ao consultar o arquivo.`);
   }
 
+  // Aceita conteúdo como string (texto, UTF-8) ou Buffer (binário, ex.: .db).
+  const conteudoBase64 = Buffer.isBuffer(conteudo)
+    ? conteudo.toString('base64')
+    : Buffer.from(conteudo, 'utf8').toString('base64');
   const corpo = {
     message: mensagem,
-    content: Buffer.from(conteudo, 'utf8').toString('base64'),
+    content: conteudoBase64,
     branch,
   };
   if (sha) corpo.sha = sha;
@@ -72,4 +76,62 @@ async function statusUltimoBuild({ token, owner, repo }) {
   return { status: j.status, commit: j.commit };
 }
 
-module.exports = { publicar, statusUltimoBuild };
+/**
+ * Baixa o conteúdo de um arquivo do repositório.
+ * @param {Object} opts - { token, owner, repo, caminho, ref }
+ *   ref: sha de commit, nome de branch ou tag (opcional — default branch).
+ * @returns {Promise<{conteudo: Buffer, sha: string}>}
+ */
+async function baixar({ token, owner, repo, caminho, ref }) {
+  const url = `${API}/repos/${owner}/${repo}/contents/${caminho}`
+    + (ref ? `?ref=${encodeURIComponent(ref)}` : '');
+  const resposta = await fetch(url, { headers: cabecalhos(token) });
+  if (resposta.status === 401) {
+    throw new Error('Token inválido ou sem permissão.');
+  }
+  if (resposta.status === 404) {
+    throw new Error('Arquivo não encontrado no repositório.');
+  }
+  if (resposta.status !== 200) {
+    throw new Error(`GitHub respondeu ${resposta.status} ao baixar o arquivo.`);
+  }
+  const j = await resposta.json();
+  return {
+    conteudo: Buffer.from(j.content || '', 'base64'),
+    sha: j.sha,
+  };
+}
+
+/**
+ * Lista os commits que tocaram um arquivo do repositório (do mais recente
+ * para o mais antigo). Útil para mostrar o histórico de backups.
+ * @param {Object} opts - { token, owner, repo, caminho, branch, qtd }
+ * @returns {Promise<Array<{sha, mensagem, data, autor}>>}
+ */
+async function listarCommits({ token, owner, repo, caminho, branch, qtd = 30 }) {
+  const params = [
+    `path=${encodeURIComponent(caminho)}`,
+    `per_page=${qtd}`,
+  ];
+  if (branch) params.push(`sha=${encodeURIComponent(branch)}`);
+  const url = `${API}/repos/${owner}/${repo}/commits?${params.join('&')}`;
+  const resposta = await fetch(url, { headers: cabecalhos(token) });
+  if (resposta.status === 401) {
+    throw new Error('Token inválido ou sem permissão.');
+  }
+  if (resposta.status === 404) {
+    return [];
+  }
+  if (resposta.status !== 200) {
+    throw new Error(`GitHub respondeu ${resposta.status} ao listar commits.`);
+  }
+  const lista = await resposta.json();
+  return lista.map(c => ({
+    sha: c.sha,
+    mensagem: c.commit && c.commit.message,
+    data: c.commit && c.commit.author && c.commit.author.date,
+    autor: c.commit && c.commit.author && c.commit.author.name,
+  }));
+}
+
+module.exports = { publicar, baixar, listarCommits, statusUltimoBuild };

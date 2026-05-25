@@ -44,7 +44,7 @@ t('slugs das categorias são os esperados', () => {
 });
 
 t('user_version reflete as migrações aplicadas', () => {
-  eq(db.pragma('user_version', { simple: true }), 7, 'user_version');
+  eq(db.pragma('user_version', { simple: true }), 8, 'user_version');
 });
 
 t('ranking_inicial tem coluna etapa_id após a migração 0007', () => {
@@ -52,6 +52,19 @@ t('ranking_inicial tem coluna etapa_id após a migração 0007', () => {
     .map(c => c.name);
   if (!cols.includes('etapa_id')) {
     throw new Error('faltou coluna etapa_id em ranking_inicial');
+  }
+});
+
+t('etapa tem data_inicio e data_fim após a migração 0008', () => {
+  const cols = db.prepare("PRAGMA table_info(etapa)").all().map(c => c.name);
+  if (cols.includes('data')) {
+    throw new Error('coluna data deveria ter sido renomeada');
+  }
+  if (!cols.includes('data_inicio')) {
+    throw new Error('faltou coluna data_inicio');
+  }
+  if (!cols.includes('data_fim')) {
+    throw new Error('faltou coluna data_fim');
   }
 });
 

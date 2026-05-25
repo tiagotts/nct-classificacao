@@ -48,7 +48,9 @@
   }
 
   function itemHtml(e) {
-    const detalhes = [formatarData(e.data), e.local].filter(Boolean).join(' · ');
+    const detalhes = [
+      formatarPeriodo(e.data_inicio, e.data_fim), e.local,
+    ].filter(Boolean).join(' · ');
     return `
       <div class="item">
         <div class="item-info">
@@ -75,8 +77,14 @@
                  value="${editando ? App.escapar(etapa.nome) : ''}">
         </div>
         <div class="form-row">
-          <label>Data</label>
-          <input type="date" id="f-data" value="${editando && etapa.data ? etapa.data : ''}">
+          <label>Data de início</label>
+          <input type="date" id="f-data-inicio"
+                 value="${editando && etapa.data_inicio ? etapa.data_inicio : ''}">
+        </div>
+        <div class="form-row">
+          <label>Data de fim</label>
+          <input type="date" id="f-data-fim"
+                 value="${editando && etapa.data_fim ? etapa.data_fim : ''}">
         </div>
         <div class="form-row">
           <label>Local</label>
@@ -94,12 +102,18 @@
     area.querySelector('#f-nome').focus();
     area.querySelector('#f-salvar').onclick = async () => {
       const nome = area.querySelector('#f-nome').value.trim();
-      const data = area.querySelector('#f-data').value || null;
+      const dataInicio = area.querySelector('#f-data-inicio').value || null;
+      const dataFim = area.querySelector('#f-data-fim').value || null;
       const local = area.querySelector('#f-local').value.trim() || null;
       const erro = area.querySelector('#f-erro');
       if (!nome) { erro.textContent = 'Informe o nome da etapa.'; return; }
-      if (editando) await api().atualizar(etapa.id, { nome, data, local });
-      else await api().criar({ temporadaId, nome, data, local });
+      if (dataInicio && dataFim && dataFim < dataInicio) {
+        erro.textContent = 'A data de fim não pode ser antes da data de início.';
+        return;
+      }
+      const dados = { nome, dataInicio, dataFim, local };
+      if (editando) await api().atualizar(etapa.id, dados);
+      else await api().criar({ temporadaId, ...dados });
       await App.recarregar();
     };
   }
@@ -119,5 +133,13 @@
     if (!iso) return '';
     const [a, m, d] = iso.split('-');
     return (a && m && d) ? `${d}/${m}/${a}` : iso;
+  }
+
+  // Formata o período da etapa: "11/06/2026" ou "11/06/2026 a 13/06/2026".
+  function formatarPeriodo(inicio, fim) {
+    const i = formatarData(inicio);
+    const f = formatarData(fim);
+    if (i && f && i !== f) return `${i} a ${f}`;
+    return i || f;
   }
 })();

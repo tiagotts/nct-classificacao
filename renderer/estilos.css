@@ -2,13 +2,18 @@
    NCT Classificação — estilos do app de cadastro.
    Paleta reaproveitada do index.html original (PoC).
    ========================================================================== */
+/* Paleta inspirada no logo NCT: azul navy do texto, azul oceano vibrante e
+   azul claro da onda, amarelo/dourado do sol. */
 :root{
   --sand:#f6efe1;
   --sand-dark:#e7d9b4;
-  --ocean:#0a6e7e;
-  --ocean-dark:#063e48;
-  --sun:#f59e0b;
-  --ink:#1a2434;
+  --ocean:#1e7fc4;
+  --ocean-dark:#13325c;
+  --ocean-light:#7fcfee;
+  --ocean-tint:#e6f1fb;
+  --sun:#fbbf24;
+  --sun-dark:#f7a300;
+  --ink:#13325c;
   --muted:#6b7280;
   --line:#d8d2c3;
   --warn:#dc2626;
@@ -29,9 +34,17 @@ html,body{
   background:linear-gradient(160deg,var(--ocean) 0%,var(--ocean-dark) 100%);
   color:#fff;display:flex;flex-direction:column;
 }
-.sidebar-marca{padding:20px 18px;border-bottom:1px solid rgba(255,255,255,.15)}
-.marca-titulo{font-weight:700;font-size:17px}
-.marca-sub{font-size:12px;opacity:.8;margin-top:2px}
+.sidebar-marca{
+  padding:18px 16px;border-bottom:1px solid rgba(255,255,255,.18);
+  display:flex;align-items:center;gap:12px;
+  background:linear-gradient(160deg,rgba(255,255,255,.05),transparent);
+}
+.marca-logo{
+  width:48px;height:48px;object-fit:contain;background:#fff;border-radius:50%;
+  padding:4px;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.25);
+}
+.marca-titulo{font-weight:700;font-size:16px;line-height:1.15}
+.marca-sub{font-size:11px;opacity:.85;margin-top:2px}
 .nav{padding:8px 0;overflow-y:auto}
 
 /* Árvore de navegação lateral */
@@ -64,9 +77,20 @@ html,body{
 main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
 
 /* Topo de cada tela */
-.topo-tela{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px}
-.topo-tela h2{font-size:20px;color:var(--ocean-dark);margin:0}
-.acoes-topo{display:flex;gap:8px;flex-wrap:wrap}
+.topo-tela{
+  display:flex;justify-content:space-between;align-items:center;gap:16px;
+  margin-bottom:16px;padding-bottom:10px;
+  border-bottom:2px solid var(--sun);
+}
+.topo-tela h2{
+  font-size:20px;color:var(--ocean-dark);margin:0;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.topo-tela h2::before{
+  content:"";display:inline-block;width:4px;height:18px;
+  background:var(--ocean);border-radius:2px;
+}
+.acoes-topo{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
 /* Botões */
 .btn{
@@ -75,7 +99,7 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
 }
 .btn:hover{background:var(--ocean-dark)}
 .btn.ghost{background:transparent;color:var(--ocean);border:1px solid var(--ocean)}
-.btn.ghost:hover{background:#0a6e7e14}
+.btn.ghost:hover{background:var(--ocean-tint)}
 .btn.danger{background:transparent;color:var(--warn);border:1px solid #fca5a5}
 .btn.danger:hover{background:#fee2e2}
 .btn.sm{padding:5px 10px;font-size:12px}
@@ -108,7 +132,7 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
   background:var(--paper);border:1px solid var(--line);border-radius:10px;
   padding:18px;text-align:left;cursor:pointer;font-family:inherit;transition:.15s;
 }
-.hub-card:hover:not(:disabled){border-color:var(--ocean);background:#f0fafa}
+.hub-card:hover:not(:disabled){border-color:var(--ocean);background:var(--ocean-tint)}
 .hub-card:disabled{opacity:.55;cursor:not-allowed}
 .hub-titulo{font-weight:700;font-size:15px;color:var(--ocean-dark)}
 .hub-sub{font-size:12px;color:var(--muted);margin-top:3px}
@@ -224,7 +248,7 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
   border-radius:5px;font-size:13px;background:#efe9d8;color:var(--muted);
   font-weight:700;
 }
-.tab-jogos .placar-wo.venceu{color:var(--ocean);background:#e0f2f4}
+.tab-jogos .placar-wo.venceu{color:var(--ocean-dark);background:var(--ocean-tint)}
 .tab-jogos td.col-jogo,.tab-jogos th.col-jogo{
   width:96px;color:var(--muted);font-size:12px;
 }
@@ -262,6 +286,12 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
 .tab-class tr.eliminado td{color:var(--warn)}
 .tab-class tr.eliminado .pos{background:#fee2e2;color:var(--warn)}
 .tab-class .motivo{color:var(--muted);font-size:12px;font-style:italic}
+.tab-class td.col-ordem,.tab-class th.col-ordem{width:78px;text-align:center;white-space:nowrap}
+.tab-class td.col-ordem .btn{padding:2px 6px;font-size:14px;line-height:1}
+.tab-class .tie-flag{
+  display:inline-block;font-size:10px;padding:1px 6px;border-radius:99px;
+  background:#fee2e2;color:#991b1b;margin-left:6px;font-weight:500;
+}
 .carregando{color:var(--muted);padding:24px;text-align:center}
 .erro{background:#fee2e2;color:#991b1b;padding:12px 16px;border-radius:8px;font-size:13px}
 .ok{background:#dcfce7;color:#166534;padding:12px 16px;border-radius:8px;font-size:13px;margin-top:8px}

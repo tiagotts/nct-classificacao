@@ -122,5 +122,126 @@ const Publicar = (() => {
     } catch { /* notificação indisponível */ }
   }
 
-  return { publicarCategoria };
+  // Mesma lógica de publicarCategoria, mas chama a IPC da página GERAL.
+  async function publicarEtapa(etapaId, statusEl, botao) {
+    const restaurarBotao = () => { if (botao) botao.disabled = false; };
+    if (botao) botao.disabled = true;
+
+    const config = (await window.electronAPI.loadConfig()) || {};
+    const gh = config.github;
+    if (!gh || !gh.owner || !gh.repo || !gh.token) {
+      render(statusEl, 'semconfig');
+      restaurarBotao();
+      return;
+    }
+
+    render(statusEl, 'publicando');
+    let res;
+    try {
+      res = await window.electronAPI.publicacao.publicarEtapa(etapaId, gh);
+    } catch (err) {
+      render(statusEl, 'erro', { mensagem: err.message });
+      restaurarBotao();
+      return;
+    }
+    restaurarBotao();
+    render(statusEl, 'aguardando', res);
+    if (!res.sha) return;
+
+    const inicio = Date.now();
+    const timer = setInterval(async () => {
+      let st = 'aguardando';
+      try {
+        st = await window.electronAPI.publicacao.statusBuild(gh, res.sha);
+      } catch { st = 'aguardando'; }
+      if (st === 'pronto') {
+        clearInterval(timer);
+        render(statusEl, 'pronto', res);
+        notificar();
+      } else if (st === 'erro') {
+        clearInterval(timer);
+        render(statusEl, 'erroBuild', res);
+      } else if (Date.now() - inicio > ESPERA_MAX) {
+        clearInterval(timer);
+        render(statusEl, 'demorou', res);
+      }
+    }, INTERVALO);
+  }
+
+  // Publica EM SEQUÊNCIA todas as categorias da etapa e, no fim, a página
+  // geral. Mostra progresso linha por linha; depois acompanha o build do
+  // GitHub Pages do último commit (cobre todos — Pages republica o estado
+  // mais recente do repo).
+  async function publicarTudoDaEtapa(etapaId, statusEl, botao) {
+    const restaurarBotao = () => { if (botao) botao.disabled = false; };
+    if (botao) botao.disabled = true;
+
+    const config = (await window.electronAPI.loadConfig()) || {};
+    const gh = config.github;
+    if (!gh || !gh.owner || !gh.repo || !gh.token) {
+      render(statusEl, 'semconfig');
+      restaurarBotao();
+      return;
+    }
+
+    const ecs = await window.electronAPI.db.etapaCategoria.listar(etapaId);
+    const progresso = [];
+    const rotularEc = (ec) => {
+      const tipo = ec.tipo === 'masculino' ? 'Masculino'
+        : ec.tipo === 'feminino' ? 'Feminino' : ec.tipo;
+      return `${ec.categoria_nome} — ${tipo}`;
+    };
+    const mostrar = () => {
+      if (!statusEl) return;
+      statusEl.innerHTML = `<div class="ok"><strong>Publicando…</strong><br>`
+        + progresso.map(p => '· ' + p).join('<br>') + '</div>';
+    };
+
+    let ultimaRes = null;
+    try {
+      for (const ec of ecs) {
+        const rotulo = App.escapar(rotularEc(ec));
+        progresso.push(`${rotulo}: enviando…`);
+        mostrar();
+        ultimaRes = await window.electronAPI.publicacao
+          .publicarCategoria(ec.id, gh);
+        progresso[progresso.length - 1] = `${rotulo}: OK`;
+        mostrar();
+      }
+      progresso.push('Página geral: enviando…');
+      mostrar();
+      ultimaRes = await window.electronAPI.publicacao
+        .publicarEtapa(etapaId, gh);
+      progresso[progresso.length - 1] = 'Página geral: OK';
+      mostrar();
+    } catch (err) {
+      render(statusEl, 'erro', { mensagem: err.message });
+      restaurarBotao();
+      return;
+    }
+    restaurarBotao();
+    render(statusEl, 'aguardando', ultimaRes);
+
+    if (!ultimaRes || !ultimaRes.sha) return;
+    const inicio = Date.now();
+    const timer = setInterval(async () => {
+      let st = 'aguardando';
+      try {
+        st = await window.electronAPI.publicacao.statusBuild(gh, ultimaRes.sha);
+      } catch { st = 'aguardando'; }
+      if (st === 'pronto') {
+        clearInterval(timer);
+        render(statusEl, 'pronto', ultimaRes);
+        notificar();
+      } else if (st === 'erro') {
+        clearInterval(timer);
+        render(statusEl, 'erroBuild', ultimaRes);
+      } else if (Date.now() - inicio > ESPERA_MAX) {
+        clearInterval(timer);
+        render(statusEl, 'demorou', ultimaRes);
+      }
+    }, INTERVALO);
+  }
+
+  return { publicarCategoria, publicarEtapa, publicarTudoDaEtapa };
 })();

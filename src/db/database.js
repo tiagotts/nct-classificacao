@@ -11,6 +11,7 @@ const path = require('path');
 const DIR_MIGRACOES = path.join(__dirname, 'migrations');
 
 let db = null;
+let caminhoAtual = null;
 
 // Aplica as migrações de migrations/ ainda não rodadas.
 // O controle de versão usa o PRAGMA user_version do próprio SQLite:
@@ -38,6 +39,7 @@ function aplicarMigracoes() {
 // Passe ':memory:' para um banco em memória (usado nos testes).
 function abrir(caminhoBanco) {
   db = new Database(caminhoBanco);
+  caminhoAtual = caminhoBanco;
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   aplicarMigracoes();
@@ -50,8 +52,13 @@ function getDb() {
   return db;
 }
 
+// Caminho do arquivo do banco em uso (usado pelo módulo de backup).
+function caminhoArquivo() {
+  return caminhoAtual;
+}
+
 function fechar() {
   if (db) { db.close(); db = null; }
 }
 
-module.exports = { abrir, getDb, fechar };
+module.exports = { abrir, getDb, fechar, caminhoArquivo };

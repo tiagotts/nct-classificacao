@@ -8,7 +8,8 @@ const etapaCategoria = require('../src/db/repositorios/etapa-categoria');
 const categoria = require('../src/db/repositorios/categoria');
 const atleta = require('../src/db/repositorios/atleta');
 const dupla = require('../src/db/repositorios/dupla');
-const { gerarPaginaCategoria } = require('../src/publicacao/gerar-pagina');
+const { gerarPaginaCategoria, gerarPaginaEtapa } =
+  require('../src/publicacao/gerar-pagina');
 
 let ok = 0, fail = 0;
 function t(nome, fn) {
@@ -22,7 +23,8 @@ abrir(':memory:');
 
 const temp = temporada.criar({ nome: 'Circuito NCT 2025', ano: 2025 });
 const et = etapa.criar({
-  temporadaId: temp.id, nome: '4ª Etapa', data: '2025-08-01', local: 'Arena 61',
+  temporadaId: temp.id, nome: '4ª Etapa', dataInicio: '2025-08-01',
+  local: 'Arena 61',
 });
 const cat = categoria.listar().find(c => c.slug === 'sub18');
 const ec = etapaCategoria.criar({
@@ -65,6 +67,29 @@ t('não inclui nenhum ranking (só grupos, jogos e mata-mata)', () => {
 t('categoria inexistente lança erro', () => {
   let lancou = false;
   try { gerarPaginaCategoria(999999); } catch { lancou = true; }
+  if (!lancou) throw new Error('deveria lançar erro');
+});
+
+t('página geral da etapa: doc HTML, nome da etapa e link para a categoria', () => {
+  const html = gerarPaginaEtapa(et.id);
+  if (!html.includes('<!DOCTYPE html>')) throw new Error('não é HTML');
+  if (!html.includes('4ª Etapa')) throw new Error('faltou o nome da etapa');
+  if (!html.includes('Sub 18')) throw new Error('faltou a categoria');
+  if (!html.includes('etapa-2025-')) {
+    throw new Error('faltou o link para a página da categoria');
+  }
+});
+
+t('página geral inclui cabeçalho "Categorias" e ranking quando há pontos', () => {
+  const html = gerarPaginaEtapa(et.id);
+  if (!/<h3>\s*Categorias\s*<\/h3>/i.test(html)) {
+    throw new Error('faltou a seção de categorias');
+  }
+});
+
+t('etapa inexistente: gerar página geral lança erro', () => {
+  let lancou = false;
+  try { gerarPaginaEtapa(999999); } catch { lancou = true; }
   if (!lancou) throw new Error('deveria lançar erro');
 });
 

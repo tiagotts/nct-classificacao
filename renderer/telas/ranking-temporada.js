@@ -5,8 +5,15 @@
   App.registrarTela('ranking-temporada', { render });
 
   async function render(container, params) {
-    const { temporadaId } = params;
+    const { temporadaId, categoriaId, tipo } = params;
     const categorias = await window.electronAPI.db.categoria.listar();
+
+    // Pré-seleção: usa a categoria/tipo vindos da navegação (quando o
+    // usuário entrou pelo botão "Ranking" dentro de uma categoria), senão
+    // cai na primeira categoria da lista e tipo masculino.
+    const catSelecionada = categoriaId != null && categorias.some(c => c.id === categoriaId)
+      ? categoriaId : (categorias[0] && categorias[0].id);
+    const tipoSelecionado = tipo === 'feminino' ? 'feminino' : 'masculino';
 
     container.innerHTML = `
       <div class="topo-tela">
@@ -15,12 +22,12 @@
           <label for="combo-cat">Categoria</label>
           <select id="combo-cat">
             ${categorias.map(c =>
-              `<option value="${c.id}">${App.escapar(c.nome)}</option>`).join('')}
+              `<option value="${c.id}"${c.id === catSelecionada ? ' selected' : ''}>${App.escapar(c.nome)}</option>`).join('')}
           </select>
           <label for="combo-tipo">Tipo</label>
           <select id="combo-tipo">
-            <option value="masculino">Masculino</option>
-            <option value="feminino">Feminino</option>
+            <option value="masculino"${tipoSelecionado === 'masculino' ? ' selected' : ''}>Masculino</option>
+            <option value="feminino"${tipoSelecionado === 'feminino' ? ' selected' : ''}>Feminino</option>
           </select>
         </div>
       </div>

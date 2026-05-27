@@ -15,12 +15,15 @@ const CONFIG_PADRAO = {
 };
 
 const TAMANHOS_CHAVE = [4, 8, 16];
+const TAMANHOS_VALIDOS = [4, 6, 8, 16]; // 6 é o caso especial com bye (chave.js)
 
 /**
  * Calcula o ranking geral dos classificados.
  * @param {Array} duplas - duplas da etapa_categoria
  * @param {Array} jogos  - jogos da etapa_categoria
- * @param {Object} config - { classPorGrupo, repescagem, criterios, formulaAvg }
+ * @param {Object} config - { classPorGrupo, repescagem, criterios, formulaAvg,
+ *   tamanhoChave }. tamanhoChave fixa o tamanho do mata-mata (4|6|8|16);
+ *   quando ausente, o app pega o menor tamanho válido que cabem os diretos.
  * @returns {Object} { criterios, formulaAvg, grupos, ranking: [statComSeed] }
  */
 function calcularRankingGeral(duplas, jogos, config = {}) {
@@ -48,11 +51,26 @@ function calcularRankingGeral(duplas, jogos, config = {}) {
     });
   }
 
-  // Quantas duplas entram por repescagem: o valor configurado, ou — quando
-  // não configurado — o necessário para completar a próxima chave válida
-  // (4, 8 ou 16). Ex.: 3 grupos com 2 diretos = 6 -> completa para 8.
+  // Tamanho do mata-mata. Precedência:
+  //  1) tamanhoChave fixo (configurado pelo usuário) — força esse tamanho.
+  //  2) repescagem explícita — define diretamente quantas duplas vêm da
+  //     repescagem (compat. com o knob antigo).
+  //  3) Automático — pega o menor tamanho de chave válido que comporta os
+  //     diretos. Ex.: 3 grupos com 2 diretos = 6 -> completa para 8.
   let repescagem;
-  if (config.repescagem != null) {
+  if (config.tamanhoChave != null) {
+    if (!TAMANHOS_VALIDOS.includes(config.tamanhoChave)) {
+      throw new Error(
+        `Tamanho do mata-mata inválido (${config.tamanhoChave}). `
+        + `Use 4, 6, 8 ou 16.`);
+    }
+    if (diretos.length > config.tamanhoChave) {
+      throw new Error(
+        `Não cabe: ${diretos.length} duplas classificadas direto, mas o `
+        + `mata-mata foi fixado em ${config.tamanhoChave}.`);
+    }
+    repescagem = config.tamanhoChave - diretos.length;
+  } else if (config.repescagem != null) {
     repescagem = config.repescagem;
   } else {
     const alvo = TAMANHOS_CHAVE.find(n => n >= diretos.length);

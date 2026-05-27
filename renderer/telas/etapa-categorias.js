@@ -85,11 +85,14 @@
       : 'grupos não definidos';
     const tipo = ROTULO_TIPO[ec.tipo] || ec.tipo || '';
     const formato = ROTULO_FORMATO[ec.formato] || ec.formato || '';
+    const data = fmtData(ec.data_competicao);
+    const sub = [grupos, formato, data ? `compete em ${data}` : null]
+      .filter(Boolean).join(' · ');
     return `
       <div class="item">
         <div class="item-info">
           <div class="item-titulo">${App.escapar(ec.categoria_nome)} — ${App.escapar(tipo)}</div>
-          <div class="item-sub">${grupos} · ${App.escapar(formato)}</div>
+          <div class="item-sub">${App.escapar(sub)}</div>
         </div>
         <div class="item-acoes">
           <button class="btn ghost sm" data-acao="editar" data-id="${ec.id}">Editar</button>
@@ -145,6 +148,11 @@
           <input type="number" id="f-grupos" min="1" max="16" placeholder="3"
                  value="${editando && ec.num_grupos ? ec.num_grupos : ''}">
         </div>
+        <div class="form-row">
+          <label>Data da categoria</label>
+          <input type="date" id="f-data"
+                 value="${editando && ec.data_competicao ? App.escapar(ec.data_competicao) : ''}">
+        </div>
         <div class="form-acoes">
           <button class="btn" id="f-salvar">Salvar</button>
           <button class="btn ghost" id="f-cancelar">Cancelar</button>
@@ -157,10 +165,11 @@
       const erroEl = area.querySelector('#f-erro');
       const numGrupos = Number(area.querySelector('#f-grupos').value) || null;
       const formato = area.querySelector('#f-formato').value;
+      const dataCompeticao = area.querySelector('#f-data').value || null;
       if (editando) {
-        // Preserva o config_json existente ao salvar nº de grupos e formato.
+        // Preserva o config_json existente ao salvar nº de grupos, formato e data.
         await apiEC().atualizar(ec.id,
-          { numGrupos, configJson: ec.config_json, formato });
+          { numGrupos, configJson: ec.config_json, formato, dataCompeticao });
       } else {
         const categoriaId = Number(area.querySelector('#f-categoria').value);
         const tipo = area.querySelector('#f-tipo').value;
@@ -168,10 +177,19 @@
           erroEl.textContent = 'Essa categoria já foi adicionada neste tipo.';
           return;
         }
-        await apiEC().criar({ etapaId, categoriaId, tipo, formato, numGrupos });
+        await apiEC().criar({
+          etapaId, categoriaId, tipo, formato, numGrupos, dataCompeticao,
+        });
       }
       await App.recarregar();
     };
+  }
+
+  // Formata "YYYY-MM-DD" como "DD/MM/AAAA" para exibir no card.
+  function fmtData(iso) {
+    if (!iso) return '';
+    const [a, m, d] = iso.split('-');
+    return (a && m && d) ? `${d}/${m}/${a}` : iso;
   }
 
   async function remover(id) {

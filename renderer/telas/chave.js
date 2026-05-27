@@ -308,8 +308,7 @@
       await apiJogo().gerarMataMata(etapaCategoriaId);
       await App.recarregar();
     } catch (err) {
-      erroEl.textContent = 'Não foi possível gerar a chave: ' + err.message
-        + ' São necessárias 4, 8 ou 16 duplas classificadas.';
+      erroEl.textContent = 'Não foi possível gerar a chave: ' + err.message;
     }
   }
 
@@ -317,7 +316,14 @@
     if (!confirm('Regerar a chave apaga os placares do mata-mata. Continuar?')) {
       return;
     }
-    await apiJogo().gerarMataMata(estado.etapaCategoriaId, { recriar: true });
-    await App.recarregar();
+    const erroEl = document.getElementById('chave-erro');
+    if (erroEl) erroEl.textContent = '';
+    try {
+      await apiJogo().gerarMataMata(estado.etapaCategoriaId, { recriar: true });
+      await App.recarregar();
+    } catch (err) {
+      if (erroEl) erroEl.textContent = 'Não foi possível regerar a chave: ' + err.message;
+      else alert('Não foi possível regerar a chave: ' + err.message);
+    }
   }
 })();

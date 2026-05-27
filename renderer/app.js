@@ -89,9 +89,12 @@ const App = (() => {
     }
   }
 
-  // Tema (logo + cores) segue a temporada atualmente aberta. Na raiz cai no
-  // NCT padrão. Dentro de uma temporada usa o logo escolhido e sobrescreve
-  // as CSS vars do :root com a paleta derivada (cor_primaria/cor_secundaria).
+  // Tema (logo + cores) segue a temporada atualmente aberta. Quando não há
+  // temporada selecionada (ou ela não tem logo escolhido), usa o ícone
+  // padrão do BeachPlay (../imagens/beachplay-icone.svg). Caso contrário
+  // usa o arquivo escolhido na criação da temporada e sobrescreve as CSS
+  // vars do :root com a paleta derivada.
+  const LOGO_PADRAO_URL = '../imagens/beachplay-icone.svg';
   let temaAtual = { logo: null, cor1: null, cor2: null };
   async function aplicarTemaTemporada() {
     const sel = selecaoAtual();
@@ -101,13 +104,17 @@ const App = (() => {
         temporada = await window.electronAPI.db.temporada.obter(sel.temporadaId);
       } catch { /* mantém o padrão */ }
     }
-    const arquivo = (temporada && temporada.logo) || 'NCT_Fatiado_Padrao.png';
+    const arquivo = (temporada && temporada.logo) || null;
     const cor1 = (temporada && temporada.cor_primaria) || null;
     const cor2 = (temporada && temporada.cor_secundaria) || null;
 
     if (arquivo !== temaAtual.logo) {
       const img = document.querySelector('.marca-logo');
-      if (img) img.src = `../imagens/logos/${encodeURIComponent(arquivo)}`;
+      if (img) {
+        img.src = arquivo
+          ? `../imagens/logos/${encodeURIComponent(arquivo)}`
+          : LOGO_PADRAO_URL;
+      }
       temaAtual.logo = arquivo;
     }
     if (cor1 !== temaAtual.cor1 || cor2 !== temaAtual.cor2) {

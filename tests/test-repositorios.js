@@ -54,8 +54,8 @@ t('etapa: listar por temporada', () => {
 
 // --- categoria (catálogo fixo) -----------------------------------------
 let categoriaTeste;
-t('categoria: catálogo fixo tem 6 categorias', () => {
-  eq(categoria.listar().length, 6);
+t('categoria: catálogo fixo tem 12 categorias', () => {
+  eq(categoria.listar().length, 12);
   categoriaTeste = categoria.listar().find(c => c.slug === 'sub18');
   if (!categoriaTeste) throw new Error('categoria sub18 não encontrada');
 });

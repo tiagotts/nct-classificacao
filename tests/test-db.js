@@ -31,20 +31,24 @@ t('todas as tabelas do modelo foram criadas', () => {
   }
 });
 
-t('catálogo fixo de categorias foi semeado (6 categorias)', () => {
+t('catálogo fixo de categorias foi semeado (12 categorias)', () => {
   const n = db.prepare('SELECT COUNT(*) AS c FROM categoria').get().c;
-  eq(n, 6, 'nº de categorias');
+  eq(n, 12, 'nº de categorias');
 });
 
 t('slugs das categorias são os esperados', () => {
   const slugs = db.prepare('SELECT slug FROM categoria ORDER BY slug')
     .all().map(r => r.slug);
   eq(JSON.stringify(slugs),
-     JSON.stringify(['aberto','intermediario','master45','master50','sub15','sub18']));
+     JSON.stringify([
+       'aberto', 'avancado-masc', 'iniciante1', 'iniciante2',
+       'intermediario', 'kids-pai-mae', 'master45', 'master50',
+       'misto-intermediario', 'sub15', 'sub18', 'teens',
+     ]));
 });
 
 t('user_version reflete as migrações aplicadas', () => {
-  eq(db.pragma('user_version', { simple: true }), 10, 'user_version');
+  eq(db.pragma('user_version', { simple: true }), 11, 'user_version');
 });
 
 t('ranking_inicial tem coluna etapa_id após a migração 0007', () => {
@@ -83,7 +87,7 @@ t('migração é idempotente (reabrir não duplica categorias)', () => {
   fechar();
   abrir(':memory:'); // banco novo, mas valida que o runner não quebra
   const n = getDb().prepare('SELECT COUNT(*) AS c FROM categoria').get().c;
-  eq(n, 6, 'nº de categorias após reabrir');
+  eq(n, 12, 'nº de categorias após reabrir');
 });
 
 t('check constraint de tipo_resultado rejeita valor inválido', () => {

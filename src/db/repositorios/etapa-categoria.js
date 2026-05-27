@@ -19,25 +19,35 @@ function obter(id) {
   return getDb().prepare(`${SELECT_BASE} WHERE ec.id = ?`).get(id);
 }
 
-function criar({ etapaId, categoriaId, tipo, numGrupos, configJson, formato }) {
+function criar({ etapaId, categoriaId, tipo, numGrupos, configJson, formato,
+                 dataCompeticao }) {
   const info = getDb()
     .prepare(`INSERT INTO etapa_categoria
-                (etapa_id, categoria_id, tipo, num_grupos, config_json, formato)
-              VALUES (?, ?, ?, ?, ?, ?)`)
+                (etapa_id, categoria_id, tipo, num_grupos, config_json, formato,
+                 data_competicao)
+              VALUES (?, ?, ?, ?, ?, ?, ?)`)
     .run(etapaId, categoriaId, tipo, numGrupos ?? null, configJson ?? null,
-         formato || 'todos-contra-todos');
+         formato || 'todos-contra-todos', dataCompeticao || null);
   return obter(info.lastInsertRowid);
 }
 
-// atualizar: formato é opcional — quando não vem (ex: salvando só o
-// config_json pela tela de configuração) o valor atual é preservado.
-function atualizar(id, { numGrupos, configJson, formato }) {
+// atualizar: formato e dataCompeticao são opcionais — quando undefined o
+// valor atual é preservado (ex.: salvando só o config_json pela tela de
+// configuração não deve apagar a data já cadastrada). null é tratado como
+// "limpar"; undefined como "não tocar".
+function atualizar(id, { numGrupos, configJson, formato, dataCompeticao }) {
   const atual = obter(id);
+  const dataFinal = dataCompeticao === undefined
+    ? (atual && atual.data_competicao)
+    : (dataCompeticao || null);
   getDb()
     .prepare(`UPDATE etapa_categoria
-              SET num_grupos = ?, config_json = ?, formato = ? WHERE id = ?`)
+              SET num_grupos = ?, config_json = ?, formato = ?,
+                  data_competicao = ?
+              WHERE id = ?`)
     .run(numGrupos ?? null, configJson ?? null,
-         formato || (atual && atual.formato) || 'todos-contra-todos', id);
+         formato || (atual && atual.formato) || 'todos-contra-todos',
+         dataFinal, id);
   return obter(id);
 }
 

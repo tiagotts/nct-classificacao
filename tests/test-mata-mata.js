@@ -111,6 +111,64 @@ t('ranking geral completa a repescagem automaticamente (3 grupos -> 8)', () => {
   eq(r.ranking.length, 8, 'classificados com repescagem automática');
 });
 
+t('tamanhoChave fixo força oitavas (16) mesmo com poucos diretos', () => {
+  // Mesmo cenário: 3 grupos de 4 com 2 diretos = 6. Forçando tamanhoChave=16
+  // deve trazer 10 duplas por repescagem para completar.
+  const duplas = [];
+  const jogos = [];
+  for (const g of ['A', 'B', 'C']) {
+    const ds = [1, 2, 3, 4].map(n => ({
+      id: `${g}${n}`, codigo: `${g}${n}`, grupo: g,
+      atleta1_nome: 'x', atleta2_nome: 'y',
+    }));
+    duplas.push(...ds);
+    for (let i = 0; i < ds.length; i++) {
+      for (let j = i + 1; j < ds.length; j++) {
+        jogos.push({
+          fase: 'grupo', dupla1_id: ds[i].id, dupla2_id: ds[j].id,
+          placar1: 21, placar2: 10, tipo_resultado: 'normal',
+        });
+      }
+    }
+  }
+  // Só temos 12 duplas no total, então 12 é o máximo de classificados. Mas
+  // tamanhoChave=16 ainda deveria pedir 10 repescados (mesmo que só haja 6
+  // candidatos). O ranking final fica com 6 diretos + 6 candidatos = 12.
+  const r = calcularRankingGeral(duplas, jogos,
+    { classPorGrupo: 2, tamanhoChave: 16 });
+  // Diretos: 6. Candidatos disponíveis: 6 (os 3ºs e 4ºs). repescados = min(10, 6)
+  // (slice limita ao tamanho do array). Total = 12.
+  eq(r.ranking.length, 12, 'pega todos os candidatos disponíveis ao mirar 16');
+});
+
+t('tamanhoChave fixo erra quando diretos > tamanho', () => {
+  // 4 grupos × 3 diretos = 12 diretos, mas tamanhoChave = 8 -> erro claro.
+  const duplas = [];
+  const jogos = [];
+  for (const g of ['A', 'B', 'C', 'D']) {
+    const ds = [1, 2, 3, 4].map(n => ({
+      id: `${g}${n}`, codigo: `${g}${n}`, grupo: g,
+      atleta1_nome: 'x', atleta2_nome: 'y',
+    }));
+    duplas.push(...ds);
+    for (let i = 0; i < ds.length; i++) {
+      for (let j = i + 1; j < ds.length; j++) {
+        jogos.push({
+          fase: 'grupo', dupla1_id: ds[i].id, dupla2_id: ds[j].id,
+          placar1: 21, placar2: 10, tipo_resultado: 'normal',
+        });
+      }
+    }
+  }
+  let lancou = false;
+  try {
+    calcularRankingGeral(duplas, jogos, { classPorGrupo: 3, tamanhoChave: 8 });
+  } catch (e) {
+    lancou = /Não cabe/.test(e.message);
+  }
+  if (!lancou) throw new Error('deveria lançar erro de "não cabe"');
+});
+
 t('9 duplas (3 grupos de 3): 8 classificados, 1 eliminado, chave de 8', () => {
   // Formato Master 50+ do regulamento: 3 grupos de 3, todos-contra-todos.
   // 2 diretos por grupo = 6, repescagem completa para 8; o pior 3º cai fora.

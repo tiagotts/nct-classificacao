@@ -40,6 +40,7 @@
         ? salvo.criterios.slice() : PADRAO.criterios.slice(),
       classPorGrupo: salvo.classPorGrupo ?? PADRAO.classPorGrupo,
       repescagem: salvo.repescagem ?? null,
+      tamanhoChave: salvo.tamanhoChave ?? null,
       rankingGeral: salvo.rankingGeral || PADRAO.rankingGeral,
       setsFinal: salvo.setsFinal === 3 ? 3 : PADRAO.setsFinal,
     };
@@ -73,14 +74,26 @@
                  value="${cfg.classPorGrupo}">
         </div>
         <div class="form-row">
+          <label>Tamanho do mata-mata</label>
+          <select id="c-tamanho-chave">
+            <option value=""${cfg.tamanhoChave == null ? ' selected' : ''}>Automático</option>
+            <option value="16"${cfg.tamanhoChave === 16 ? ' selected' : ''}>Oitavas (16 duplas)</option>
+            <option value="8"${cfg.tamanhoChave === 8 ? ' selected' : ''}>Quartas (8 duplas)</option>
+            <option value="6"${cfg.tamanhoChave === 6 ? ' selected' : ''}>Com bye (6 duplas)</option>
+            <option value="4"${cfg.tamanhoChave === 4 ? ' selected' : ''}>Semifinais (4 duplas)</option>
+          </select>
+        </div>
+        <div class="form-row">
           <label>Repescagem</label>
           <input type="number" id="c-repescagem" min="0" max="16"
                  placeholder="automático"
                  value="${cfg.repescagem != null ? cfg.repescagem : ''}">
         </div>
-        <p class="dica">Repescagem em branco = o app completa automaticamente
-          até a próxima chave válida (4, 8 ou 16 duplas). Ex.: 3 grupos com 2
-          classificados (6) recebem 2 melhores terceiros para fechar 8.</p>
+        <p class="dica">Tamanho em <em>Automático</em> = o app escolhe a menor
+          chave válida (4/8/16) que comporta os diretos. Escolher um tamanho
+          fixo força esse formato, completando com melhores terceiros (e quartos)
+          até atingir o número — se sobrar dupla direta, dá erro ao gerar.
+          O campo Repescagem só é usado quando o tamanho é Automático.</p>
 
         <h3>Ranqueamento geral</h3>
         <p class="dica">Como os classificados são ordenados para virar as
@@ -269,6 +282,7 @@
       }
     }
 
+    const tamTxt = document.getElementById('c-tamanho-chave').value;
     const cfg = {
       formulaAvg: estado.cfg.formulaAvg,
       criterios: estado.cfg.criterios,
@@ -279,6 +293,8 @@
     };
     // Repescagem só vai ao config quando informada; em branco fica automática.
     if (repescTxt !== '') cfg.repescagem = Number(repescTxt);
+    // Tamanho fixo do mata-mata; vazio = automático.
+    if (tamTxt !== '') cfg.tamanhoChave = Number(tamTxt);
 
     botao.disabled = true;
     try {

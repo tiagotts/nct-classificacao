@@ -78,6 +78,7 @@ const App = (() => {
   async function desenhar() {
     expandirCaminho();
     await renderMenu();
+    await aplicarTemaTemporada();
     conteudo.innerHTML = '<div class="carregando">Carregando…</div>';
     const atual = pilha[pilha.length - 1];
     try {
@@ -86,6 +87,55 @@ const App = (() => {
       conteudo.innerHTML =
         `<div class="erro">Erro ao carregar a tela: ${escapar(err.message)}</div>`;
     }
+  }
+
+  // Tema (logo + cores) segue a temporada atualmente aberta. Na raiz cai no
+  // NCT padrão. Dentro de uma temporada usa o logo escolhido e sobrescreve
+  // as CSS vars do :root com a paleta derivada (cor_primaria/cor_secundaria).
+  let temaAtual = { logo: null, cor1: null, cor2: null };
+  async function aplicarTemaTemporada() {
+    const sel = selecaoAtual();
+    let temporada = null;
+    if (sel.temporadaId != null) {
+      try {
+        temporada = await window.electronAPI.db.temporada.obter(sel.temporadaId);
+      } catch { /* mantém o padrão */ }
+    }
+    const arquivo = (temporada && temporada.logo) || 'NCT_Fatiado_Padrao.png';
+    const cor1 = (temporada && temporada.cor_primaria) || null;
+    const cor2 = (temporada && temporada.cor_secundaria) || null;
+
+    if (arquivo !== temaAtual.logo) {
+      const img = document.querySelector('.marca-logo');
+      if (img) img.src = `../imagens/logos/${encodeURIComponent(arquivo)}`;
+      temaAtual.logo = arquivo;
+    }
+    if (cor1 !== temaAtual.cor1 || cor2 !== temaAtual.cor2) {
+      aplicarPaleta(cor1, cor2);
+      temaAtual.cor1 = cor1;
+      temaAtual.cor2 = cor2;
+    }
+  }
+
+  // Sobrescreve as CSS vars de cor no :root. Quando cor1/cor2 são null,
+  // remove os overrides e o app volta para a paleta declarada em estilos.css.
+  function aplicarPaleta(cor1, cor2) {
+    const root = document.documentElement.style;
+    const VARS = [
+      '--ocean', '--ocean-dark', '--ocean-light', '--ocean-tint',
+      '--sun', '--sun-dark',
+    ];
+    if (!cor1 && !cor2) {
+      VARS.forEach(v => root.removeProperty(v));
+      return;
+    }
+    const p = window.NctCores.paletaTemporada(cor1, cor2);
+    root.setProperty('--ocean', p.ocean);
+    root.setProperty('--ocean-dark', p.oceanDark);
+    root.setProperty('--ocean-light', p.oceanLight);
+    root.setProperty('--ocean-tint', p.oceanTint);
+    root.setProperty('--sun', p.sun);
+    root.setProperty('--sun-dark', p.sunDark);
   }
 
   // Garante que os nós ancestrais da tela atual estejam expandidos, para a

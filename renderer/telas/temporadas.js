@@ -5,7 +5,11 @@
   App.registrarTela('temporadas', { render });
 
   async function render(container, params) {
-    const temporadas = await api().listar();
+    const [temporadas, logos] = await Promise.all([
+      api().listar(),
+      window.electronAPI.logos.listar(),
+    ]);
+    container.dataset.logos = JSON.stringify(logos);
 
     container.innerHTML = `
       <div class="topo-tela">
@@ -54,6 +58,15 @@
   function abrirForm(container, temporada) {
     const area = container.querySelector('#form-area');
     const editando = !!temporada;
+    const logos = JSON.parse(container.dataset.logos || '[]');
+    const logoAtual = editando ? (temporada.logo || '') : '';
+    const opcoesLogo = ['<option value="">(Logo padrão NCT)</option>']
+      .concat(logos.map(n =>
+        `<option value="${App.escapar(n)}"${n === logoAtual ? ' selected' : ''}>${App.escapar(n)}</option>`))
+      .join('');
+    // Cores: defaults da paleta NCT quando a temporada ainda não tem nada.
+    const corPrimariaAtual = (editando && temporada.cor_primaria) || '#1e7fc4';
+    const corSecundariaAtual = (editando && temporada.cor_secundaria) || '#fbbf24';
     area.innerHTML = `
       <div class="form-card">
         <h3>${editando ? 'Editar temporada' : 'Nova temporada'}</h3>
@@ -67,6 +80,20 @@
           <input type="number" id="f-ano" min="2000" max="2100"
                  value="${editando ? temporada.ano : new Date().getFullYear()}">
         </div>
+        <div class="form-row">
+          <label>Logo</label>
+          <select id="f-logo">${opcoesLogo}</select>
+        </div>
+        <div class="form-row">
+          <label>Cor primária</label>
+          <input type="color" id="f-cor1" value="${App.escapar(corPrimariaAtual)}">
+          <span class="dica">azul/destaque da UI</span>
+        </div>
+        <div class="form-row">
+          <label>Cor secundária</label>
+          <input type="color" id="f-cor2" value="${App.escapar(corSecundariaAtual)}">
+          <span class="dica">acentos (bordas amarelas, podio)</span>
+        </div>
         <div class="form-acoes">
           <button class="btn" id="f-salvar">Salvar</button>
           <button class="btn ghost" id="f-cancelar">Cancelar</button>
@@ -79,11 +106,15 @@
     area.querySelector('#f-salvar').onclick = async () => {
       const nome = area.querySelector('#f-nome').value.trim();
       const ano = Number(area.querySelector('#f-ano').value);
+      const logo = area.querySelector('#f-logo').value || null;
+      const corPrimaria = area.querySelector('#f-cor1').value;
+      const corSecundaria = area.querySelector('#f-cor2').value;
       const erro = area.querySelector('#f-erro');
       if (!nome) { erro.textContent = 'Informe o nome da temporada.'; return; }
       if (!ano) { erro.textContent = 'Informe um ano válido.'; return; }
-      if (editando) await api().atualizar(temporada.id, { nome, ano });
-      else await api().criar({ nome, ano });
+      const dados = { nome, ano, logo, corPrimaria, corSecundaria };
+      if (editando) await api().atualizar(temporada.id, dados);
+      else await api().criar(dados);
       await App.recarregar();
     };
   }

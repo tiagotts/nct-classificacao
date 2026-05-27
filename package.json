@@ -23,7 +23,7 @@
   },
   "build": {
     "appId": "br.com.nct.classificacao",
-    "productName": "NCT Classificação",
+    "productName": "BeachPlay",
     "directories": {
       "output": "dist"
     },

@@ -1,4 +1,4 @@
-# NCT Classificação
+# BeachPlay
 
 Aplicativo desktop (Electron) para gerar a classificação após a fase de grupos
 de etapas do **Circuito NCT de Vôlei de Praia**.

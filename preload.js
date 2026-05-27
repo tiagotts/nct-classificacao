@@ -78,6 +78,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
   },
 
+  // Lista os arquivos disponíveis em imagens/logos/ (combo de logo da temporada).
+  logos: {
+    listar: () => ipcRenderer.invoke('logos:listar'),
+  },
+
   // Publicação no GitHub Pages: página por categoria e página geral da etapa.
   publicacao: {
     publicarCategoria: (etapaCategoriaId, cfg) =>

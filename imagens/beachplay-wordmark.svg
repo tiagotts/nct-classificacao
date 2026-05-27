@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 110" role="img" aria-label="BeachPlay">
+  <title>BeachPlay</title>
+  <text x="210" y="68" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="62" font-weight="500" fill="#0F172A" text-anchor="middle" letter-spacing="-1.5"><tspan fill="#0284C7">beach</tspan><tspan fill="#F97316">play</tspan></text>
+  <path d="M 90 92 Q 140 82 190 92 T 290 92 T 360 92" fill="none" stroke="#06B6D4" stroke-width="3" stroke-linecap="round"/>
+</svg>

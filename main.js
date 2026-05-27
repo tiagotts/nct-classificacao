@@ -1,5 +1,5 @@
 // =============================================================================
-// NCT Classificação — Main process
+// BeachPlay — Main process
 // Responsável por criar a janela do app e expor APIs do sistema operacional
 // (abrir diálogo de arquivo, persistir configuração no disco) para a UI.
 // =============================================================================
@@ -28,8 +28,8 @@ const dbIpc = require('./src/db/ipc');
 diag('depois require ./src/db/ipc');
 
 // Caminho do arquivo onde guardamos a última configuração usada.
-// Fica em ~/Library/Application Support/NCT Classificação/ (Mac)
-// ou em %APPDATA%\NCT Classificação\ (Windows).
+// Fica em ~/Library/Application Support/BeachPlay/ (Mac)
+// ou em %APPDATA%\BeachPlay\ (Windows).
 const CONFIG_PATH = () => path.join(app.getPath('userData'), 'config.json');
 
 function readConfig() {
@@ -50,6 +50,34 @@ function writeConfig(cfg) {
   }
 }
 
+// Copia banco e config do diretório userData antigo ("NCT Classificação")
+// para o novo ("BeachPlay") quando o app é aberto pela primeira vez após
+// o rename. Só age se o novo diretório ainda não tem banco — não pisa em
+// dados já existentes do usuário aqui.
+function migrarUserDataAntigo(novoDbPath) {
+  if (fs.existsSync(novoDbPath)) return;
+  const antigoUserData = path.join(app.getPath('appData'), 'NCT Classificação');
+  const antigoDb = path.join(antigoUserData, 'nct.db');
+  if (!fs.existsSync(antigoDb)) return;
+  try {
+    fs.mkdirSync(path.dirname(novoDbPath), { recursive: true });
+    fs.copyFileSync(antigoDb, novoDbPath);
+    // WAL/SHM podem estar pendentes; copia se existirem para evitar perda.
+    for (const sfx of ['-wal', '-shm']) {
+      const src = antigoDb + sfx;
+      if (fs.existsSync(src)) fs.copyFileSync(src, novoDbPath + sfx);
+    }
+    const antigaCfg = path.join(antigoUserData, 'config.json');
+    const novaCfg = path.join(path.dirname(novoDbPath), 'config.json');
+    if (fs.existsSync(antigaCfg) && !fs.existsSync(novaCfg)) {
+      fs.copyFileSync(antigaCfg, novaCfg);
+    }
+    diag('migrou userData de "NCT Classificação" para "BeachPlay"');
+  } catch (e) {
+    diag('falha ao migrar userData antigo: ' + (e && e.message || e));
+  }
+}
+
 let mainWindow = null;
 
 function createWindow() {
@@ -59,7 +87,7 @@ function createWindow() {
     minWidth: 800,
     minHeight: 600,
     backgroundColor: '#f6efe1',
-    title: 'NCT Classificação',
+    title: 'BeachPlay',
     icon: path.join(__dirname, 'build', 'icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -176,13 +204,13 @@ function buildMenu() {
       label: 'Ajuda',
       submenu: [
         {
-          label: 'Sobre o NCT Classificação',
+          label: 'Sobre o BeachPlay',
           click: () => {
             if (!mainWindow) return;
             dialog.showMessageBox(mainWindow, {
               type: 'info',
-              title: 'NCT Classificação',
-              message: 'NCT Classificação',
+              title: 'BeachPlay',
+              message: 'BeachPlay',
               detail:
                 'Versão 0.1 (PoC)\n\n' +
                 'Sistema de classificação para etapas do Circuito NCT de Vôlei de Praia.\n\n' +
@@ -214,6 +242,11 @@ app.whenReady().then(() => {
       : path.join(__dirname, 'data', 'nct.db');
     if (!app.isPackaged) {
       fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+    } else {
+      // Renome do app de "NCT Classificação" para "BeachPlay" mudou o
+      // userData. Na primeira vez, se ainda não há banco no novo diretório
+      // e o antigo existe, copia banco + config para o local novo.
+      migrarUserDataAntigo(dbPath);
     }
     diag('antes database.abrir | dbPath=' + dbPath);
     database.abrir(dbPath);
@@ -222,6 +255,17 @@ app.whenReady().then(() => {
     // Handlers IPC expostos ao renderer via preload.js
     ipcMain.handle('config:load', () => readConfig());
     ipcMain.handle('config:save', (event, cfg) => writeConfig(cfg));
+
+    // Lista os arquivos de logo disponíveis em imagens/logos/ para o combo
+    // da tela de temporadas. Só imagens (.png/.jpg/.jpeg/.svg/.webp).
+    ipcMain.handle('logos:listar', () => {
+      const dir = path.join(__dirname, 'imagens', 'logos');
+      try {
+        return fs.readdirSync(dir)
+          .filter(n => /\.(png|jpe?g|svg|webp|gif)$/i.test(n))
+          .sort();
+      } catch { return []; }
+    });
 
     // Handlers do banco (CRUD dos repositórios)
     diag('antes dbIpc.registrar');

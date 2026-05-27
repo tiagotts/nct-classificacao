@@ -116,7 +116,7 @@ const Publicar = (() => {
   // Notificação do sistema operacional (funciona mesmo com o app em 2º plano).
   function notificar() {
     try {
-      new Notification('NCT Classificação', {
+      new Notification('BeachPlay', {
         body: 'A página de resultados foi atualizada e está no ar.',
       });
     } catch { /* notificação indisponível */ }

@@ -9,17 +9,22 @@ function obter(id) {
   return getDb().prepare('SELECT * FROM temporada WHERE id = ?').get(id);
 }
 
-function criar({ nome, ano }) {
+function criar({ nome, ano, logo, corPrimaria, corSecundaria }) {
   const info = getDb()
-    .prepare('INSERT INTO temporada (nome, ano) VALUES (?, ?)')
-    .run(nome, ano);
+    .prepare(`INSERT INTO temporada
+                (nome, ano, logo, cor_primaria, cor_secundaria)
+              VALUES (?, ?, ?, ?, ?)`)
+    .run(nome, ano, logo || null, corPrimaria || null, corSecundaria || null);
   return obter(info.lastInsertRowid);
 }
 
-function atualizar(id, { nome, ano }) {
+function atualizar(id, { nome, ano, logo, corPrimaria, corSecundaria }) {
   getDb()
-    .prepare('UPDATE temporada SET nome = ?, ano = ? WHERE id = ?')
-    .run(nome, ano, id);
+    .prepare(`UPDATE temporada
+              SET nome = ?, ano = ?, logo = ?,
+                  cor_primaria = ?, cor_secundaria = ?
+              WHERE id = ?`)
+    .run(nome, ano, logo || null, corPrimaria || null, corSecundaria || null, id);
   return obter(id);
 }
 

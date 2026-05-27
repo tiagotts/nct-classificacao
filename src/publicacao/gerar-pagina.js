@@ -8,6 +8,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { paletaTemporada } = require('../util/cores');
 const etapaRepo = require('../db/repositorios/etapa');
 const temporadaRepo = require('../db/repositorios/temporada');
 const ecRepo = require('../db/repositorios/etapa-categoria');
@@ -16,19 +17,41 @@ const jogoRepo = require('../db/repositorios/jogo');
 const classificacaoRepo = require('../db/repositorios/classificacao');
 const rankingTemporadaRepo = require('../db/repositorios/ranking-temporada');
 
-// Logotipo NCT embutido na página (data URI base64) — mantém a página
-// 100% autocontida, sem dependências externas.
-const LOGO_PATH = path.join(__dirname, '..', '..', 'imagens', 'NCT_Fatiado_Padrao.png');
-let logoCache = null;
-function logoDataUri() {
-  if (logoCache != null) return logoCache;
+// Logotipo embutido na página (data URI base64) — mantém a página 100%
+// autocontida, sem dependências externas. A temporada pode escolher um
+// arquivo de imagens/logos/; quando nada está escolhido, cai no NCT padrão.
+const LOGOS_DIR = path.join(__dirname, '..', '..', 'imagens', 'logos');
+const LOGO_PADRAO = path.join(LOGOS_DIR, 'NCT_Fatiado_Padrao.png');
+const cacheLogo = new Map();
+function mimeDeExtensao(arq) {
+  const ext = path.extname(arq).toLowerCase();
+  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
+  if (ext === '.svg') return 'image/svg+xml';
+  if (ext === '.webp') return 'image/webp';
+  if (ext === '.gif') return 'image/gif';
+  return 'image/png';
+}
+function logoDataUri(arquivoTemporada) {
+  const chave = arquivoTemporada || '__padrao__';
+  if (cacheLogo.has(chave)) return cacheLogo.get(chave);
+  const caminho = arquivoTemporada
+    ? path.join(LOGOS_DIR, arquivoTemporada)
+    : LOGO_PADRAO;
+  let valor = '';
   try {
-    const buf = fs.readFileSync(LOGO_PATH);
-    logoCache = `data:image/png;base64,${buf.toString('base64')}`;
+    const buf = fs.readFileSync(caminho);
+    valor = `data:${mimeDeExtensao(caminho)};base64,${buf.toString('base64')}`;
   } catch {
-    logoCache = '';
+    // Logo da temporada não existe mais no disco — cai no padrão.
+    if (arquivoTemporada) {
+      try {
+        const buf = fs.readFileSync(LOGO_PADRAO);
+        valor = `data:image/png;base64,${buf.toString('base64')}`;
+      } catch { valor = ''; }
+    }
   }
-  return logoCache;
+  cacheLogo.set(chave, valor);
+  return valor;
 }
 
 const ORDEM_FASE = ['oitavas', 'quartas', 'semi', 'final', 'terceiro'];
@@ -238,11 +261,17 @@ function corpoCategoria(ec) {
 
 // Paleta NCT: azul navy (#13325c) e oceano vibrante (#1e7fc4) do logo,
 // amarelo/dourado (#fbbf24) do sol, areia (#f6efe1) como fundo neutro.
-const CSS = `
+// CSS da página pública. As cores primária/secundária e suas variantes são
+// interpoladas a partir da paleta da temporada — neutros (areia, cinzas,
+// brancos, linha) permanecem fixos.
+function cssDaPagina(paleta) {
+  const ocean = paleta.ocean, oceanDark = paleta.oceanDark;
+  const sun = paleta.sun, sunDark = paleta.sunDark;
+  return `
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
-background:#f6efe1;color:#13325c;line-height:1.45}
-header{background:linear-gradient(135deg,#1e7fc4,#13325c);color:#fff;padding:20px 16px;
-display:flex;align-items:center;gap:14px;border-bottom:3px solid #fbbf24}
+background:#f6efe1;color:${oceanDark};line-height:1.45}
+header{background:linear-gradient(135deg,${ocean},${oceanDark});color:#fff;padding:20px 16px;
+display:flex;align-items:center;gap:14px;border-bottom:3px solid ${sun}}
 header img.logo{height:64px;width:auto;flex-shrink:0;background:#fff;
 border-radius:8px;padding:6px}
 header .header-text{flex:1;min-width:0}
@@ -255,8 +284,8 @@ header .header-periodo{margin:4px 0 0;opacity:.9;font-size:13px;font-weight:500}
 main{max-width:760px;margin:0 auto;padding:16px}
 .atualizado{color:#6b7280;font-size:12px;margin:0 0 16px}
 .categoria{background:#fff;border:1px solid #d8d2c3;border-radius:10px;padding:16px;margin-bottom:16px}
-h2{color:#13325c;font-size:18px;margin:0 0 12px;border-bottom:2px solid #fbbf24;padding-bottom:6px}
-h3{color:#1e7fc4;font-size:13px;margin:18px 0 8px;text-transform:uppercase;letter-spacing:.05em}
+h2{color:${oceanDark};font-size:18px;margin:0 0 12px;border-bottom:2px solid ${sun};padding-bottom:6px}
+h3{color:${ocean};font-size:13px;margin:18px 0 8px;text-transform:uppercase;letter-spacing:.05em}
 h4{font-size:13px;margin:12px 0 4px}
 table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:8px}
 th{background:#f6efe1;text-align:left;padding:6px 8px;font-size:11px;
@@ -265,30 +294,29 @@ td{padding:6px 8px;border-top:1px solid #f1ecdd}
 td.c,th.c{text-align:center}
 td.placar{font-weight:700;white-space:nowrap}
 .sets{font-size:11px;font-weight:400;color:#6b7280}
-.podio{background:#fffbeb;border:1px solid #fbbf24;border-radius:8px;padding:10px 14px;margin-top:10px}
+.podio{background:#fffbeb;border:1px solid ${sun};border-radius:8px;padding:10px 14px;margin-top:10px}
 .podio h4{margin:0 0 6px;color:#92400e}
 .podio ul{margin:0;padding-left:18px}
 .lista-cats{list-style:none;padding:0;margin:0 0 8px;display:flex;flex-wrap:wrap;gap:8px}
-.lista-cats li a{display:inline-block;padding:8px 12px;background:#1e7fc4;color:#fff;
+.lista-cats li a{display:inline-block;padding:8px 12px;background:${ocean};color:#fff;
 border-radius:6px;text-decoration:none;font-size:13px}
-.lista-cats li a:hover{background:#13325c}
+.lista-cats li a:hover{background:${oceanDark}}
 .vazio{color:#6b7280;text-align:center;padding:20px}
 footer{text-align:center;color:#6b7280;font-size:12px;padding:20px}
 i{color:#6b7280}
-/* Botão flutuante "Gerar PDF" — visível só na tela, escondido na impressão. */
 .btn-pdf{position:fixed;top:14px;right:14px;z-index:10;
-background:#fbbf24;color:#13325c;border:1px solid #f7a300;
+background:${sun};color:${oceanDark};border:1px solid ${sunDark};
 padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;
 font-family:inherit;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.18);
 transition:.15s}
-.btn-pdf:hover{background:#f7a300;color:#fff}
+.btn-pdf:hover{background:${sunDark};color:#fff}
 @media print{
   @page{size:A4;margin:14mm 12mm}
   body{background:#fff}
   .btn-pdf,.atualizado,footer{display:none !important}
-  header{background:#13325c !important;color:#fff !important;
+  header{background:${oceanDark} !important;color:#fff !important;
     -webkit-print-color-adjust:exact;print-color-adjust:exact;
-    border-bottom:3px solid #fbbf24 !important}
+    border-bottom:3px solid ${sun} !important}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   main{padding:0}
   .categoria{box-shadow:none;border:0;padding:0;margin:0}
@@ -297,6 +325,7 @@ transition:.15s}
   tr{page-break-inside:avoid}
   h3{page-break-after:avoid}
 }`;
+}
 
 // Script injetado na página pública: a cada 30s, busca a própria URL sem
 // cache, compara a meta "versao" e — se mudou — recarrega forçando bypass
@@ -325,22 +354,24 @@ const AUTO_RELOAD_JS = `(function () {
 //   linha 3 — período (data início — data fim)
 // O título do navegador (tituloMeta) é o nome mais específico (categoria
 // nas páginas de categoria, etapa na página geral).
-function paginaHtml({ tituloMeta, temporadaNome, etapaNome, periodo }, corpo) {
+function paginaHtml({ tituloMeta, temporadaNome, etapaNome, periodo, logo,
+                     corPrimaria, corSecundaria }, corpo) {
   const agora = new Date();
   const versao = agora.getTime();
   const agoraFmt = agora.toLocaleString('pt-BR');
+  const paleta = paletaTemporada(corPrimaria, corSecundaria);
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="versao" content="${versao}">
-<title>${esc(tituloMeta)} — NCT Classificação</title>
-<style>${CSS}</style>
+<title>${esc(tituloMeta)} — BeachPlay</title>
+<style>${cssDaPagina(paleta)}</style>
 </head>
 <body>
 <header>
-${logoDataUri() ? `<img class="logo" src="${logoDataUri()}" alt="NCT">` : ''}
+${logoDataUri(logo) ? `<img class="logo" src="${logoDataUri(logo)}" alt="NCT">` : ''}
 <div class="header-text">
   <div class="header-temporada">${esc(temporadaNome || '')}</div>
   <h1>${esc(etapaNome || '')}</h1>
@@ -352,7 +383,7 @@ ${logoDataUri() ? `<img class="logo" src="${logoDataUri()}" alt="NCT">` : ''}
 <button class="btn-pdf" type="button" onclick="window.print()" title="Gerar PDF desta página">Gerar PDF</button>
 <section class="categoria">${corpo}</section>
 </main>
-<footer>Gerado pelo NCT Classificação</footer>
+<footer>Gerado pelo BeachPlay</footer>
 <script>${AUTO_RELOAD_JS}</script>
 </body>
 </html>`;
@@ -382,6 +413,9 @@ function gerarPaginaCategoria(etapaCategoriaId) {
     temporadaNome: temporada && temporada.nome,
     etapaNome: etapa.nome,
     periodo: fmtPeriodo(etapa.data_inicio, etapa.data_fim),
+    logo: temporada && temporada.logo,
+    corPrimaria: temporada && temporada.cor_primaria,
+    corSecundaria: temporada && temporada.cor_secundaria,
   }, corpo);
 }
 
@@ -403,6 +437,9 @@ function gerarPaginaEtapa(etapaId) {
     temporadaNome: temporada && temporada.nome,
     etapaNome: etapa.nome,
     periodo: fmtPeriodo(etapa.data_inicio, etapa.data_fim),
+    logo: temporada && temporada.logo,
+    corPrimaria: temporada && temporada.cor_primaria,
+    corSecundaria: temporada && temporada.cor_secundaria,
   };
   const localHtml = etapa.local ? `<p class="local">${esc(etapa.local)}</p>` : '';
 

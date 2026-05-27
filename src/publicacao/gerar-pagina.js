@@ -222,7 +222,8 @@ function tabelaRanking(ranking, etapas) {
 // da página geral da etapa para as páginas individuais).
 function caminhoCategoriaHtml(ec, ano) {
   const slug = ec.categoria_slug || `cat${ec.categoria_id}`;
-  return `etapa-${ano}-${ec.etapa_id}-${slug}-${ec.tipo}.html`;
+  // Categorias sem tipo definido (Misto) ficam só com o slug, sem sufixo de tipo.
+  return `etapa-${ano}-${ec.etapa_id}-${slug}${ec.tipo ? '-' + ec.tipo : ''}.html`;
 }
 
 // Corpo da página: classificação dos grupos (com average), jogos da fase de

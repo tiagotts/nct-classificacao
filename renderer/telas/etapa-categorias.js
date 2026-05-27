@@ -7,6 +7,8 @@
   const apiCat = () => window.electronAPI.db.categoria;
 
   const ROTULO_TIPO = { masculino: 'Masculino', feminino: 'Feminino' };
+  // Rótulo para mostrar no card/título. Tipo nulo (ex.: Misto) cai em "—".
+  const rotuloTipo = (t) => ROTULO_TIPO[t] || (t ? t : 'Misto');
   const ROTULO_FORMATO = {
     'todos-contra-todos': 'Todos contra todos',
     'dupla-eliminatoria': 'Dupla eliminatória no grupo',
@@ -74,7 +76,7 @@
       b.onclick = () => {
         const ec = lista.find(x => x.id === Number(b.dataset.id));
         App.navegar('categoria-detalhe', { etapaCategoriaId: ec.id },
-          `${ec.categoria_nome} ${ROTULO_TIPO[ec.tipo] || ''}`.trim());
+          `${ec.categoria_nome} ${ec.tipo ? rotuloTipo(ec.tipo) : ''}`.trim());
       };
     });
   }
@@ -83,7 +85,7 @@
     const grupos = ec.num_grupos
       ? `${ec.num_grupos} ${ec.num_grupos === 1 ? 'grupo' : 'grupos'}`
       : 'grupos não definidos';
-    const tipo = ROTULO_TIPO[ec.tipo] || ec.tipo || '';
+    const tipo = rotuloTipo(ec.tipo);
     const formato = ROTULO_FORMATO[ec.formato] || ec.formato || '';
     const data = fmtData(ec.data_competicao);
     const sub = [grupos, formato, data ? `compete em ${data}` : null]
@@ -114,8 +116,9 @@
              `<option value="${c.id}">${App.escapar(c.nome)}</option>`).join('')}
          </select>`;
     const seletorTipo = editando
-      ? `<input type="text" value="${App.escapar(ROTULO_TIPO[ec.tipo] || '')}" disabled>`
+      ? `<input type="text" value="${App.escapar(rotuloTipo(ec.tipo))}" disabled>`
       : `<select id="f-tipo">
+           <option value="">— (Misto / sem distinção)</option>
            <option value="masculino">Masculino</option>
            <option value="feminino">Feminino</option>
          </select>`;
@@ -172,7 +175,7 @@
           { numGrupos, configJson: ec.config_json, formato, dataCompeticao });
       } else {
         const categoriaId = Number(area.querySelector('#f-categoria').value);
-        const tipo = area.querySelector('#f-tipo').value;
+        const tipo = area.querySelector('#f-tipo').value || null;
         if (combosUsados.has(chaveCombo(categoriaId, tipo))) {
           erroEl.textContent = 'Essa categoria já foi adicionada neste tipo.';
           return;

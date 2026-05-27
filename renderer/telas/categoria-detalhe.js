@@ -10,11 +10,15 @@
     const { etapaCategoriaId } = params;
     const ec = await window.electronAPI.db.etapaCategoria.obter(etapaCategoriaId);
     const etapa = await window.electronAPI.db.etapa.obter(ec.etapa_id);
-    const tipo = ROTULO_TIPO[ec.tipo] || ec.tipo || '';
+    // Categorias sem tipo definido (ex.: Misto) só mostram o nome.
+    const tipo = ec.tipo ? (ROTULO_TIPO[ec.tipo] || ec.tipo) : '';
+    const titulo = tipo
+      ? `Categoria ${App.escapar(ec.categoria_nome)} — ${App.escapar(tipo)}`
+      : `Categoria ${App.escapar(ec.categoria_nome)}`;
 
     container.innerHTML = `
       <div class="topo-tela">
-        <h2>Categoria ${App.escapar(ec.categoria_nome)} — ${App.escapar(tipo)}</h2>
+        <h2>${titulo}</h2>
       </div>
       <div class="hub">
         <button class="hub-card" data-ir="duplas">

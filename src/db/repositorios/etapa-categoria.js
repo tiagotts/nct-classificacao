@@ -26,8 +26,9 @@ function criar({ etapaId, categoriaId, tipo, numGrupos, configJson, formato,
                 (etapa_id, categoria_id, tipo, num_grupos, config_json, formato,
                  data_competicao)
               VALUES (?, ?, ?, ?, ?, ?, ?)`)
-    .run(etapaId, categoriaId, tipo, numGrupos ?? null, configJson ?? null,
-         formato || 'todos-contra-todos', dataCompeticao || null);
+    .run(etapaId, categoriaId, tipo || null, numGrupos ?? null,
+         configJson ?? null, formato || 'todos-contra-todos',
+         dataCompeticao || null);
   return obter(info.lastInsertRowid);
 }
 

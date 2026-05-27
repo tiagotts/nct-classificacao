@@ -118,7 +118,23 @@
       "WebFetch(domain:tiagotts.github.io)",
       "Bash(curl -s \"https://tiagotts.github.io/nct-resultados/etapa-2026-1-sub15-feminino.html\")",
       "Bash(xargs -I {} git show --stat {})",
-      "Bash(sqlite3 data/nct.db \"PRAGMA user_version;\" \"PRAGMA table_info\\(etapa\\);\")"
+      "Bash(sqlite3 data/nct.db \"PRAGMA user_version;\" \"PRAGMA table_info\\(etapa\\);\")",
+      "Bash(ELECTRON_RUN_AS_NODE=1 ./node_modules/.bin/electron -e \"const {abrir, getDb, fechar}=require\\('./src/db/database'\\); abrir\\('./data/nct.db'\\); const cs=getDb\\(\\).prepare\\('SELECT id, nome, slug FROM categoria ORDER BY id'\\).all\\(\\); console.log\\(JSON.stringify\\(cs, null, 2\\)\\); fechar\\(\\);\")",
+      "Bash(ELECTRON_RUN_AS_NODE=1 ./node_modules/.bin/electron -e \"const {abrir, getDb, fechar}=require\\('./src/db/database'\\); abrir\\('./data/nct.db'\\); const cs=getDb\\(\\).prepare\\('SELECT id, nome, slug FROM categoria ORDER BY id'\\).all\\(\\); console.log\\(JSON.stringify\\(cs\\)\\); fechar\\(\\);\")",
+      "Bash(sqlite3 /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/data/nct.db \"SELECT id, nome, slug FROM categoria ORDER BY id;\")",
+      "Bash(/usr/local/bin/npm test *)",
+      "Bash(PATH=__TRACKED_VAR__:/usr/local/bin:__TRACKED_VAR__/.nvm/versions/node/*/bin npm test)",
+      "Read(//opt/homebrew/bin/**)",
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/tiagotts/**)",
+      "Read(//Users/tiagotts/.volta/bin/**)",
+      "Bash(PATH=/Users/tiagotts/.local/share/fnm/node-versions/v22.22.3/installation/bin:__TRACKED_VAR__:__TRACKED_VAR__/node_modules/.bin npm test)",
+      "Bash(PATH=__TRACKED_VAR__:__TRACKED_VAR__ npm install)",
+      "Bash(PATH=/Users/tiagotts/.local/share/fnm/node-versions/v22.22.3/installation/bin:__TRACKED_VAR__ ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/Electron.app/Contents/MacOS/Electron tests/test-db.js)",
+      "Bash(sqlite3 /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/data/nct.db \"SELECT id, nome, slug FROM categoria WHERE slug LIKE 'misto%';\")",
+      "Bash(PATH=/Users/tiagotts/.local/share/fnm/node-versions/v22.22.3/installation/bin:__TRACKED_VAR__ ELECTRON_RUN_AS_NODE=1 node_modules/electron/dist/Electron.app/Contents/MacOS/Electron -e 'const {abrir, fechar}=require\\('\\\\''./src/db/database'\\\\''\\); abrir\\('\\\\''./data/nct.db'\\\\''\\); fechar\\(\\);')",
+      "Bash(sqlite3 /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/data/nct.db \"SELECT id, nome, slug FROM categoria WHERE slug LIKE 'misto%' OR slug = 'misto';\")",
+      "Bash(sqlite3 /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/data/nct.db \".schema etapa_categoria\")"
     ],
     "additionalDirectories": [
       "/tmp"

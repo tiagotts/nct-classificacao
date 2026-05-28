@@ -253,6 +253,12 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
   width:96px;color:var(--muted);font-size:12px;
 }
 .tab-jogos .tbd{color:var(--muted);font-style:italic}
+/* Badge "1º A" mostrando a colocação da dupla na fase de grupos. */
+.tab-jogos .grupo-pos{
+  display:inline-block;margin-right:6px;padding:1px 7px;border-radius:99px;
+  background:var(--ocean-tint);color:var(--ocean-dark);
+  font-size:11px;font-weight:600;
+}
 
 /* Pódio / resultado final do mata-mata */
 .podio{

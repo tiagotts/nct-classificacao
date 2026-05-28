@@ -41,14 +41,14 @@ t('slugs das categorias são os esperados', () => {
     .all().map(r => r.slug);
   eq(JSON.stringify(slugs),
      JSON.stringify([
-       'aberto', 'avancado-masc', 'iniciante1', 'iniciante2',
+       'aberto', 'avancado', 'iniciante1', 'iniciante2',
        'intermediario', 'kids-pai-mae', 'master45', 'master50',
        'misto', 'sub15', 'sub18', 'teens',
      ]));
 });
 
 t('user_version reflete as migrações aplicadas', () => {
-  eq(db.pragma('user_version', { simple: true }), 13, 'user_version');
+  eq(db.pragma('user_version', { simple: true }), 14, 'user_version');
 });
 
 t('ranking_inicial tem coluna etapa_id após a migração 0007', () => {

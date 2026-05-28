@@ -25,11 +25,25 @@
 
   async function render(container, params) {
     const { etapaCategoriaId } = params;
-    const duplas = await apiDupla().listar(etapaCategoriaId);
-    const ec = await apiEC().obter(etapaCategoriaId);
-    const jogos = (await apiJogo().listar(etapaCategoriaId))
+    const apiClass = window.electronAPI.db.classificacao;
+    const [duplas, ec, jogosTodos, classRes] = await Promise.all([
+      apiDupla().listar(etapaCategoriaId),
+      apiEC().obter(etapaCategoriaId),
+      apiJogo().listar(etapaCategoriaId),
+      apiClass.calcular(etapaCategoriaId).catch(() => null),
+    ]);
+    const jogos = jogosTodos
       .filter(j => j.fase !== 'grupo')
       .sort((a, b) => a.num - b.num);
+
+    // Mapa duplaId -> seed (colocação geral entre os classificados, 1..N).
+    // Serve para exibir "1º", "2º" etc. do lado do nome de cada dupla na
+    // chave. Quando a categoria ainda não tem classificação calculada
+    // (sem placares), o mapa fica vazio e a UI só mostra os nomes.
+    const seedMap = {};
+    if (classRes && Array.isArray(classRes.ranking)) {
+      classRes.ranking.forEach(s => { seedMap[s.id] = s.seed; });
+    }
 
     // Nº de sets da final (1º lugar): 1 ou melhor de 3, vindo da configuração.
     let setsFinal = 1;
@@ -66,7 +80,7 @@
         : `${ROTULO_CURTO[j.fase]} ${contagem[j.fase]}`;
     }
 
-    estado = { etapaCategoriaId, jogos, duplaMap, labelMap, setsFinal };
+    estado = { etapaCategoriaId, jogos, duplaMap, labelMap, setsFinal, seedMap };
 
     container.innerHTML = `
       <div class="topo-tela">
@@ -162,10 +176,17 @@
   }
 
   // Exibe um lado do jogo: a dupla, ou o ponteiro de origem ("Vencedor de...").
+  // Quando a dupla está definida e a fase de grupos tem classificação geral,
+  // mostra também a seed (colocação geral entre os classificados, ex.: "1º").
   function ladoHtml(duplaId, origemId, origemTipo) {
     if (duplaId && estado.duplaMap[duplaId]) {
       const d = estado.duplaMap[duplaId];
-      return `<span class="cod">${App.escapar(d.codigo)}</span>`
+      const seed = estado.seedMap && estado.seedMap[duplaId];
+      const badge = seed
+        ? `<span class="grupo-pos">${seed}º</span>`
+        : '';
+      return badge
+        + `<span class="cod">${App.escapar(d.codigo)}</span>`
         + App.escapar(`${d.atleta1_nome} / ${d.atleta2_nome}`);
     }
     if (origemId && estado.labelMap[origemId]) {

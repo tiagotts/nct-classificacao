@@ -37,12 +37,23 @@ function aplicarMigracoes() {
 
 // Abre (ou cria) o banco no caminho informado e aplica as migrações.
 // Passe ':memory:' para um banco em memória (usado nos testes).
+//
+// foreign_keys fica DESLIGADO durante as migrações (precisa estar fora de
+// transação, e algumas migrações recriam tabelas que têm filhas via FK —
+// o caso clássico do "12-step ALTER TABLE" do SQLite). Após aplicar tudo,
+// religamos e rodamos foreign_key_check para alertar caso algo tenha
+// quebrado a integridade.
 function abrir(caminhoBanco) {
   db = new Database(caminhoBanco);
   caminhoAtual = caminhoBanco;
   db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
+  db.pragma('foreign_keys = OFF');
   aplicarMigracoes();
+  const violacoes = db.pragma('foreign_key_check');
+  if (Array.isArray(violacoes) && violacoes.length) {
+    console.warn('Violações de FK após migrações:', violacoes);
+  }
+  db.pragma('foreign_keys = ON');
   return db;
 }
 

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sqlite3 /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/data/nct.db \"SELECT 'jogos sem ec' AS check, COUNT\\(*\\) FROM jogo WHERE etapa_categoria_id NOT IN \\(SELECT id FROM etapa_categoria\\) UNION ALL SELECT 'duplas sem ec', COUNT\\(*\\) FROM dupla WHERE etapa_categoria_id NOT IN \\(SELECT id FROM etapa_categoria\\) UNION ALL SELECT 'pontuacoes sem ec', COUNT\\(*\\) FROM pontuacao WHERE etapa_categoria_id NOT IN \\(SELECT id FROM etapa_categoria\\);\")",
+      "Bash(sqlite3 /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/data/nct.db \"SELECT 'jogos_orfaos', COUNT\\(*\\) FROM jogo WHERE etapa_categoria_id NOT IN \\(SELECT id FROM etapa_categoria\\); SELECT 'duplas_orfas', COUNT\\(*\\) FROM dupla WHERE etapa_categoria_id NOT IN \\(SELECT id FROM etapa_categoria\\); SELECT 'pontuacoes_orfas', COUNT\\(*\\) FROM pontuacao WHERE etapa_categoria_id NOT IN \\(SELECT id FROM etapa_categoria\\);\")",
+      "Bash(sqlite3 /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/data/nct.db \".schema jogo\")",
+      "Bash(sqlite3 /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/data/nct.db \"SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'etapa_categoria%'; PRAGMA user_version;\")"
+    ]
+  }
+}

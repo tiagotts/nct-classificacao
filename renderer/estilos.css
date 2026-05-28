@@ -303,6 +303,66 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
 .qrcode-box .dica{margin:0 0 8px}
 .qrcode-box svg{width:220px;height:220px;display:block}
 
+/* =============================================================================
+   Impressão / PDF — usado pelas telas que têm botão "Gerar PDF".
+   Quem chama: injeta um <div class="print-header"> dinamicamente antes do
+   window.print() e remove depois. As regras aqui escondem a interface
+   (sidebar, botões, inputs como inputs) e formatam o conteúdo principal.
+   ========================================================================== */
+.print-header{display:none}
+
+@media print{
+  @page{size:A4;margin:14mm 12mm}
+  /* Fundo branco em toda a página, em qualquer elemento. As cores ficam
+     só nos textos, bordas e tags — mais limpo para impressão. */
+  html,body{background:#fff;color:var(--ocean-dark)}
+  *{background:transparent !important}
+  .sidebar,.acoes-topo,.form-acoes,.form-erro,
+  .col-ordem,.dica,.qrcode-box{display:none !important}
+  /* O botão "Gerar PDF" tem essa classe — escondemos sem esconder o resto. */
+  .btn-pdf-print{display:none !important}
+  main{padding:0;height:auto;overflow:visible}
+  .app{display:block}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .print-header{
+    display:flex;align-items:center;gap:14px;
+    border-bottom:3px solid var(--sun);padding:0 0 10px;margin:0 0 14px;
+  }
+  .print-header img{width:60px;height:60px;object-fit:contain;flex-shrink:0;
+    background:#fff;border-radius:8px;padding:4px}
+  .print-header-texto{flex:1;min-width:0}
+  .print-header-temporada{
+    font-size:11px;text-transform:uppercase;letter-spacing:.08em;
+    color:var(--ocean);font-weight:600;margin:0 0 2px}
+  .print-header-etapa{font-size:18px;font-weight:700;color:var(--ocean-dark);line-height:1.15}
+  .print-header-periodo{font-size:12px;color:var(--muted);margin-top:2px}
+  .print-header-categoria{font-size:14px;color:var(--ocean-dark);margin-top:6px;font-weight:600}
+  .topo-tela{border-bottom:1px solid var(--line);padding-bottom:4px;margin-bottom:10px}
+  .topo-tela h2{font-size:15px}
+  .topo-tela h2::before{display:none}
+  /* Inputs no print: aparecem como texto plano (sem caixa/cor). */
+  .tab-jogos input,.tab-jogos select,
+  .grid-duplas input,.grid-duplas select{
+    border:0 !important;background:transparent !important;padding:0 !important;
+    font-size:13px;color:var(--ocean-dark);
+    -webkit-appearance:none;appearance:none;
+  }
+  .tab-jogos select,.grid-duplas select{
+    /* Esconde a setinha do select. */
+    background-image:none !important;
+  }
+  .tab-jogos .placar-wo{
+    border:0;background:transparent;color:var(--ocean-dark);font-weight:700;
+  }
+  /* Esconde a coluna "Resultado" (dropdown) na impressão — o placar+tag já
+     conta a história. */
+  .tab-jogos td.col-tipo,.tab-jogos th.col-tipo{display:none !important}
+  table,.podio{page-break-inside:avoid}
+  thead{display:table-header-group}
+  tr{page-break-inside:avoid}
+  h3{page-break-after:avoid}
+}
+
 @media (max-width:640px){
   main{padding:16px 16px 48px}
   .item{flex-direction:column;align-items:stretch}

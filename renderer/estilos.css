@@ -292,6 +292,12 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
 .tab-class tr.eliminado td{color:var(--warn)}
 .tab-class tr.eliminado .pos{background:#fee2e2;color:var(--warn)}
 .tab-class .motivo{color:var(--muted);font-size:12px;font-style:italic}
+/* Destaque do 1º colocado na coluna "Colocações" do ranking da temporada. */
+.tab-class .lider-temporada{
+  display:inline-block;padding:2px 10px;border-radius:99px;
+  background:var(--ocean);color:#fff;font-style:normal;font-weight:700;
+  font-size:12px;
+}
 .tab-class td.col-ordem,.tab-class th.col-ordem{width:78px;text-align:center;white-space:nowrap}
 .tab-class td.col-ordem .btn{padding:2px 6px;font-size:14px;line-height:1}
 .tab-class .tie-flag{

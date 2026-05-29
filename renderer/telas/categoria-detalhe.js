@@ -67,7 +67,8 @@
         temporadaId: etapa.temporada_id,
         categoriaId: ec.categoria_id,
         tipo: ec.tipo,
-      }, 'Ranking da temporada');
+        etapaCategoriaId: etapaCategoriaId,
+      }, 'Ranking');
     container.querySelector('#card-publicar').onclick = (e) =>
       Publicar.publicarCategoria(
         etapaCategoriaId, document.getElementById('pub-status'), e.currentTarget);

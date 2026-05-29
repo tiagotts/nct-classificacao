@@ -63,7 +63,12 @@
     const dica = dicaTopo(temEmpate);
 
     container.innerHTML = `
-      <div class="topo-tela"><h2>Classificados e Eliminados</h2></div>
+      <div class="topo-tela">
+        <h2>Classificados e Eliminados</h2>
+        <div class="acoes-topo">
+          <button class="btn sm" id="btn-pdf">Gerar PDF</button>
+        </div>
+      </div>
       ${dica}
       <table class="tab-class">
         <thead><tr>
@@ -85,6 +90,8 @@
     container.querySelectorAll('[data-mover]').forEach(b => {
       b.onclick = () => moverClassificado(Number(b.dataset.i), b.dataset.mover);
     });
+    container.querySelector('#btn-pdf').onclick = () =>
+      App.imprimirCategoria(estado.etapaCategoriaId, 'Classificação');
   }
 
   function dicaTopo(temEmpate) {

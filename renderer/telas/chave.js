@@ -85,7 +85,10 @@
     container.innerHTML = `
       <div class="topo-tela">
         <h2>Chave do mata-mata</h2>
-        <button class="btn ghost sm" id="btn-regerar">Regerar chave</button>
+        <div class="acoes-topo">
+          <button class="btn ghost sm" id="btn-regerar">Regerar chave</button>
+          <button class="btn sm" id="btn-pdf">Gerar PDF</button>
+        </div>
       </div>
       ${podioHtml(duplas)}
       <div id="blocos"></div>
@@ -97,6 +100,8 @@
     desenhar();
     container.querySelector('#btn-salvar').onclick = (e) => salvar(e.target);
     container.querySelector('#btn-regerar').onclick = regerar;
+    container.querySelector('#btn-pdf').onclick = () =>
+      App.imprimirCategoria(etapaCategoriaId, 'Mata-mata');
   }
 
   function desenhar() {

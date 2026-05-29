@@ -80,60 +80,13 @@
     container.querySelector('#btn-pdf').onclick = gerarPdf;
   }
 
-  // Monta o cabeçalho de impressão (logo + temporada/etapa/categoria/data)
-  // só na hora de imprimir e remove depois. Os placares digitados são lidos
-  // dos inputs antes pra refletirem no PDF (as regras de @media print
-  // estilizam os inputs como texto).
+  // Antes de imprimir lê os inputs para o estado (placares digitados, mas
+  // ainda não salvos) e redesenha — assim o PDF reflete o que está na tela.
+  // O cabeçalho do PDF e o disparo de window.print() ficam em App.imprimirCategoria.
   async function gerarPdf() {
     lerGrid();
     desenhar();
-
-    const ec = estado.ec;
-    const etapa = await window.electronAPI.db.etapa.obter(ec.etapa_id);
-    const temporada = etapa
-      ? await window.electronAPI.db.temporada.obter(etapa.temporada_id)
-      : null;
-
-    const ROTULO_TIPO = { masculino: 'Masculino', feminino: 'Feminino' };
-    const tipoLabel = ec.tipo
-      ? (ROTULO_TIPO[ec.tipo] || ec.tipo) : '';
-    const tituloCategoria = ec.categoria_nome
-      + (tipoLabel ? ' — ' + tipoLabel : '');
-    const logoArq = (temporada && temporada.logo)
-      ? `../imagens/logos/${encodeURIComponent(temporada.logo)}`
-      : '../imagens/beachplay-icone.svg';
-    const periodo = fmtPeriodo(etapa && etapa.data_inicio, etapa && etapa.data_fim);
-
-    const header = document.createElement('div');
-    header.className = 'print-header';
-    header.innerHTML = `
-      <img src="${App.escapar(logoArq)}" alt="">
-      <div class="print-header-texto">
-        <div class="print-header-temporada">${App.escapar((temporada && temporada.nome) || '')}</div>
-        <div class="print-header-etapa">${App.escapar((etapa && etapa.nome) || '')}</div>
-        <div class="print-header-periodo">${App.escapar(periodo)}</div>
-        <div class="print-header-categoria">${App.escapar(tituloCategoria)}</div>
-      </div>`;
-    // Coloca o cabeçalho ANTES do .app — em @media print o .app vira block,
-    // então o header flui no topo da primeira página. Anexar no final do
-    // body fazia o header só caber depois do conteúdo (segunda página).
-    document.body.insertBefore(header, document.body.firstChild);
-    try {
-      window.print();
-    } finally {
-      header.remove();
-    }
-  }
-
-  function fmtPeriodo(ini, fim) {
-    const f = (iso) => {
-      if (!iso) return '';
-      const [a, m, d] = iso.split('-');
-      return (a && m && d) ? `${d}/${m}/${a}` : iso;
-    };
-    const a = f(ini), b = f(fim);
-    if (a && b && a !== b) return `${a} a ${b}`;
-    return a || b;
+    await App.imprimirCategoria(estado.etapaCategoriaId, 'Jogos da fase de grupos');
   }
 
   // Variantes do dropdown de resultado: o backend só conhece 'normal',

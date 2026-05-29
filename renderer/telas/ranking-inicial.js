@@ -35,6 +35,9 @@
     container.innerHTML = `
       <div class="topo-tela">
         <h2>Ranking inicial — ${App.escapar(temp.nome)}</h2>
+        <div class="acoes-topo">
+          <button class="btn sm" id="btn-pdf-ri">Gerar PDF</button>
+        </div>
       </div>
       <p class="dica">Pontos pré-cadastrados de cada atleta na temporada,
         por categoria e tipo. "Inicial" é um bônus pré-temporada; depois,
@@ -74,6 +77,11 @@
     container.querySelector('#btn-ri-salvar').onclick = (e) => salvar(e.target);
     container.querySelector('#grid-ri').addEventListener('paste', aoColar);
     container.querySelector('#ri-qtd').onchange = ajustarQuantidade;
+    container.querySelector('#btn-pdf-ri').onclick = () => {
+      const cat = estado.categorias.find(c => c.id === estado.categoriaId);
+      App.imprimirRankingTemporada(
+        estado.temporadaId, cat && cat.nome, estado.tipo, 'Ranking inicial');
+    };
 
     await carregar();
   }

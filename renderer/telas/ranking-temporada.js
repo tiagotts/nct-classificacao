@@ -18,17 +18,20 @@
     container.innerHTML = `
       <div class="topo-tela">
         <h2>Ranking da temporada</h2>
-        <div class="grid-toolbar">
-          <label for="combo-cat">Categoria</label>
-          <select id="combo-cat">
-            ${categorias.map(c =>
-              `<option value="${c.id}"${c.id === catSelecionada ? ' selected' : ''}>${App.escapar(c.nome)}</option>`).join('')}
-          </select>
-          <label for="combo-tipo">Tipo</label>
-          <select id="combo-tipo">
-            <option value="masculino"${tipoSelecionado === 'masculino' ? ' selected' : ''}>Masculino</option>
-            <option value="feminino"${tipoSelecionado === 'feminino' ? ' selected' : ''}>Feminino</option>
-          </select>
+        <div class="acoes-topo">
+          <div class="grid-toolbar">
+            <label for="combo-cat">Categoria</label>
+            <select id="combo-cat">
+              ${categorias.map(c =>
+                `<option value="${c.id}"${c.id === catSelecionada ? ' selected' : ''}>${App.escapar(c.nome)}</option>`).join('')}
+            </select>
+            <label for="combo-tipo">Tipo</label>
+            <select id="combo-tipo">
+              <option value="masculino"${tipoSelecionado === 'masculino' ? ' selected' : ''}>Masculino</option>
+              <option value="feminino"${tipoSelecionado === 'feminino' ? ' selected' : ''}>Feminino</option>
+            </select>
+          </div>
+          <button class="btn sm" id="btn-pdf">Gerar PDF</button>
         </div>
       </div>
       <p class="dica">Pontos por atleta somando todas as etapas da temporada.
@@ -41,6 +44,11 @@
       carregar(temporadaId, Number(combo.value), comboTipo.value);
     combo.onchange = atualizar;
     comboTipo.onchange = atualizar;
+    container.querySelector('#btn-pdf').onclick = () => {
+      const cat = categorias.find(c => c.id === Number(combo.value));
+      App.imprimirRankingTemporada(
+        temporadaId, cat && cat.nome, comboTipo.value);
+    };
     if (categorias.length) atualizar();
   }
 
@@ -59,34 +67,52 @@
     const colsEtapa = etapas.map(e =>
       `<th class="n">${App.escapar(e.nome)}</th>`).join('');
 
+    // O 1º oficial é ranking[0]; mas pode haver atletas EMPATADOS com ele
+    // (mesmos pontos e mesma distribuição de colocações). Todos esses
+    // recebem o destaque na coluna Colocações.
+    const topo = ranking[0];
+
     div.innerHTML = `
       <table class="tab-class">
         <thead><tr>
           <th class="idx">#</th>
+          <th>Colocações</th>
           <th>Atleta</th>
           <th class="n">Inicial</th>
           ${colsEtapa}
           <th class="n">Total</th>
-          <th>Colocações</th>
         </tr></thead>
-        <tbody>${ranking.map(a => linhaHtml(a, etapas)).join('')}</tbody>
+        <tbody>${ranking.map(a =>
+          linhaHtml(a, etapas, mesmoCriterio(a, topo))).join('')}</tbody>
       </table>`;
   }
 
-  function linhaHtml(a, etapas) {
-    const destaque = a.posicao <= 3 ? ' pos-q' : '';
+  // Dois atletas estão empatados quando têm os mesmos pontos e a mesma
+  // distribuição de colocações (mesmo histograma). Coincide com o critério
+  // que devolve 0 no comparador do motor de pontuação.
+  function mesmoCriterio(a, b) {
+    if (!a || !b) return false;
+    if ((a.pontos || 0) !== (b.pontos || 0)) return false;
+    const chave = (arr) => (arr || []).slice().sort((x, y) => x - y).join(',');
+    return chave(a.colocacoes) === chave(b.colocacoes);
+  }
+
+  function linhaHtml(a, etapas, lider) {
     const cels = etapas.map(e => {
       const pts = a.pontosPorEtapa && a.pontosPorEtapa[e.id];
       return `<td class="n">${pts || 0}</td>`;
     }).join('');
+    const colocacoesHtml = lider
+      ? `<span class="lider-temporada">${resumoColocacoes(a.colocacoes)}</span>`
+      : resumoColocacoes(a.colocacoes);
     return `
       <tr>
-        <td class="idx"><span class="pos${destaque}">${a.posicao}</span></td>
+        <td class="idx"><span class="pos">${a.posicao}</span></td>
+        <td class="motivo">${colocacoesHtml}</td>
         <td>${App.escapar(a.nome)}</td>
         <td class="n">${a.pontosIniciais || 0}</td>
         ${cels}
         <td class="n"><strong>${a.pontos}</strong></td>
-        <td class="motivo">${resumoColocacoes(a.colocacoes)}</td>
       </tr>`;
   }
 

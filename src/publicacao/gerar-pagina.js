@@ -151,7 +151,8 @@ function itensPodio(duplas) {
   }).join('');
 }
 
-function blocoMataMata(mata, mapa, duplas) {
+// Só as fases do mata-mata (sem o pódio, que virou seção própria abaixo).
+function blocoMataMata(mata, mapa) {
   const porFase = {};
   mata.forEach(j => { (porFase[j.fase] = porFase[j.fase] || []).push(j); });
 
@@ -160,12 +161,57 @@ function blocoMataMata(mata, mapa, duplas) {
     if (!porFase[f]) continue;
     html += `<h4>${ROTULO_FASE[f]}</h4>${tabelaJogos(porFase[f], mapa)}`;
   }
-
-  const podio = itensPodio(duplas);
-  if (podio) {
-    html += `<div class="podio"><h4>Resultado final</h4><ul>${podio}</ul></div>`;
-  }
   return html;
+}
+
+// Tabela "Classificação Geral" — os classificados que viraram seeds do
+// mata-mata, na ordem do ranking geral (1..N). Cada linha mostra a
+// posição da dupla no grupo de origem (ex.: "1º A") e como ela
+// classificou (direto ou via repescagem). startPos define o número da
+// primeira linha (1 para os classificados; N+1 para os "demais resultados",
+// que continuam a numeração).
+function tabelaClassificacaoGeral(itens, mapa, formula, startPos) {
+  const linhas = itens.map((s, i) => {
+    const d = mapa[s.id];
+    const dupla = d
+      ? `${esc(d.codigo)} ${esc(d.atleta1_nome)} / ${esc(d.atleta2_nome)}`
+      : esc(s.nome || '');
+    const grupo = s.grupoOrigem || s.grupo || '';
+    const origem = grupo
+      ? `${s.posGrupo || s.posicao || ''}º ${esc(grupo)}`
+      + (s.posGrupo > 1 && /repescagem/i.test(s.classificadoPor || '')
+          ? ' (repescagem)' : '')
+      : '';
+    const pos = s.seed || (startPos != null ? startPos + i : (s.posicao || ''));
+    return `<tr>
+        <td class="c">${pos}</td>
+        <td>${dupla}</td>
+        <td class="c">${origem}</td>
+        <td class="c">${s.V != null ? s.V : ''}</td>
+        <td class="c">${fmtAvg(s.AVG, formula)}</td></tr>`;
+  }).join('');
+  return `<table><thead><tr>
+      <th class="c">#</th><th>Dupla</th>
+      <th class="c">Grupo</th><th class="c">V</th><th class="c">AVG</th>
+    </tr></thead><tbody>${linhas}</tbody></table>`;
+}
+
+// Lista de duplas que NÃO se classificaram para o mata-mata, ordenadas
+// pela posição no grupo (3º A, 3º B, 4º A, ...). Retorna [] quando todos
+// se classificaram.
+function duplasEliminadas(cls) {
+  const idsClass = new Set((cls.ranking || []).map(s => s.id));
+  const eliminadas = [];
+  for (const g of Object.keys(cls.grupos || {}).sort()) {
+    for (const s of cls.grupos[g]) {
+      if (!idsClass.has(s.id)) {
+        eliminadas.push({ ...s, posGrupo: s.posicao, grupoOrigem: g });
+      }
+    }
+  }
+  eliminadas.sort((a, b) =>
+    a.posGrupo - b.posGrupo || a.grupoOrigem.localeCompare(b.grupoOrigem));
+  return eliminadas;
 }
 
 // Ranking final da etapa por categoria: todas as duplas com a sua colocação
@@ -218,17 +264,46 @@ function tabelaRanking(ranking, etapas) {
     </tr></thead><tbody>${linhas}</tbody></table>`;
 }
 
-// Caminho do arquivo de uma categoria publicada (usado para gerar os links
-// da página geral da etapa para as páginas individuais).
-function caminhoCategoriaHtml(ec, ano) {
-  const slug = ec.categoria_slug || `cat${ec.categoria_id}`;
-  // Categorias sem tipo definido (Misto) ficam só com o slug, sem sufixo de tipo.
-  return `etapa-${ano}-${ec.etapa_id}-${slug}${ec.tipo ? '-' + ec.tipo : ''}.html`;
+// Converte um texto em slug ASCII (minúsculas, sem acento, hifens entre
+// palavras) — usado para compor o nome dos arquivos HTML publicados.
+function slugificar(s) {
+  return String(s || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
-// Corpo da página: classificação dos grupos (com average), jogos da fase de
-// grupos e mata-mata. Sem rankings.
-function corpoCategoria(ec) {
+// Prefixo comum dos arquivos publicados de uma temporada: "{ano}-{nome-slug}".
+// Quando a temporada não tem nome ou ano, cai em algo seguro mas único.
+function prefixoTemporada(temporada) {
+  const ano = (temporada && temporada.ano) || new Date().getFullYear();
+  const nomeSlug = slugificar(temporada && temporada.nome) || `t${temporada && temporada.id || 0}`;
+  return `${ano}-${nomeSlug}`;
+}
+
+// Caminho do arquivo da página geral de uma etapa.
+function caminhoEtapaHtml(etapa, temporada) {
+  return `etapa-${prefixoTemporada(temporada)}-${etapa.id}.html`;
+}
+
+// Caminho do arquivo de uma categoria publicada (usado para gerar os links
+// da página geral da etapa para as páginas individuais).
+function caminhoCategoriaHtml(ec, temporada) {
+  const slug = ec.categoria_slug || `cat${ec.categoria_id}`;
+  // Categorias sem tipo definido (Misto) ficam só com o slug, sem sufixo de tipo.
+  return `etapa-${prefixoTemporada(temporada)}-${ec.etapa_id}-${slug}`
+    + `${ec.tipo ? '-' + ec.tipo : ''}.html`;
+}
+
+// Corpo da página de uma categoria, na ordem fixa:
+//   1) Classificação dos grupos
+//   2) Jogos da fase de grupos
+//   3) Classificação geral (seeds do mata-mata)
+//   4) Mata-mata
+//   5) Resultado final (pódio 1º-4º)
+//   6) Ranking atual (acumulado por atleta na temporada)
+function corpoCategoria(ec, etapa, temporada) {
   const cls = classificacaoRepo.calcular(ec.id);
   const jogos = jogoRepo.listar(ec.id);
   const duplas = duplaRepo.listar(ec.id);
@@ -237,21 +312,62 @@ function corpoCategoria(ec) {
 
   let html = '';
   const grupos = Object.keys(cls.grupos);
+
+  // 1) Classificação dos grupos.
   if (grupos.length) {
     html += '<h3>Classificação dos grupos</h3>';
     for (const g of grupos) {
       html += tabelaClassificacao(g, cls.grupos[g], cls.formulaAvg);
     }
-    const jogosGrupo = jogos.filter(j => j.fase === 'grupo'
-      && (j.placar1 != null || j.placar2 != null));
-    if (jogosGrupo.length) {
-      html += `<h3>Jogos da fase de grupos</h3>${tabelaJogos(jogosGrupo, mapa)}`;
+  }
+
+  // 2) Jogos da fase de grupos (só os com placar lançado).
+  const jogosGrupo = jogos.filter(j => j.fase === 'grupo'
+    && (j.placar1 != null || j.placar2 != null));
+  if (jogosGrupo.length) {
+    html += `<h3>Jogos da fase de grupos</h3>${tabelaJogos(jogosGrupo, mapa)}`;
+  }
+
+  // 3) Classificação geral — classificados (seeds do mata-mata) e, em seguida,
+  //    "Demais resultados" com as duplas que não passaram da fase de grupos.
+  const ranking = Array.isArray(cls.ranking) ? cls.ranking : [];
+  const eliminadas = duplasEliminadas(cls);
+  if (ranking.length || eliminadas.length) {
+    html += '<h3>Classificação geral</h3>';
+    if (ranking.length) {
+      html += tabelaClassificacaoGeral(ranking, mapa, cls.formulaAvg, 1);
+    }
+    if (eliminadas.length) {
+      html += '<h4>Demais resultados</h4>'
+        + tabelaClassificacaoGeral(
+            eliminadas, mapa, cls.formulaAvg, ranking.length + 1);
     }
   }
 
+  // 4) Mata-mata.
   const mata = jogos.filter(j => j.fase !== 'grupo');
   if (mata.length) {
-    html += `<h3>Mata-mata</h3>${blocoMataMata(mata, mapa, duplas)}`;
+    html += `<h3>Mata-mata</h3>${blocoMataMata(mata, mapa)}`;
+  }
+
+  // 5) Resultado final — pódio (Campeão / Vice / 3º / 4º), quando há.
+  const podio = itensPodio(duplas);
+  if (podio) {
+    html += `<h3>Resultado final</h3>`
+      + `<div class="podio"><ul>${podio}</ul></div>`;
+  }
+
+  // 6) Ranking atual — pontuação acumulada por atleta na temporada.
+  // Só faz sentido quando há tipo definido (ranking-temporada filtra por
+  // tipo); categorias misto não geram tabela aqui.
+  if (temporada && ec.tipo) {
+    try {
+      const { etapas, ranking } = rankingTemporadaRepo.calcular(
+        temporada.id, ec.categoria_id, ec.tipo);
+      if (ranking && ranking.length) {
+        html += `<h3>Ranking atual</h3>${tabelaRanking(ranking, etapas)}`;
+      }
+    } catch { /* sem ranking disponível, ignora a seção */ }
   }
 
   if (!grupos.length && !mata.length) {
@@ -407,7 +523,8 @@ function gerarPaginaCategoria(etapaCategoriaId) {
   // Nome da categoria vai como título da seção (h2) já que o h1 agora é a
   // etapa. Local entra abaixo do h2 quando existir.
   const sub = etapa.local ? `<p class="local">${esc(etapa.local)}</p>` : '';
-  const corpo = `<h2>${esc(tituloCategoria)}</h2>${sub}${corpoCategoria(ec)}`;
+  const corpo = `<h2>${esc(tituloCategoria)}</h2>${sub}`
+    + corpoCategoria(ec, etapa, temporada);
 
   return paginaHtml({
     tituloMeta: tituloCategoria,
@@ -431,7 +548,6 @@ function gerarPaginaEtapa(etapaId) {
   if (!etapa) throw new Error('Etapa não encontrada.');
   const temporada = temporadaRepo.obter(etapa.temporada_id);
   const ecs = ecRepo.listar(etapaId);
-  const ano = (temporada && temporada.ano) || new Date().getFullYear();
 
   const cabecalho = {
     tituloMeta: etapa.nome,
@@ -456,7 +572,7 @@ function gerarPaginaEtapa(etapaId) {
   for (const ec of ecs) {
     const tipoLabel = ROTULO_TIPO[ec.tipo] || ec.tipo || '';
     const titulo = `${ec.categoria_nome}${tipoLabel ? ' — ' + tipoLabel : ''}`;
-    const url = caminhoCategoriaHtml(ec, ano);
+    const url = caminhoCategoriaHtml(ec, temporada);
     corpo += `<li><a href="${esc(url)}">${esc(titulo)}</a></li>`;
   }
   corpo += '</ul>';
@@ -508,4 +624,7 @@ function gerarPaginaEtapa(etapaId) {
   return paginaHtml(cabecalho, corpo);
 }
 
-module.exports = { gerarPaginaCategoria, gerarPaginaEtapa };
+module.exports = {
+  gerarPaginaCategoria, gerarPaginaEtapa,
+  caminhoCategoriaHtml, caminhoEtapaHtml,
+};

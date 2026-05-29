@@ -20,12 +20,20 @@ const App = (() => {
   // Mapa chave-do-nó -> pilha de navegação; refeito a cada render da árvore.
   let mapaNav = {};
 
-  // Seções de uma categoria: [nomeDaTela, rótulo].
+  // Seções de uma categoria: [nomeDaTela, rótulo, opcionalParamsFn].
+  // paramsFn(t, e, c) retorna os params da tela; quando ausente, o padrão
+  // é { etapaCategoriaId: c.id }. Ranking é por temporada+categoria+tipo.
   const SECOES = [
     ['duplas', 'Duplas'],
     ['jogos', 'Jogos'],
     ['classificacao', 'Classificação'],
     ['chave', 'Mata-mata'],
+    ['ranking-temporada', 'Ranking', (t, e, c) => ({
+      temporadaId: t.id, categoriaId: c.categoria_id, tipo: c.tipo,
+      // etapaCategoriaId entra junto pra o menu lateral conseguir destacar
+      // o nó certo (o "ativo" é checado por sel.ecId === c.id).
+      etapaCategoriaId: c.id,
+    })],
     ['config-categoria', 'Configuração'],
   ];
   const NOMES_SECAO = SECOES.map(s => s[0]);
@@ -241,10 +249,10 @@ const App = (() => {
             }));
             if (!abertoC) continue;
 
-            for (const [snome, stitulo] of SECOES) {
+            for (const [snome, stitulo, paramsFn] of SECOES) {
               const cks = `sec:${c.id}:${snome}`;
-              mapaNav[cks] = [...mapaNav[ckc],
-                ent(snome, { etapaCategoriaId: c.id }, stitulo)];
+              const params = paramsFn ? paramsFn(t, e, c) : { etapaCategoriaId: c.id };
+              mapaNav[cks] = [...mapaNav[ckc], ent(snome, params, stitulo)];
               linhas.push(linhaArvore({
                 nivel: 4, chave: cks, rotulo: stitulo, temFilhos: false,
                 aberto: false, ativo: sel.tela === snome && sel.ecId === c.id,
@@ -277,7 +285,91 @@ const App = (() => {
     }[c]));
   }
 
+  // Helper de baixo nível: monta o .print-header com 4 linhas, injeta antes
+  // do .app (assim cabe na primeira página) e dispara o diálogo de impressão.
+  // Os campos correspondem aos slots de @media print em estilos.css:
+  //   temporadaNome -> chip pequeno no topo
+  //   titulo        -> grande, em destaque (papel de h1)
+  //   subtitulo     -> texto pequeno abaixo do título (ex.: período)
+  //   detalhe       -> texto secundário ao fim (ex.: categoria · seção)
+  function imprimirComHeader({ logoArquivo, temporadaNome, titulo, subtitulo, detalhe }) {
+    const logoArq = logoArquivo
+      ? `../imagens/logos/${encodeURIComponent(logoArquivo)}`
+      : '../imagens/beachplay-icone.svg';
+    const header = document.createElement('div');
+    header.className = 'print-header';
+    header.innerHTML = `
+      <img src="${escapar(logoArq)}" alt="">
+      <div class="print-header-texto">
+        <div class="print-header-temporada">${escapar(temporadaNome || '')}</div>
+        <div class="print-header-etapa">${escapar(titulo || '')}</div>
+        <div class="print-header-periodo">${escapar(subtitulo || '')}</div>
+        <div class="print-header-categoria">${escapar(detalhe || '')}</div>
+      </div>`;
+    document.body.insertBefore(header, document.body.firstChild);
+    try {
+      window.print();
+    } finally {
+      header.remove();
+    }
+  }
+
+  // Gera o PDF de uma tela dentro de uma categoria (jogos, classificação, etc.).
+  // Carrega ec/etapa/temporada para montar o cabeçalho.
+  async function imprimirCategoria(etapaCategoriaId, secao) {
+    const db = window.electronAPI.db;
+    const ec = await db.etapaCategoria.obter(etapaCategoriaId);
+    const etapa = ec ? await db.etapa.obter(ec.etapa_id) : null;
+    const temporada = etapa ? await db.temporada.obter(etapa.temporada_id) : null;
+
+    const ROTULO_TIPO = { masculino: 'Masculino', feminino: 'Feminino' };
+    const tipoLabel = ec && ec.tipo ? (ROTULO_TIPO[ec.tipo] || ec.tipo) : '';
+    const tituloCategoria = (ec ? ec.categoria_nome : '')
+      + (tipoLabel ? ' — ' + tipoLabel : '')
+      + (secao ? ' · ' + secao : '');
+
+    imprimirComHeader({
+      logoArquivo: temporada && temporada.logo,
+      temporadaNome: temporada && temporada.nome,
+      titulo: etapa && etapa.nome,
+      subtitulo: fmtPeriodoPdf(
+        etapa && etapa.data_inicio, etapa && etapa.data_fim),
+      detalhe: tituloCategoria,
+    });
+  }
+
+  // Gera o PDF de uma tela de ranking ligado à temporada (acumulado da
+  // temporada ou inicial). Aceita o título da página explicitamente para
+  // funcionar nas duas telas: 'Ranking da temporada' e 'Ranking inicial'.
+  async function imprimirRankingTemporada(temporadaId, categoriaNome, tipo, titulo) {
+    const db = window.electronAPI.db;
+    const temporada = await db.temporada.obter(temporadaId);
+    const ROTULO_TIPO = { masculino: 'Masculino', feminino: 'Feminino' };
+    const tipoLabel = ROTULO_TIPO[tipo] || tipo || '';
+    const detalhe = [categoriaNome, tipoLabel].filter(Boolean).join(' — ');
+
+    imprimirComHeader({
+      logoArquivo: temporada && temporada.logo,
+      temporadaNome: temporada && temporada.nome,
+      titulo: titulo || 'Ranking da temporada',
+      subtitulo: temporada && temporada.ano ? `Temporada ${temporada.ano}` : '',
+      detalhe,
+    });
+  }
+
+  function fmtPeriodoPdf(ini, fim) {
+    const f = (iso) => {
+      if (!iso) return '';
+      const [a, m, d] = iso.split('-');
+      return (a && m && d) ? `${d}/${m}/${a}` : iso;
+    };
+    const a = f(ini), b = f(fim);
+    if (a && b && a !== b) return `${a} a ${b}`;
+    return a || b;
+  }
+
   return {
-    registrarTela, iniciar, navegar, navegarSecao, voltarPara, recarregar, escapar,
+    registrarTela, iniciar, navegar, navegarSecao, voltarPara, recarregar,
+    escapar, imprimirCategoria, imprimirRankingTemporada,
   };
 })();

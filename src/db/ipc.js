@@ -15,7 +15,8 @@ const rankingTemporada = require('./repositorios/ranking-temporada');
 const rankingInicial = require('./repositorios/ranking-inicial');
 const rankingEntrada = require('./repositorios/ranking-entrada');
 const pontuacao = require('./repositorios/pontuacao');
-const { gerarPaginaCategoria, gerarPaginaEtapa } = require('../publicacao/gerar-pagina');
+const { gerarPaginaCategoria, gerarPaginaEtapa,
+  caminhoCategoriaHtml, caminhoEtapaHtml } = require('../publicacao/gerar-pagina');
 const github = require('../publicacao/github');
 const backup = require('./backup');
 const QRCode = require('qrcode');
@@ -71,17 +72,18 @@ function registrar(ipcMain) {
     rankingEntrada.calcular(etapaCategoriaId));
 
   // Publica a página GERAL da etapa (lista de categorias, pódios, ranking).
+  // O nome do arquivo inclui o slug da temporada para não sobrescrever
+  // páginas de outras temporadas no mesmo repo.
   ipcMain.handle('publicacao:publicarEtapa', async (e, etapaId, cfg) => {
     const html = gerarPaginaEtapa(etapaId);
     const et = etapa.obter(etapaId);
     const temp = et ? temporada.obter(et.temporada_id) : null;
-    const ano = (temp && temp.ano) || new Date().getFullYear();
-    const caminho = `etapa-${ano}-${etapaId}.html`;
+    const caminho = et ? caminhoEtapaHtml(et, temp) : `etapa-${etapaId}.html`;
     const resultado = await github.publicar({
       token: cfg.token, owner: cfg.owner, repo: cfg.repo,
       branch: cfg.branch || 'main',
       caminho, conteudo: html,
-      mensagem: `Página geral da etapa ${etapaId} (${ano})`,
+      mensagem: `Página geral da etapa ${etapaId} (${temp ? temp.nome : ''})`,
     });
     const url = `https://${cfg.owner}.github.io/${cfg.repo}/${caminho}`;
     const qrcode = await QRCode.toString(url, { type: 'svg', margin: 1 });
@@ -90,25 +92,25 @@ function registrar(ipcMain) {
   });
 
   // Publica a página de UMA categoria da etapa no GitHub Pages.
+  // O nome do arquivo inclui o slug da temporada + slug da categoria +
+  // tipo, então cada combinação tem a sua página própria.
   ipcMain.handle('publicacao:publicarCategoria', async (e, etapaCategoriaId, cfg) => {
     const html = gerarPaginaCategoria(etapaCategoriaId);
     const ec = etapaCategoria.obter(etapaCategoriaId);
     const et = ec ? etapa.obter(ec.etapa_id) : null;
     const temp = et ? temporada.obter(et.temporada_id) : null;
-    const ano = (temp && temp.ano) || new Date().getFullYear();
-    // O nome do arquivo inclui categoria e tipo para que cada categoria
-    // tenha a sua página própria e não sobrescreva as outras.
+    const caminho = ec
+      ? caminhoCategoriaHtml(ec, temp)
+      : `etapa-cat${etapaCategoriaId}.html`;
     const slug = (ec && ec.categoria_slug) || `cat${ec ? ec.categoria_id : 0}`;
-    const caminho = `etapa-${ano}-${ec ? ec.etapa_id : 0}-${slug}-${ec ? ec.tipo : ''}.html`;
     const resultado = await github.publicar({
       token: cfg.token, owner: cfg.owner, repo: cfg.repo,
       branch: cfg.branch || 'main',
       caminho, conteudo: html,
-      mensagem: `Resultados ${slug} ${ec ? ec.tipo : ''} `
-        + `(etapa ${ec ? ec.etapa_id : 0}, ${ano})`,
+      mensagem: `Resultados ${slug}${ec && ec.tipo ? ' ' + ec.tipo : ''} `
+        + `(etapa ${ec ? ec.etapa_id : 0}, ${temp ? temp.nome : ''})`,
     });
     const url = `https://${cfg.owner}.github.io/${cfg.repo}/${caminho}`;
-    // QR code do link, para os jogadores escanearem.
     const qrcode = await QRCode.toString(url, { type: 'svg', margin: 1 });
     const sha = resultado && resultado.commit ? resultado.commit.sha : null;
     return { url, qrcode, sha };

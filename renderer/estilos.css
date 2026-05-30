@@ -222,21 +222,21 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
   background:var(--sand);font-size:11px;text-transform:uppercase;
   letter-spacing:.04em;color:var(--muted);text-align:left;padding:8px 10px;font-weight:600;
 }
-.tab-jogos td{padding:6px 10px;border-top:1px solid #f1ecdd;font-size:13px}
+.tab-jogos td{padding:8px 10px;border-top:1px solid #f1ecdd;font-size:13px}
 .tab-jogos td.idx,.tab-jogos th.idx{width:34px;text-align:center;color:var(--muted)}
 .tab-jogos td.col-grp,.tab-jogos th.col-grp{width:54px;text-align:center}
-.tab-jogos td.col-placar,.tab-jogos th.col-placar{width:70px}
-.tab-jogos td.col-tipo,.tab-jogos th.col-tipo{width:130px}
+.tab-jogos td.col-placar,.tab-jogos th.col-placar{width:90px}
+.tab-jogos td.col-tipo,.tab-jogos th.col-tipo{width:140px}
 .tab-jogos td.col-ordem,.tab-jogos th.col-ordem{width:78px;text-align:center;white-space:nowrap}
 .tab-jogos td.col-ordem .btn{padding:2px 6px;font-size:14px;line-height:1}
 /* Final em melhor de 3: três inputs de set empilhados na célula de placar. */
 .tab-jogos td.col-sets{vertical-align:top}
 .tab-jogos td.col-sets input{display:block;margin:3px auto}
 .tab-jogos input,.tab-jogos select{
-  width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:5px;
-  font-size:13px;background:#fdfaf2;font-family:inherit;
+  width:100%;padding:10px 10px;border:1px solid var(--line);border-radius:6px;
+  font-size:15px;background:#fdfaf2;font-family:inherit;
 }
-.tab-jogos input{text-align:center}
+.tab-jogos input{text-align:center;font-weight:600}
 .tab-jogos input:focus,.tab-jogos select:focus{
   outline:none;border-color:var(--ocean);background:#fff;
 }
@@ -244,8 +244,8 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
   background:#efe9d8;color:var(--muted);cursor:not-allowed;
 }
 .tab-jogos .placar-wo{
-  display:block;text-align:center;padding:6px 8px;border:1px solid var(--line);
-  border-radius:5px;font-size:13px;background:#efe9d8;color:var(--muted);
+  display:block;text-align:center;padding:10px 10px;border:1px solid var(--line);
+  border-radius:6px;font-size:15px;background:#efe9d8;color:var(--muted);
   font-weight:700;
 }
 .tab-jogos .placar-wo.venceu{color:var(--ocean-dark);background:var(--ocean-tint)}

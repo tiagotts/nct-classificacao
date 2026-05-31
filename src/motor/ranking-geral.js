@@ -95,6 +95,22 @@ function calcularRankingGeral(duplas, jogos, config = {}) {
     c.classificadoPor = `${c.posGrupo}º do grupo ${c.grupoOrigem} (repescagem)`;
   });
 
+  // Pendentes: duplas que ficaram empatadas com o último repescado no
+  // critério de desempate (motivo='Sorteio' marca exatamente isso — empate
+  // que cairia em sorteio). Elas aparecem na tela de Classificação logo
+  // depois do último in, com a tag Sorteio, para o usuário poder decidir
+  // manualmente quem entra de fato no mata-mata via setas ↑↓.
+  const pendentes = [];
+  for (let i = repescagem; i < candidatos.length; i++) {
+    if (candidatos[i].motivo !== 'Sorteio') break;
+    pendentes.push(candidatos[i]);
+  }
+  if (pendentes.length > 0 && repescados.length > 0) {
+    // O último in também faz parte do empate — marca para a UI destacar.
+    repescados[repescados.length - 1].empateRepescagem = true;
+    pendentes.forEach(p => { p.empateRepescagem = true; });
+  }
+
   // Ranking geral, em dois modos (config.rankingGeral):
   //  - 'blocos' (padrão): ordena primeiro pela posição no grupo (todos os 1º
   //    colocados, depois os 2º, depois os repescados...) e, dentro de cada
@@ -115,11 +131,46 @@ function calcularRankingGeral(duplas, jogos, config = {}) {
       ranking.push(...ordenarPorCriterios(porBloco[pos], jogos, criterios, prioridadeSorteio));
     }
   }
+
+  // Override manual: o usuário pode reordenar livremente a Classificação
+  // pela UI. O pool do override é TODAS as duplas (ranking + pendentes +
+  // eliminadas) — assim qualquer dupla pode ser promovida ao mata-mata ou
+  // movida pra fora. Depois do sort estável pela ordem do usuário, os
+  // primeiros N (= tamanho original do ranking) viram seeds; o resto vira
+  // pendentes/eliminadas (a UI decide visualmente).
+  const ordemManual = Array.isArray(config.ordemManualClassificacao)
+    ? config.ordemManualClassificacao : null;
+  let pendentesFinal = pendentes;
+  if (ordemManual && ordemManual.length) {
+    const N = ranking.length;
+    const inPool = new Set([...ranking, ...pendentes].map(s => s.id));
+    const eliminadas = [];
+    for (const g of Object.keys(cls.grupos)) {
+      cls.grupos[g].forEach((s, i) => {
+        if (!inPool.has(s.id)) {
+          eliminadas.push({ ...s, posGrupo: i + 1, grupoOrigem: g });
+        }
+      });
+    }
+    const pool = [...ranking, ...pendentes, ...eliminadas];
+    const peso = (id) => {
+      const i = ordemManual.indexOf(id);
+      return i === -1 ? Infinity : i;
+    };
+    pool.sort((a, b) => peso(a.id) - peso(b.id));
+    ranking = pool.slice(0, N);
+    // Com override ativo, não tem mais sentido marcar "pendentes" — o
+    // usuário já decidiu quem entra e quem fica de fora. A UI mostra
+    // todos os de fora como eliminados (vermelho).
+    pendentesFinal = [];
+  }
+
   ranking.forEach((s, i) => { s.seed = i + 1; });
 
   return {
     criterios,
     formulaAvg: cls.formulaAvg,
+    pendentes: pendentesFinal,
     grupos: cls.grupos,
     ranking,
   };

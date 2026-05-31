@@ -6,7 +6,8 @@
       "Bash(sqlite3 /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/data/nct.db \".schema jogo\")",
       "Bash(sqlite3 /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/data/nct.db \"SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'etapa_categoria%'; PRAGMA user_version;\")",
       "Bash(grep -n \"caminho\\\\|etapa-\\\\$\\\\|nomeArquivo\\\\|filename\\\\|.html\" /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/src/publicacao/gerar-pagina.js)",
-      "Bash(grep -rn \"caminhoCategoriaHtml\\\\|caminhoEtapaHtml\\\\|etapa-\\\\${ano}\\\\|publicarCategoria\\\\|publicarEtapa\" /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/src/)"
+      "Bash(grep -rn \"caminhoCategoriaHtml\\\\|caminhoEtapaHtml\\\\|etapa-\\\\${ano}\\\\|publicarCategoria\\\\|publicarEtapa\" /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/src/)",
+      "Bash(sqlite3 -header /Users/tiagotts/Documents/projetos/workspace/nct/nct-classificacao/data/nct.db ' *)"
     ]
   }
 }

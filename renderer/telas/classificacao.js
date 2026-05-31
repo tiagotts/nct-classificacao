@@ -22,14 +22,23 @@
     estado.ec = ec;
     estado.formulaAvg = r.formulaAvg;
     estado.classificados = r.ranking || [];
+    estado.pendentes = r.pendentes || [];
+    // Detecta se a categoria está com a ordem manual ativa (lendo do config).
+    let cfg = {};
+    if (ec && ec.config_json) {
+      try { cfg = JSON.parse(ec.config_json); } catch { cfg = {}; }
+    }
+    estado.temOverrideManual = Array.isArray(cfg.ordemManualClassificacao)
+      && cfg.ordemManualClassificacao.length > 0;
 
-    // Eliminados = duplas que não estão no ranking de classificados.
+    // Eliminados = duplas que não estão no ranking nem nos pendentes.
     // Ordena por grupo e posição no grupo (3º A, 3º B, 4º A, ...).
     const idsClass = new Set(estado.classificados.map(s => s.id));
+    const idsPend = new Set(estado.pendentes.map(s => s.id));
     const eliminados = [];
     for (const grupo of Object.keys(r.grupos || {}).sort()) {
       for (const s of r.grupos[grupo]) {
-        if (!idsClass.has(s.id)) {
+        if (!idsClass.has(s.id) && !idsPend.has(s.id)) {
           eliminados.push({ ...s, posGrupo: s.posicao, grupoOrigem: grupo });
         }
       }
@@ -50,22 +59,33 @@
   }
 
   function desenhar() {
-    const { container, classificados, eliminados, formulaAvg } = estado;
-    const blocos = encontrarBlocosEmpatados(classificados);
-    const posDoIndice = new Map();
-    blocos.forEach(b => {
-      for (let k = b.start; k <= b.end; k++) {
-        posDoIndice.set(k, { primeiro: k === b.start, ultimo: k === b.end });
-      }
-    });
+    const { container, classificados, pendentes, eliminados, formulaAvg } = estado;
+    const temEmpate = classificados.some(s => s.motivo === 'Sorteio')
+      || pendentes.length > 0;
+    const temOverride = estado.temOverrideManual;
+    const temPendentes = pendentes.length > 0;
+    const dica = dicaTopo(temEmpate, temOverride, temPendentes);
+    const acaoLimpar = temOverride
+      ? `<button class="btn ghost sm" id="btn-limpar-ordem">Limpar ordem manual</button>`
+      : '';
 
-    const temEmpate = blocos.length > 0;
-    const dica = dicaTopo(temEmpate);
+    // Pool completo: classificados + pendentes + eliminados. Todas as
+    // linhas têm setas — o usuário pode promover qualquer dupla ao
+    // mata-mata ou mover qualquer uma pra fora.
+    const pool = [...classificados, ...pendentes, ...eliminados];
+    const nClass = classificados.length;
+    const nPend = pendentes.length;
+    const tipoLinha = (i) => {
+      if (i < nClass) return false;             // classificado
+      if (i < nClass + nPend) return true;      // pendente (Sorteio)
+      return 'eliminado';                       // eliminado
+    };
 
     container.innerHTML = `
       <div class="topo-tela">
         <h2>Classificados e Eliminados</h2>
         <div class="acoes-topo">
+          ${acaoLimpar}
           <button class="btn sm" id="btn-pdf">Gerar PDF</button>
         </div>
       </div>
@@ -80,10 +100,8 @@
           <th class="col-ordem">Ordem</th>
         </tr></thead>
         <tbody>
-          ${classificados.map((s, i) =>
-            linhaHtml(s, i + 1, false, formulaAvg, posDoIndice.get(i), i)).join('')}
-          ${eliminados.map((s, i) =>
-            linhaHtml(s, classificados.length + i + 1, true, formulaAvg, null, -1)).join('')}
+          ${pool.map((s, i) =>
+            linhaHtml(s, i + 1, tipoLinha(i), formulaAvg, i, pool.length)).join('')}
         </tbody>
       </table>`;
 
@@ -92,32 +110,50 @@
     });
     container.querySelector('#btn-pdf').onclick = () =>
       App.imprimirCategoria(estado.etapaCategoriaId, 'Classificação');
+    const btnLimpar = container.querySelector('#btn-limpar-ordem');
+    if (btnLimpar) btnLimpar.onclick = limparOrdemManual;
   }
 
-  function dicaTopo(temEmpate) {
-    if (temEmpate) {
-      return `<p class="dica">Classificados (1º a ${estado.classificados.length}º)
-        seguem para o mata-mata; eliminados ficam em vermelho.
-        <strong>Há duplas empatadas após os critérios</strong> — use as setas
-        ↑↓ para definir manualmente a ordem do sorteio. Se a chave já foi
-        gerada, lembre de regerar para refletir a nova ordem.</p>`;
+  function dicaTopo(temEmpate, temOverride, temPendentes) {
+    const N = estado.classificados.length;
+    const base = `Os ${N} primeiros vão para o mata-mata; eliminados ficam em
+        vermelho. Use as setas ↑↓ para ajustar a ordem manualmente.`;
+    if (temOverride) {
+      return `<p class="dica">${base} <strong>A ordem manual está ativa</strong>
+        — os critérios automáticos foram sobrescritos. Clique em "Limpar
+        ordem manual" para voltar ao cálculo automático.</p>`;
     }
-    return `<p class="dica">Classificados (1º a ${estado.classificados.length}º) seguem para
-        o mata-mata; eliminados ficam em vermelho.</p>`;
+    if (temPendentes) {
+      return `<p class="dica">${base}
+        <strong>Há duplas empatadas no corte da repescagem</strong> — elas
+        aparecem com a tag "Sorteio" logo após os classificados. Suba a que
+        deve entrar no mata-mata com as setas ↑↓.</p>`;
+    }
+    if (temEmpate) {
+      return `<p class="dica">${base}
+        <strong>Há duplas empatadas após os critérios.</strong></p>`;
+    }
+    return `<p class="dica">${base}</p>`;
   }
 
-  function linhaHtml(s, pos, eliminado, formula, blocoInfo, idx) {
-    const cls = eliminado ? ' class="eliminado"' : '';
-    const empatado = !!blocoInfo;
-    const tagSorteio = empatado
+  // Tipo da linha:
+  //   false        — classificado (vai pro mata-mata)
+  //   true         — pendente (tied no corte da repescagem; tag Sorteio)
+  //   'eliminado'  — fora do mata-mata (linha vermelha)
+  // Todas as linhas têm setas — o usuário pode promover/rebaixar qualquer
+  // dupla via swap com a vizinha.
+  function linhaHtml(s, pos, tipo, formula, idx, total) {
+    const eliminado = tipo === 'eliminado';
+    const pendente = tipo === true;
+    const cls = eliminado ? ' class="eliminado"'
+              : pendente ? ' class="pendente"' : '';
+    const tagSorteio = (s.motivo === 'Sorteio' || s.empateRepescagem)
       ? ' <span class="tie-flag sorteio">Sorteio</span>' : '';
-    const podeSubir = empatado && !blocoInfo.primeiro;
-    const podeDescer = empatado && !blocoInfo.ultimo;
-    const acoes = (!eliminado && empatado) ? `
+    const acoes = `
       <button class="btn ghost sm" data-mover="cima" data-i="${idx}"
-              title="Subir"${podeSubir ? '' : ' disabled'}>↑</button>
+              title="Subir"${idx === 0 ? ' disabled' : ''}>↑</button>
       <button class="btn ghost sm" data-mover="baixo" data-i="${idx}"
-              title="Descer"${podeDescer ? '' : ' disabled'}>↓</button>` : '';
+              title="Descer"${idx === total - 1 ? ' disabled' : ''}>↓</button>`;
     return `
       <tr${cls}>
         <td class="idx"><span class="pos">${pos}º</span>${tagSorteio}</td>
@@ -135,54 +171,36 @@
     return valor.toFixed(3);
   }
 
-  // Identifica os blocos de empate no ranking: runs consecutivos de linhas
-  // com motivo "Sorteio", incluindo a âncora imediatamente acima (que é a
-  // primeira dupla do bloco e não carrega o motivo).
-  function encontrarBlocosEmpatados(ranking) {
-    const blocos = [];
-    let i = 0;
-    while (i < ranking.length) {
-      if (i + 1 < ranking.length && ranking[i + 1].motivo === 'Sorteio') {
-        let j = i + 1;
-        while (j + 1 < ranking.length && ranking[j + 1].motivo === 'Sorteio') j++;
-        blocos.push({ start: i, end: j });
-        i = j + 1;
-      } else {
-        i++;
-      }
-    }
-    return blocos;
-  }
-
+  // Move uma dupla no pool (classificados + pendentes + eliminados),
+  // trocando com a vizinha. Persiste a ordem completa em
+  // config.ordemManualClassificacao; o motor aplica esse override depois
+  // dos critérios. Primeiros N viram seeds; o resto fica fora do mata-mata.
   async function moverClassificado(idx, direcao) {
-    const blocos = encontrarBlocosEmpatados(estado.classificados);
-    const bloco = blocos.find(b => idx >= b.start && idx <= b.end);
-    if (!bloco) return;
+    const pool = [
+      ...estado.classificados, ...estado.pendentes, ...estado.eliminados,
+    ];
     const alvo = direcao === 'cima' ? idx - 1 : idx + 1;
-    if (alvo < bloco.start || alvo > bloco.end) return;
-
-    const arr = estado.classificados;
-    [arr[idx], arr[alvo]] = [arr[alvo], arr[idx]];
-
-    // Monta prioridadeSorteio juntando os ids de todos os blocos empatados
-    // na ordem atual. Ids fora desses blocos não entram (são decididos
-    // pelos critérios anteriores e não precisam de prioridade explícita).
-    const prioridade = [];
-    blocos.forEach(b => {
-      for (let k = b.start; k <= b.end; k++) prioridade.push(arr[k].id);
-    });
-
-    await persistirPrioridade(prioridade);
+    if (alvo < 0 || alvo >= pool.length) return;
+    [pool[idx], pool[alvo]] = [pool[alvo], pool[idx]];
+    await persistirOrdemManual(pool.map(s => s.id));
     await carregarEDesenhar();
   }
 
-  async function persistirPrioridade(prioridade) {
+  async function limparOrdemManual() {
+    if (!confirm('Voltar para a ordem calculada pelos critérios (V, AVG, '
+      + 'H2H, sorteio)? Isto descarta a ordem manual atual.')) return;
+    await persistirOrdemManual(null);
+    await carregarEDesenhar();
+  }
+
+  async function persistirOrdemManual(ordem) {
     const ec = estado.ec;
     let cfg = {};
     if (ec && ec.config_json) {
       try { cfg = JSON.parse(ec.config_json); } catch { cfg = {}; }
     }
-    cfg.prioridadeSorteio = prioridade;
+    if (ordem && ordem.length) cfg.ordemManualClassificacao = ordem;
+    else delete cfg.ordemManualClassificacao;
     await window.electronAPI.db.etapaCategoria.atualizar(estado.etapaCategoriaId, {
       numGrupos: ec ? ec.num_grupos : null,
       configJson: JSON.stringify(cfg),

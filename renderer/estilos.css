@@ -225,7 +225,7 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
 .tab-jogos td{padding:8px 10px;border-top:1px solid #f1ecdd;font-size:13px}
 .tab-jogos td.idx,.tab-jogos th.idx{width:34px;text-align:center;color:var(--muted)}
 .tab-jogos td.col-grp,.tab-jogos th.col-grp{width:54px;text-align:center}
-.tab-jogos td.col-placar,.tab-jogos th.col-placar{width:90px}
+.tab-jogos td.col-placar,.tab-jogos th.col-placar{width:110px}
 .tab-jogos td.col-tipo,.tab-jogos th.col-tipo{width:140px}
 .tab-jogos td.col-ordem,.tab-jogos th.col-ordem{width:78px;text-align:center;white-space:nowrap}
 .tab-jogos td.col-ordem .btn{padding:2px 6px;font-size:14px;line-height:1}
@@ -233,10 +233,13 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
 .tab-jogos td.col-sets{vertical-align:top}
 .tab-jogos td.col-sets input{display:block;margin:3px auto}
 .tab-jogos input,.tab-jogos select{
-  width:100%;padding:10px 10px;border:1px solid var(--line);border-radius:6px;
-  font-size:15px;background:#fdfaf2;font-family:inherit;
+  width:100%;padding:12px 12px;border:1px solid var(--line);border-radius:6px;
+  font-size:17px;background:#fdfaf2;font-family:inherit;
 }
 .tab-jogos input{text-align:center;font-weight:600}
+/* Inputs de set (final em melhor de 3) ficam empilhados. Mantêm o tamanho
+   grande mas com margem mínima entre eles. */
+.tab-jogos td.col-sets input{margin:4px auto}
 .tab-jogos input:focus,.tab-jogos select:focus{
   outline:none;border-color:var(--ocean);background:#fff;
 }
@@ -244,8 +247,8 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
   background:#efe9d8;color:var(--muted);cursor:not-allowed;
 }
 .tab-jogos .placar-wo{
-  display:block;text-align:center;padding:10px 10px;border:1px solid var(--line);
-  border-radius:6px;font-size:15px;background:#efe9d8;color:var(--muted);
+  display:block;text-align:center;padding:12px 12px;border:1px solid var(--line);
+  border-radius:6px;font-size:17px;background:#efe9d8;color:var(--muted);
   font-weight:700;
 }
 .tab-jogos .placar-wo.venceu{color:var(--ocean-dark);background:var(--ocean-tint)}
@@ -291,6 +294,10 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
 .tab-class .pos.pos-q{background:var(--ocean);color:#fff}
 .tab-class tr.eliminado td{color:var(--warn)}
 .tab-class tr.eliminado .pos{background:#fee2e2;color:var(--warn)}
+/* Pendente: empatada no corte da repescagem, fora do mata-mata mas
+   trocável por uma das classificadas via setas. */
+.tab-class tr.pendente td{background:#fff7ed}
+.tab-class tr.pendente .pos{background:#fed7aa;color:#9a3412}
 .tab-class .motivo{color:var(--muted);font-size:12px;font-style:italic}
 /* Destaque do 1º colocado na coluna "Colocações" do ranking da temporada. */
 .tab-class .lider-temporada{

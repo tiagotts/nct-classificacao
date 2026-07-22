@@ -13,7 +13,10 @@ on:
 
 jobs:
   build-windows:
-    runs-on: windows-latest
+    # Fixado em windows-2022 (VS2022) porque o windows-latest passou a ter
+    # Visual Studio 2026, que o node-gyp 10.x ainda não reconhece — e o
+    # better-sqlite3 precisa compilar via node-gyp quando não há prebuild.
+    runs-on: windows-2022
     permissions:
       contents: write
     steps:

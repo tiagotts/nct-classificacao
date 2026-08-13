@@ -46,7 +46,19 @@ const App = (() => {
   async function iniciar() {
     conteudo = document.getElementById('conteudo');
     navEl = document.getElementById('nav');
+    exibirVersao();
     await navegar('temporadas', {}, 'Temporadas');
+  }
+
+  // Mostra a versão do app (do package.json) no rodapé da barra lateral,
+  // para o usuário conseguir informar qual versão está rodando.
+  async function exibirVersao() {
+    const el = document.getElementById('sidebar-versao');
+    if (!el) return;
+    try {
+      const versao = await window.electronAPI.getVersao();
+      el.textContent = 'v' + versao;
+    } catch { /* ignora — só a UI de versão */ }
   }
 
   function ent(nome, params, titulo) {

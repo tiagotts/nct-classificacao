@@ -212,7 +212,7 @@ function buildMenu() {
               title: 'BeachPlay',
               message: 'BeachPlay',
               detail:
-                'Versão 0.1 (PoC)\n\n' +
+                'Versão ' + app.getVersion() + '\n\n' +
                 'Sistema de classificação para etapas do Circuito NCT de Vôlei de Praia.\n\n' +
                 'Carrega a planilha da etapa, aplica os critérios de desempate ' +
                 'e monta a chave do mata-mata.',
@@ -255,6 +255,9 @@ app.whenReady().then(() => {
     // Handlers IPC expostos ao renderer via preload.js
     ipcMain.handle('config:load', () => readConfig());
     ipcMain.handle('config:save', (event, cfg) => writeConfig(cfg));
+    // Versão do app — vem do package.json via app.getVersion(). Usada pela
+    // barra lateral para o usuário conferir qual versão está rodando.
+    ipcMain.handle('app:versao', () => app.getVersion());
 
     // Lista os arquivos de logo disponíveis em imagens/logos/ para o combo
     // da tela de temporadas. Só imagens (.png/.jpg/.jpeg/.svg/.webp).

@@ -100,6 +100,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     restaurar: (cfg, sha) => ipcRenderer.invoke('backup:restaurar', cfg, sha),
   },
 
+  // Versão do app (do package.json). Exibida no rodapé da barra lateral.
+  getVersao: () => ipcRenderer.invoke('app:versao'),
+
   // Para o renderer poder se identificar como rodando em Electron.
   isElectron: true,
   platform: process.platform,

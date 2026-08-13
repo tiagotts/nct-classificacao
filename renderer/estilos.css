@@ -45,7 +45,11 @@ html,body{
 }
 .marca-titulo{font-weight:700;font-size:16px;line-height:1.15}
 .marca-sub{font-size:11px;opacity:.85;margin-top:2px}
-.nav{padding:8px 0;overflow-y:auto}
+.nav{padding:8px 0;overflow-y:auto;flex:1}
+.sidebar-versao{
+  padding:8px 16px;font-size:11px;opacity:.6;text-align:center;
+  border-top:1px solid rgba(255,255,255,.12);letter-spacing:.02em;
+}
 
 /* Árvore de navegação lateral */
 .arv-linha{
@@ -376,7 +380,12 @@ main{flex:1;padding:24px 32px 64px;overflow-y:auto;height:100vh}
   /* Esconde a coluna "Resultado" (dropdown) na impressão — o placar+tag já
      conta a história. */
   .tab-jogos td.col-tipo,.tab-jogos th.col-tipo{display:none !important}
-  table,.podio{page-break-inside:avoid}
+  /* .podio é curto e cabe inteiro; tabelas grandes (ranking, classificação)
+     precisam poder quebrar entre páginas — senão, se a tabela é maior que
+     uma página, o browser joga ela inteira para a página seguinte e deixa
+     a primeira em branco. Cada linha (tr) continua atômica. */
+  .podio{page-break-inside:avoid}
+  table{page-break-inside:auto}
   thead{display:table-header-group}
   tr{page-break-inside:avoid}
   h3{page-break-after:avoid}

@@ -1,6 +1,6 @@
 {
   "name": "nct-classificacao",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Sistema de classificação para torneios de vôlei de praia — Circuito NCT",
   "main": "main.js",
   "author": "Circuito NCT",

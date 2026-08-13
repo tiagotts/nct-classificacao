@@ -102,6 +102,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Versão do app (do package.json). Exibida no rodapé da barra lateral.
   getVersao: () => ipcRenderer.invoke('app:versao'),
+  // Caminho absoluto do arquivo do banco de dados (exibido na sidebar).
+  getDbPath: () => ipcRenderer.invoke('app:dbPath'),
+  // Abre no explorador de arquivos a pasta onde está o banco.
+  abrirPastaDb: () => ipcRenderer.invoke('app:abrirPastaDb'),
 
   // Para o renderer poder se identificar como rodando em Electron.
   isElectron: true,

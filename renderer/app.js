@@ -50,15 +50,24 @@ const App = (() => {
     await navegar('temporadas', {}, 'Temporadas');
   }
 
-  // Mostra a versão do app (do package.json) no rodapé da barra lateral,
-  // para o usuário conseguir informar qual versão está rodando.
+  // Mostra a versão do app (do package.json) e o caminho do banco no rodapé
+  // da barra lateral. Clicar no caminho abre a pasta no explorador — útil
+  // para localizar o arquivo para backup ou envio ao suporte.
   async function exibirVersao() {
-    const el = document.getElementById('sidebar-versao');
-    if (!el) return;
+    const elV = document.getElementById('sidebar-versao');
+    const elDb = document.getElementById('sidebar-db');
     try {
-      const versao = await window.electronAPI.getVersao();
-      el.textContent = 'v' + versao;
-    } catch { /* ignora — só a UI de versão */ }
+      if (elV) {
+        const versao = await window.electronAPI.getVersao();
+        elV.textContent = 'v' + versao;
+      }
+      if (elDb) {
+        const dbPath = await window.electronAPI.getDbPath();
+        elDb.textContent = dbPath || '';
+        elDb.title = 'Abrir a pasta do banco\n' + (dbPath || '');
+        elDb.onclick = () => window.electronAPI.abrirPastaDb();
+      }
+    } catch { /* ignora — só a UI de rodapé */ }
   }
 
   function ent(nome, params, titulo) {

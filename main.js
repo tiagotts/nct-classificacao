@@ -258,6 +258,13 @@ app.whenReady().then(() => {
     // Versão do app — vem do package.json via app.getVersion(). Usada pela
     // barra lateral para o usuário conferir qual versão está rodando.
     ipcMain.handle('app:versao', () => app.getVersion());
+    // Caminho do banco de dados — exibido na barra lateral e útil para
+    // localizar o arquivo (backup, cópia). O canal :abrirPasta abre o
+    // diretório do banco no explorador de arquivos do SO.
+    ipcMain.handle('app:dbPath', () => dbPath);
+    ipcMain.handle('app:abrirPastaDb', () => {
+      shell.showItemInFolder(dbPath);
+    });
 
     // Lista os arquivos de logo disponíveis em imagens/logos/ para o combo
     // da tela de temporadas. Só imagens (.png/.jpg/.jpeg/.svg/.webp).

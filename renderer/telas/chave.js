@@ -10,15 +10,40 @@
 
   App.registrarTela('chave', { render });
 
-  const ORDEM_FASE = ['oitavas', 'quartas', 'semi', 'final', 'terceiro'];
+  // Fases do mata-mata simples (formatos 'todos-contra-todos' e
+  // 'dupla-eliminatoria') e da chave-dupla-direta. A ordem é a de exibição.
+  const ORDEM_FASE = [
+    // Chave simples pós-fase-de-grupos
+    'oitavas', 'quartas', 'semi', 'final', 'terceiro',
+    // Chave dupla direta — ganhadores, perdedores e encerramento
+    'WB R1', 'WB R2', 'WB R3', 'WB Semi',
+    'LB R1', 'LB R2', 'LB R3', 'LB R4', 'LB R5', 'LB R6',
+    'Semi', 'Final', '3º lugar',
+  ];
   const ROTULO_FASE = {
     oitavas: 'Oitavas de final', quartas: 'Quartas de final',
     semi: 'Semifinais', final: 'Final (1º lugar)',
     terceiro: 'Disputa de 3º lugar',
+    'WB R1': 'Chave dos ganhadores — 1ª rodada',
+    'WB R2': 'Chave dos ganhadores — 2ª rodada',
+    'WB R3': 'Chave dos ganhadores — 3ª rodada',
+    'WB Semi': 'Chave dos ganhadores — semifinal',
+    'LB R1': 'Chave dos perdedores — 1ª rodada',
+    'LB R2': 'Chave dos perdedores — 2ª rodada',
+    'LB R3': 'Chave dos perdedores — 3ª rodada',
+    'LB R4': 'Chave dos perdedores — 4ª rodada',
+    'LB R5': 'Chave dos perdedores — 5ª rodada',
+    'LB R6': 'Chave dos perdedores — 6ª rodada',
+    'Semi': 'Semifinais', 'Final': 'Final (1º lugar)',
+    '3º lugar': 'Disputa de 3º lugar',
   };
   const ROTULO_CURTO = {
     oitavas: 'Oitavas', quartas: 'Quartas', semi: 'Semi',
     final: 'Final', terceiro: '3º lugar',
+    'WB R1': 'WB R1', 'WB R2': 'WB R2', 'WB R3': 'WB R3', 'WB Semi': 'WB Semi',
+    'LB R1': 'LB R1', 'LB R2': 'LB R2', 'LB R3': 'LB R3',
+    'LB R4': 'LB R4', 'LB R5': 'LB R5', 'LB R6': 'LB R6',
+    'Semi': 'Semi', 'Final': 'Final', '3º lugar': '3º lugar',
   };
 
   let estado = null;
@@ -53,16 +78,28 @@
       } catch (e) { setsFinal = 1; }
     }
 
+    const ehChaveDireta = ec && ec.formato === 'chave-dupla-direta';
+
     if (jogos.length === 0) {
+      const dica = ehChaveDireta
+        ? 'Chave dupla eliminação direta (sem fase de grupos). A ordem das '
+          + 'duplas para as seeds é definida por "' + (
+            ec.origem_ranking === 'manual'
+              ? 'ordem manual (tela de duplas)'
+              : 'ranking da temporada')
+          + '".'
+        : 'A chave é montada a partir do ranking geral dos classificados. '
+          + 'Lance os placares da fase de grupos antes de gerar.';
       container.innerHTML = `
         <div class="topo-tela"><h2>Chave do mata-mata</h2></div>
-        <p class="dica">A chave é montada a partir do ranking geral dos
-          classificados. Lance os placares da fase de grupos antes de gerar.</p>
+        <p class="dica">${dica}</p>
         <div class="form-acoes">
-          <button class="btn" id="btn-gerar">Gerar chave do mata-mata</button>
+          <button class="btn" id="btn-gerar">${
+            ehChaveDireta ? 'Gerar chave dupla direta' : 'Gerar chave do mata-mata'}</button>
         </div>
         <div class="form-erro" id="chave-erro"></div>`;
-      container.querySelector('#btn-gerar').onclick = () => gerar(etapaCategoriaId);
+      container.querySelector('#btn-gerar').onclick =
+        () => gerar(etapaCategoriaId, ehChaveDireta);
       return;
     }
 
@@ -70,17 +107,21 @@
     duplas.forEach(d => { duplaMap[d.id] = d; });
 
     // Rótulo de cada jogo (usado pelos ponteiros de origem).
+    // As fases com apenas 1 partida (Final, 3º lugar) não recebem número
+    // no rótulo; as demais viram "Semi 1", "WB R1 1", etc.
+    const FASES_UNICAS = new Set(['final', 'terceiro', 'Final', '3º lugar']);
     const labelMap = {};
     const contagem = {};
     for (const j of jogos) {
       contagem[j.fase] = (contagem[j.fase] || 0) + 1;
-      const unico = j.fase === 'final' || j.fase === 'terceiro';
+      const unico = FASES_UNICAS.has(j.fase);
       labelMap[j.id] = unico
         ? ROTULO_CURTO[j.fase]
-        : `${ROTULO_CURTO[j.fase]} ${contagem[j.fase]}`;
+        : `${ROTULO_CURTO[j.fase] || j.fase} ${contagem[j.fase]}`;
     }
 
-    estado = { etapaCategoriaId, jogos, duplaMap, labelMap, setsFinal, seedMap };
+    estado = { etapaCategoriaId, jogos, duplaMap, labelMap, setsFinal, seedMap,
+               ehChaveDireta };
 
     container.innerHTML = `
       <div class="topo-tela">
@@ -205,8 +246,9 @@
     const definido = j.dupla1_id && j.dupla2_id;
     const pendente = definido ? '' : ' data-pendente="1"';
     const dis = definido ? '' : ' disabled';
-    // Final em melhor de 3: placar lançado set a set.
-    if (j.fase === 'final' && estado.setsFinal === 3) {
+    // Final em melhor de 3: placar lançado set a set. A fase é 'final' no
+    // mata-mata simples e 'Final' na chave-dupla-direta.
+    if ((j.fase === 'final' || j.fase === 'Final') && estado.setsFinal === 3) {
       return linhaFinalSets(j, dis);
     }
     const v = variante(j);
@@ -327,11 +369,15 @@
     }
   }
 
-  async function gerar(etapaCategoriaId) {
+  async function gerar(etapaCategoriaId, ehChaveDireta) {
     const erroEl = document.getElementById('chave-erro');
     erroEl.textContent = '';
     try {
-      await apiJogo().gerarMataMata(etapaCategoriaId);
+      if (ehChaveDireta) {
+        await apiJogo().gerarChaveDuplaDireta(etapaCategoriaId);
+      } else {
+        await apiJogo().gerarMataMata(etapaCategoriaId);
+      }
       await App.recarregar();
     } catch (err) {
       erroEl.textContent = 'Não foi possível gerar a chave: ' + err.message;
@@ -345,7 +391,11 @@
     const erroEl = document.getElementById('chave-erro');
     if (erroEl) erroEl.textContent = '';
     try {
-      await apiJogo().gerarMataMata(estado.etapaCategoriaId, { recriar: true });
+      if (estado.ehChaveDireta) {
+        await apiJogo().gerarChaveDuplaDireta(estado.etapaCategoriaId, { recriar: true });
+      } else {
+        await apiJogo().gerarMataMata(estado.etapaCategoriaId, { recriar: true });
+      }
       await App.recarregar();
     } catch (err) {
       if (erroEl) erroEl.textContent = 'Não foi possível regerar a chave: ' + err.message;

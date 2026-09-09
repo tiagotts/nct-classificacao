@@ -41,6 +41,10 @@
 
     const qtdInicial = estado.linhas.length || sugestaoQuantidade(ec);
     const qtds = [...new Set([...QUANTIDADES_BASE, qtdInicial])].sort((a, b) => a - b);
+    // Chave dupla direta não tem fase de grupos — a coluna Grupo e o botão
+    // "Distribuir em grupos" ficam ocultos, e a ordem das linhas é o próprio
+    // ranking de entrada (o motor gera a chave a partir dela).
+    const ehChaveDireta = ec && ec.formato === 'chave-dupla-direta';
 
     container.innerHTML = `
       <div class="topo-tela">
@@ -51,17 +55,23 @@
             ${qtds.map(q => `<option value="${q}"${q === qtdInicial ? ' selected' : ''}>${q}</option>`).join('')}
           </select>
           <button class="btn ghost sm" id="btn-ranking-entrada">Aplicar ranking</button>
-          <button class="btn ghost sm" id="btn-serpentina">Distribuir em grupos</button>
+          <button class="btn ghost sm" id="btn-serpentina"
+                  ${ehChaveDireta ? 'hidden' : ''}>Distribuir em grupos</button>
         </div>
       </div>
-      <p class="dica">Código e grupo já vêm preenchidos — ajuste se precisar.
-        Limpar todos os campos de uma linha remove a dupla ao salvar.
-        "Distribuir em grupos" reparte as duplas em serpentina pelos grupos,
-        seguindo a ordem das linhas (1ª colocada do ranking no topo).
-        Dica: dá para colar (Ctrl+V) uma coluna copiada de uma planilha —
-        clique na primeira célula e cole; preenche para baixo. Se cada célula
-        tiver os dois nomes ("Atleta 1 / Atleta 2"), cole na coluna Atleta 1
-        que o app separa pela barra.</p>
+      <p class="dica">${ehChaveDireta
+        ? 'Chave dupla direta: não há fase de grupos. A ordem das linhas '
+          + 'define as seeds da chave (1ª linha = seed 1). Use "Aplicar '
+          + 'ranking" para ordenar automaticamente pelos pontos, ou as '
+          + 'setas ↑↓ para ajustar manualmente.'
+        : 'Código e grupo já vêm preenchidos — ajuste se precisar. '
+          + 'Limpar todos os campos de uma linha remove a dupla ao salvar. '
+          + '"Distribuir em grupos" reparte as duplas em serpentina pelos grupos, '
+          + 'seguindo a ordem das linhas (1ª colocada do ranking no topo). '
+          + 'Dica: dá para colar (Ctrl+V) uma coluna copiada de uma planilha — '
+          + 'clique na primeira célula e cole; preenche para baixo. Se cada célula '
+          + 'tiver os dois nomes ("Atleta 1 / Atleta 2"), cole na coluna Atleta 1 '
+          + 'que o app separa pela barra.'}</p>
       <div id="grid"></div>
       <div class="total-ranking" id="total-ranking"></div>
       <div class="form-erro" id="grid-erro"></div>
@@ -150,10 +160,18 @@
   }
 
   // Campos do grid, na ordem das colunas — usado para colar de planilha.
-  const COLUNAS = ['codigo', 'grupo', 'atleta1', 'atleta2'];
+  // Quando o formato é chave dupla direta, a coluna "grupo" não existe
+  // no grid, então é removida da lista para o paste não desalinhar.
   const CLASSE_CAMPO = {
     'c-cod': 'codigo', 'c-grupo': 'grupo', 'c-at1': 'atleta1', 'c-at2': 'atleta2',
   };
+  function colunasGrid() {
+    const ehChaveDireta = estado && estado.ec
+      && estado.ec.formato === 'chave-dupla-direta';
+    return ehChaveDireta
+      ? ['codigo', 'atleta1', 'atleta2']
+      : ['codigo', 'grupo', 'atleta1', 'atleta2'];
+  }
 
   // Atribui um valor a um campo da linha. Quando o campo é o Atleta 1 e o
   // valor traz os dois nomes na mesma célula ("Atleta 1 / Atleta 2"), separa
@@ -189,13 +207,14 @@
 
     e.preventDefault();
     lerGridParaEstado();
+    const cols = colunasGrid();
     const linhaInicio = Number(input.closest('tr').dataset.i);
-    const colInicio = COLUNAS.indexOf(campo);
+    const colInicio = cols.indexOf(campo);
     linhas.forEach((linhaTexto, r) => {
       const alvo = estado.linhas[linhaInicio + r];
       if (!alvo) return;
       linhaTexto.split('\t').forEach((valor, c) => {
-        const campoAlvo = COLUNAS[colInicio + c];
+        const campoAlvo = cols[colInicio + c];
         if (campoAlvo) atribuir(alvo, campoAlvo, valor);
       });
     });
@@ -276,20 +295,23 @@
       const linha = estado.linhas[i];
       if (!linha) return;
       linha.codigo = tr.querySelector('.c-cod').value.trim();
-      linha.grupo = tr.querySelector('.c-grupo').value.trim();
+      // Grupo não existe no grid quando o formato é chave dupla direta.
+      const cGrupo = tr.querySelector('.c-grupo');
+      if (cGrupo) linha.grupo = cGrupo.value.trim();
       linha.atleta1 = tr.querySelector('.c-at1').value.trim();
       linha.atleta2 = tr.querySelector('.c-at2').value.trim();
     });
   }
 
   function desenharGrid() {
+    const ehChaveDireta = estado.ec && estado.ec.formato === 'chave-dupla-direta';
     document.getElementById('grid').innerHTML = `
       <table class="grid-duplas">
         <thead>
           <tr>
             <th class="idx">#</th>
             <th class="col-cod">Código</th>
-            <th class="col-grupo">Grupo</th>
+            ${ehChaveDireta ? '' : '<th class="col-grupo">Grupo</th>'}
             <th>Atleta 1</th>
             <th>Atleta 2</th>
             <th class="col-pts">Pontos</th>
@@ -297,7 +319,7 @@
           </tr>
         </thead>
         <tbody>
-          ${estado.linhas.map(linhaHtml).join('')}
+          ${estado.linhas.map((l, i) => linhaHtml(l, i, ehChaveDireta)).join('')}
         </tbody>
       </table>`;
     document.querySelectorAll('#grid [data-mover]').forEach(b => {
@@ -313,19 +335,22 @@
     desenharGrid();
   }
 
-  function linhaHtml(linha, i) {
+  function linhaHtml(linha, i, ehChaveDireta) {
     const info = linha.duplaId != null ? estado.pontosPorDupla[linha.duplaId] : null;
     const txt = info ? `${info.p1} + ${info.p2} = ${info.total}` : '';
     const empate = estado.sorteadas && linha.duplaId != null
       && estado.sorteadas.has(linha.duplaId);
     const trCls = empate ? ' class="sorteada"' : '';
     const tagEmpate = empate ? ' <span class="tag-sorteio">sorteio</span>' : '';
+    const celGrupo = ehChaveDireta
+      ? ''
+      : `<td class="col-grupo">${celulaGrupo(linha.grupo)}</td>`;
     return `
       <tr data-i="${i}"${trCls}>
         <td class="idx">${i + 1}${tagEmpate}</td>
         <td class="col-cod">
           <input type="text" class="c-cod" value="${App.escapar(linha.codigo)}"></td>
-        <td class="col-grupo">${celulaGrupo(linha.grupo)}</td>
+        ${celGrupo}
         <td><input type="text" class="c-at1" list="lista-atletas" autocomplete="off"
                    placeholder="Atleta 1" value="${App.escapar(linha.atleta1)}"></td>
         <td><input type="text" class="c-at2" list="lista-atletas" autocomplete="off"

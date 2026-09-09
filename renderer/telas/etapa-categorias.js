@@ -12,6 +12,11 @@
   const ROTULO_FORMATO = {
     'todos-contra-todos': 'Todos contra todos',
     'dupla-eliminatoria': 'Dupla eliminatória no grupo',
+    'chave-dupla-direta': 'Chave dupla direta (sem grupos)',
+  };
+  const ROTULO_ORIGEM = {
+    'temporada': 'Ranking da temporada (automático)',
+    'manual':    'Definida manualmente',
   };
 
   App.registrarTela('etapa-categorias', { render });
@@ -82,9 +87,13 @@
   }
 
   function itemHtml(ec) {
-    const grupos = ec.num_grupos
-      ? `${ec.num_grupos} ${ec.num_grupos === 1 ? 'grupo' : 'grupos'}`
-      : 'grupos não definidos';
+    const ehChaveDireta = ec.formato === 'chave-dupla-direta';
+    // Chave dupla direta não tem grupos; mostra a origem da ordem no lugar.
+    const grupos = ehChaveDireta
+      ? (ROTULO_ORIGEM[ec.origem_ranking] || 'ordem não definida')
+      : (ec.num_grupos
+          ? `${ec.num_grupos} ${ec.num_grupos === 1 ? 'grupo' : 'grupos'}`
+          : 'grupos não definidos');
     const tipo = rotuloTipo(ec.tipo);
     const formato = ROTULO_FORMATO[ec.formato] || ec.formato || '';
     const data = fmtData(ec.data_competicao);
@@ -123,11 +132,18 @@
            <option value="feminino">Feminino</option>
          </select>`;
     // O formato pode ser ajustado também na edição (vale na hora de gerar
-    // os jogos da fase de grupos).
+    // os jogos da fase de grupos ou da chave dupla direta).
     const fmtAtual = editando ? ec.formato : 'todos-contra-todos';
     const seletorFormato = `<select id="f-formato">
         ${Object.entries(ROTULO_FORMATO).map(([v, rotulo]) =>
           `<option value="${v}"${v === fmtAtual ? ' selected' : ''}>${rotulo}</option>`
+        ).join('')}
+      </select>`;
+    const origemAtual = editando && ec.origem_ranking
+      ? ec.origem_ranking : 'temporada';
+    const seletorOrigem = `<select id="f-origem-ranking">
+        ${Object.entries(ROTULO_ORIGEM).map(([v, rotulo]) =>
+          `<option value="${v}"${v === origemAtual ? ' selected' : ''}>${rotulo}</option>`
         ).join('')}
       </select>`;
 
@@ -146,10 +162,14 @@
           <label>Formato</label>
           ${seletorFormato}
         </div>
-        <div class="form-row">
+        <div class="form-row" id="f-row-grupos">
           <label>Nº de grupos</label>
           <input type="number" id="f-grupos" min="1" max="16" placeholder="3"
                  value="${editando && ec.num_grupos ? ec.num_grupos : ''}">
+        </div>
+        <div class="form-row" id="f-row-origem" hidden>
+          <label>Ordem das seeds</label>
+          ${seletorOrigem}
         </div>
         <div class="form-row">
           <label>Data da categoria</label>
@@ -163,16 +183,38 @@
         <div class="form-erro" id="f-erro"></div>
       </div>`;
 
+    // Alterna a visibilidade dos campos condicionais conforme o formato:
+    // chave-dupla-direta não tem grupos e precisa da origem do ranking.
+    const rowGrupos = area.querySelector('#f-row-grupos');
+    const rowOrigem = area.querySelector('#f-row-origem');
+    function ajustarCamposPorFormato() {
+      const fmt = area.querySelector('#f-formato').value;
+      const ehChaveDireta = fmt === 'chave-dupla-direta';
+      rowGrupos.hidden = ehChaveDireta;
+      rowOrigem.hidden = !ehChaveDireta;
+    }
+    area.querySelector('#f-formato').onchange = ajustarCamposPorFormato;
+    ajustarCamposPorFormato();
+
     area.querySelector('#f-cancelar').onclick = () => { area.innerHTML = ''; };
     area.querySelector('#f-salvar').onclick = async () => {
       const erroEl = area.querySelector('#f-erro');
-      const numGrupos = Number(area.querySelector('#f-grupos').value) || null;
       const formato = area.querySelector('#f-formato').value;
+      const ehChaveDireta = formato === 'chave-dupla-direta';
+      const numGrupos = ehChaveDireta
+        ? null
+        : (Number(area.querySelector('#f-grupos').value) || null);
+      const origemRanking = ehChaveDireta
+        ? area.querySelector('#f-origem-ranking').value
+        : null;
       const dataCompeticao = area.querySelector('#f-data').value || null;
       if (editando) {
-        // Preserva o config_json existente ao salvar nº de grupos, formato e data.
-        await apiEC().atualizar(ec.id,
-          { numGrupos, configJson: ec.config_json, formato, dataCompeticao });
+        // Preserva o config_json existente ao salvar nº de grupos, formato,
+        // origem do ranking e data.
+        await apiEC().atualizar(ec.id, {
+          numGrupos, configJson: ec.config_json, formato,
+          origemRanking, dataCompeticao,
+        });
       } else {
         const categoriaId = Number(area.querySelector('#f-categoria').value);
         const tipo = area.querySelector('#f-tipo').value || null;
@@ -181,7 +223,8 @@
           return;
         }
         await apiEC().criar({
-          etapaId, categoriaId, tipo, formato, numGrupos, dataCompeticao,
+          etapaId, categoriaId, tipo, formato, numGrupos,
+          origemRanking, dataCompeticao,
         });
       }
       await App.recarregar();

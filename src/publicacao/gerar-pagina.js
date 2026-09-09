@@ -54,10 +54,29 @@ function logoDataUri(arquivoTemporada) {
   return valor;
 }
 
-const ORDEM_FASE = ['oitavas', 'quartas', 'semi', 'final', 'terceiro'];
+// Fases do mata-mata simples (após fase de grupos) e da chave dupla direta.
+// A ordem é a de exibição no HTML publicado — Ganhadores primeiro, depois
+// Perdedores, depois o encerramento (Semi/Final/3º).
+const ORDEM_FASE = [
+  'oitavas', 'quartas', 'semi', 'final', 'terceiro',
+  'WB R1', 'WB R2', 'WB R3', 'WB Semi',
+  'LB R1', 'LB R2', 'LB R3', 'LB R4', 'LB R5', 'LB R6',
+  'Semi', 'Final', '3º lugar',
+];
 const ROTULO_FASE = {
   oitavas: 'Oitavas de final', quartas: 'Quartas de final',
   semi: 'Semifinais', final: 'Final', terceiro: 'Disputa de 3º lugar',
+  'WB R1': 'Chave dos ganhadores — 1ª rodada',
+  'WB R2': 'Chave dos ganhadores — 2ª rodada',
+  'WB R3': 'Chave dos ganhadores — 3ª rodada',
+  'WB Semi': 'Chave dos ganhadores — semifinal',
+  'LB R1': 'Chave dos perdedores — 1ª rodada',
+  'LB R2': 'Chave dos perdedores — 2ª rodada',
+  'LB R3': 'Chave dos perdedores — 3ª rodada',
+  'LB R4': 'Chave dos perdedores — 4ª rodada',
+  'LB R5': 'Chave dos perdedores — 5ª rodada',
+  'LB R6': 'Chave dos perdedores — 6ª rodada',
+  'Semi': 'Semifinais', 'Final': 'Final', '3º lugar': 'Disputa de 3º lugar',
 };
 const ROTULO_TIPO = { masculino: 'Masculino', feminino: 'Feminino' };
 
@@ -344,10 +363,14 @@ function corpoCategoria(ec, etapa, temporada) {
     }
   }
 
-  // 4) Mata-mata.
+  // 4) Mata-mata (ou chave dupla direta — o título muda mas a renderização
+  // é a mesma: blocos por fase respeitando ORDEM_FASE).
   const mata = jogos.filter(j => j.fase !== 'grupo');
   if (mata.length) {
-    html += `<h3>Mata-mata</h3>${blocoMataMata(mata, mapa)}`;
+    const titulo = ec.formato === 'chave-dupla-direta'
+      ? 'Chave dupla eliminação direta'
+      : 'Mata-mata';
+    html += `<h3>${titulo}</h3>${blocoMataMata(mata, mapa)}`;
   }
 
   // 5) Resultado final — pódio (Campeão / Vice / 3º / 4º), quando há.

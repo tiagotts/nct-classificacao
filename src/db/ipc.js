@@ -54,6 +54,8 @@ function registrar(ipcMain) {
     jogo.gerarFaseGrupos(etapaCategoriaId, opts));
   ipcMain.handle('jogo:gerarMataMata', (e, etapaCategoriaId, opts) =>
     jogo.gerarMataMata(etapaCategoriaId, opts));
+  ipcMain.handle('jogo:gerarChaveDuplaDireta', (e, etapaCategoriaId, opts) =>
+    jogo.gerarChaveDuplaDireta(etapaCategoriaId, opts));
   ipcMain.handle('jogo:reordenarGrupo', (e, etapaCategoriaId, idsNaOrdem) =>
     jogo.reordenarGrupo(etapaCategoriaId, idsNaOrdem));
   ipcMain.handle('classificacao:calcular', (e, etapaCategoriaId) =>

@@ -48,6 +48,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('jogo:gerarFaseGrupos', etapaCategoriaId, opts),
       gerarMataMata: (etapaCategoriaId, opts) =>
         ipcRenderer.invoke('jogo:gerarMataMata', etapaCategoriaId, opts),
+      gerarChaveDuplaDireta: (etapaCategoriaId, opts) =>
+        ipcRenderer.invoke('jogo:gerarChaveDuplaDireta', etapaCategoriaId, opts),
       reordenarGrupo: (etapaCategoriaId, idsNaOrdem) =>
         ipcRenderer.invoke('jogo:reordenarGrupo', etapaCategoriaId, idsNaOrdem),
     },

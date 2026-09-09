@@ -48,7 +48,7 @@ t('slugs das categorias são os esperados', () => {
 });
 
 t('user_version reflete as migrações aplicadas', () => {
-  eq(db.pragma('user_version', { simple: true }), 14, 'user_version');
+  eq(db.pragma('user_version', { simple: true }), 15, 'user_version');
 });
 
 t('ranking_inicial tem coluna etapa_id após a migração 0007', () => {

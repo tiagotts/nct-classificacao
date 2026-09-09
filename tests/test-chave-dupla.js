@@ -299,5 +299,163 @@ t('Fluxo integrado: 4 grupos de 4 → seeds em blocos → chave dupla de 16', ()
   eq(w1.slot2.seed, 16);
 });
 
+// ----------------------------------------------------------------------
+// Modo semi-simples: chave dupla até as semifinais, com cruzamento G×P
+// nas semis (opção "cruzamento máximo": G1×P2 e G2×P1) e disputa de 3º.
+// ----------------------------------------------------------------------
+console.log('\n▶ Modo semi-simples\n');
+
+// Contagem esperada em semi-simples: (N-2) + (N-4) + 4 = 2N-2 (mesma
+// contagem total do clássico, mas com partidas diferentes: sem WB Final
+// e sem "afunilamento" da LB até 1 finalista).
+for (const N of [8, 16, 32]) {
+  t(`N=${N} semi-simples: total = ${2*N-2} partidas`, () => {
+    const { totalPartidas } = gerarChaveDupla(seedsTeste(N), { modo: 'semi-simples' });
+    eq(totalPartidas, 2*N - 2);
+  });
+}
+
+t('semi-simples não gera WB Final', () => {
+  const { partidas } = gerarChaveDupla(seedsTeste(16), { modo: 'semi-simples' });
+  const temFinalWB = partidas.some(p => p.fase === 'WB Final');
+  eq(temFinalWB, false);
+});
+
+t('semi-simples não gera LB Final nem GF', () => {
+  const { partidas } = gerarChaveDupla(seedsTeste(16), { modo: 'semi-simples' });
+  eq(partidas.some(p => p.fase === 'LB Final'), false);
+  eq(partidas.some(p => p.fase === 'Grand Final'), false);
+});
+
+t('semi-simples gera exatamente 2 Semis, 1 Final e 1 3º lugar', () => {
+  const { partidas } = gerarChaveDupla(seedsTeste(16), { modo: 'semi-simples' });
+  eq(partidas.filter(p => p.fase === 'Semi').length, 2);
+  eq(partidas.filter(p => p.fase === 'Final').length, 1);
+  eq(partidas.filter(p => p.fase === '3º lugar').length, 1);
+});
+
+t('semi-simples: WB Semi tem 2 partidas (2 finalistas WB)', () => {
+  const { partidas } = gerarChaveDupla(seedsTeste(16), { modo: 'semi-simples' });
+  const wbSemis = partidas.filter(p => p.fase === 'WB Semi');
+  eq(wbSemis.length, 2);
+});
+
+t('semi-simples: cruzamento das semis é G×P (nunca G×G ou P×P)', () => {
+  // Cada Semi tem slot1 vindo de WB Semi e slot2 vindo da última rodada LB.
+  const { partidas } = gerarChaveDupla(seedsTeste(16), { modo: 'semi-simples' });
+  const wbSemiIds = partidas.filter(p => p.fase === 'WB Semi').map(p => p.id);
+  const semis = partidas.filter(p => p.fase === 'Semi');
+  for (const s of semis) {
+    const vemDeWB = wbSemiIds.includes(s.slot1.fromMatch);
+    const outroVemDeLB = !wbSemiIds.includes(s.slot2.fromMatch);
+    if (!vemDeWB || !outroVemDeLB) {
+      throw new Error(`Semi ${s.id} não é cruzamento G×P: ${JSON.stringify(s)}`);
+    }
+  }
+});
+
+t('semi-simples: cruzamento máximo G1×P2 / G2×P1 (opção A)', () => {
+  const { partidas } = gerarChaveDupla(seedsTeste(16), { modo: 'semi-simples' });
+  const wbSemis = partidas.filter(p => p.fase === 'WB Semi');
+  // Últimas 2 partidas da LB (finalistas)
+  const lbAll = partidas.filter(p => p.fase.startsWith('LB '));
+  const lbFinalistas = lbAll.slice(-2);
+  const semis = partidas.filter(p => p.fase === 'Semi');
+  // SF1: G1 (wbSemis[0]) × P2 (lbFinalistas[1])
+  eq(semis[0].slot1.fromMatch, wbSemis[0].id, 'SF1 slot1');
+  eq(semis[0].slot2.fromMatch, lbFinalistas[1].id, 'SF1 slot2 (P2)');
+  // SF2: G2 (wbSemis[1]) × P1 (lbFinalistas[0])
+  eq(semis[1].slot1.fromMatch, wbSemis[1].id, 'SF2 slot1');
+  eq(semis[1].slot2.fromMatch, lbFinalistas[0].id, 'SF2 slot2 (P1)');
+});
+
+t('semi-simples: 3º lugar vem dos perdedores das duas semis', () => {
+  const { partidas } = gerarChaveDupla(seedsTeste(16), { modo: 'semi-simples' });
+  const terceiro = partidas.find(p => p.fase === '3º lugar');
+  eq(terceiro.slot1.as, 'P');
+  eq(terceiro.slot2.as, 'P');
+  const semiIds = partidas.filter(p => p.fase === 'Semi').map(p => p.id);
+  eq(semiIds.includes(terceiro.slot1.fromMatch), true);
+  eq(semiIds.includes(terceiro.slot2.fromMatch), true);
+});
+
+t('semi-simples: simulação "seed 1 sempre vence" leva seed 1 à final', () => {
+  const { partidas } = gerarChaveDupla(seedsTeste(16), { modo: 'semi-simples' });
+  const placado = simular(partidas);
+  const fin = partidas.find(p => p.fase === 'Final');
+  const r = placado.get(fin.id);
+  eq(r.ven.seed, 1, 'seed 1 deve ser campeã');
+});
+
+t('semi-simples proibido para chave interna < 8', () => {
+  let throwed = false;
+  try { gerarChaveDupla(seedsTeste(4), { modo: 'semi-simples' }); }
+  catch { throwed = true; }
+  if (!throwed) throw new Error('Deveria ter lançado erro para N=4 semi-simples');
+});
+
+// ----------------------------------------------------------------------
+// Passes livres (byes): N entre 17 e 31 monta chave interna de 32 e
+// marca as (32-N) partidas onde a seed "fantasma" apareceria como bye.
+// ----------------------------------------------------------------------
+console.log('\n▶ Passes livres (17..31 duplas)\n');
+
+t('N=20: aceita e produz chave interna de 32', () => {
+  const { Nchave, N } = gerarChaveDupla(seedsTeste(20), { modo: 'semi-simples' });
+  eq(Nchave, 32);
+  eq(N, 20);
+});
+
+t('N=20: exatamente 12 partidas da WB R1 são bye', () => {
+  const { partidas } = gerarChaveDupla(seedsTeste(20), { modo: 'semi-simples' });
+  const wbR1 = partidas.filter(p => p.fase === 'WB R1');
+  eq(wbR1.length, 16, 'WB R1 tem 16 partidas na chave de 32');
+  const byes = wbR1.filter(p => p.bye === true);
+  eq(byes.length, 12, 'devem existir 12 partidas de bye');
+});
+
+t('N=20: as 12 seeds que passam direto são exatamente 1..12', () => {
+  const { partidas } = gerarChaveDupla(seedsTeste(20), { modo: 'semi-simples' });
+  const byes = partidas.filter(p => p.fase === 'WB R1' && p.bye === true);
+  const seedsQuePassam = byes.map(p => p.byeVencedor).sort((a, b) => a - b);
+  const esperado = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  eq(JSON.stringify(seedsQuePassam), JSON.stringify(esperado));
+});
+
+t('N=25: 7 byes; seeds 1..7 passam direto', () => {
+  const { partidas } = gerarChaveDupla(seedsTeste(25), { modo: 'semi-simples' });
+  const byes = partidas.filter(p => p.fase === 'WB R1' && p.bye === true);
+  eq(byes.length, 7);
+  const seedsQuePassam = byes.map(p => p.byeVencedor).sort((a, b) => a - b);
+  eq(JSON.stringify(seedsQuePassam), JSON.stringify([1, 2, 3, 4, 5, 6, 7]));
+});
+
+t('N=17: apenas 1 partida real na WB R1; 15 byes', () => {
+  const { partidas } = gerarChaveDupla(seedsTeste(17), { modo: 'semi-simples' });
+  const wbR1 = partidas.filter(p => p.fase === 'WB R1');
+  const reais = wbR1.filter(p => !p.bye);
+  eq(reais.length, 1);
+  eq(wbR1.length - reais.length, 15);
+});
+
+t('N=32: zero byes (chave cheia)', () => {
+  const { partidas } = gerarChaveDupla(seedsTeste(32), { modo: 'semi-simples' });
+  const byes = partidas.filter(p => p.bye === true);
+  eq(byes.length, 0);
+});
+
+t('N=16 (potência de 2): não é considerado bye', () => {
+  const { partidas, Nchave } = gerarChaveDupla(seedsTeste(16), { modo: 'semi-simples' });
+  eq(Nchave, 16);
+  eq(partidas.some(p => p.bye === true), false);
+});
+
+t('N fora de 17..31 e fora de {4,8,16,32} lança erro (ex.: N=10)', () => {
+  let throwed = false;
+  try { gerarChaveDupla(seedsTeste(10)); }
+  catch { throwed = true; }
+  if (!throwed) throw new Error('Deveria ter lançado erro para N=10');
+});
+
 console.log(`\n=== ${ok} passou(aram), ${fail} falhou(aram) ===\n`);
 process.exit(fail > 0 ? 1 : 0);

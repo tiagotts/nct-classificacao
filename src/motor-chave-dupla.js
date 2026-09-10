@@ -7,8 +7,8 @@
 // jogar a primeira rodada).
 //
 // Dois modos, escolhidos por opts.modo:
-//   - 'classico'    (default): chave dupla clássica com Grand Final (e opcional
-//                              bracket reset).
+//   - 'classico'    (default): chave dupla clássica com Grande Final (e opcional
+//                              segunda final / rebate).
 //   - 'semi-simples': a chave dos perdedores para de correr quando sobram
 //                     2 finalistas da WB + 2 finalistas da LB. As semifinais
 //                     são cruzadas (G1×P2 e G2×P1), seguidas de Final e
@@ -16,7 +16,8 @@
 //
 // Estrutura de cada partida:
 //   id        — identificador único (W1.., L1.., GF1, SF1/SF2, FIN, TER)
-//   fase      — rótulo legível ("WB R1", "LB R3", "Semi", "Final", "3º")
+//   fase      — rótulo legível em português ("Ganhadores 1", "Perdedores 3",
+//               "Semifinal", "Final", "3º lugar")
 //   slot1/2   — origem da dupla:
 //                 { seed: N, dupla, bye?: true }
 //                 { fromMatch: 'W1', as: 'V'|'P' }
@@ -123,7 +124,7 @@ function gerarChaveDupla(seeds, opts = {}) {
       extra.bye = true;
       extra.byeVencedor = slot1.bye ? sB : sA;
     }
-    add(mk(id, 'WB R1', slot1, slot2, extra));
+    add(mk(id, 'Ganhadores 1', slot1, slot2, extra));
   }
 
   // WB R2..R(k). No modo 'semi-simples' a WB para na semi — não gera a Final.
@@ -135,9 +136,9 @@ function gerarChaveDupla(seeds, opts = {}) {
   for (let r = 2; r <= wbUltimaRodada; r++) {
     const numMatches = Nchave / (2 ** r);
     let fase;
-    if (r === k && modo === 'classico') fase = 'WB Final';
-    else if (r === k - 1) fase = 'WB Semi';
-    else fase = `WB R${r}`;
+    if (r === k && modo === 'classico') fase = 'Ganhadores Final';
+    else if (r === k - 1) fase = 'Ganhadores Semi';
+    else fase = `Ganhadores ${r}`;
     const curr = [];
     for (let i = 0; i < numMatches; i++) {
       const id = `W${nextWId++}`;
@@ -173,7 +174,7 @@ function gerarChaveDupla(seeds, opts = {}) {
   for (let lbR = 1; lbR <= numLBRounds; lbR++) {
     const isMinor = lbR % 2 === 1;
     const isFinal = lbR === numLBRounds && modo === 'classico';
-    const fase = isFinal ? 'LB Final' : `LB R${lbR}`;
+    const fase = isFinal ? 'Perdedores Final' : `Perdedores ${lbR}`;
     const pairings = [];
 
     if (lbR === 1) {
@@ -235,28 +236,29 @@ function gerarChaveDupla(seeds, opts = {}) {
   // ENCERRAMENTO
   // ===================================================================
   if (modo === 'classico') {
-    add(mk('GF1', 'Grand Final',
+    add(mk('GF1', 'Grande Final',
       { fromMatch: wbFinalId, as: 'V' },
       { fromMatch: lbFinalId, as: 'V' }));
 
     if (bracketReset) {
-      add(mk('GF2', 'Bracket Reset',
-        { fromMatch: 'GF1', as: 'P' }, // WB-1 (perdeu na GF1)
-        { fromMatch: 'GF1', as: 'V' })); // LB-1 (venceu na GF1)
+      add(mk('GF2', 'Segunda Final',
+        { fromMatch: 'GF1', as: 'P' }, // vindo dos ganhadores (perdeu na 1ª final)
+        { fromMatch: 'GF1', as: 'V' })); // vindo dos perdedores (venceu na 1ª final)
     }
   } else {
-    // Semi-simples: cruzamento máximo G×P (opção A).
-    // G1 = topo dos finalistas WB; G2 = fundo. Análogo para P1/P2.
+    // Semi-simples: cruzamento máximo Ganhador × Perdedor (opção A).
+    // G1 = topo dos finalistas dos ganhadores; G2 = fundo. Análogo para P1/P2.
     // Semi 1: G1 × P2. Semi 2: G2 × P1.
-    // O finalista de "topo" da LB é o vencedor da rodada major que consumiu
-    // o perdedor da WB Semi de "topo" — daí o cruzamento antipode.
+    // O finalista de "topo" dos perdedores é o vencedor da rodada major que
+    // consumiu o perdedor da semi dos ganhadores de "topo" — daí o
+    // cruzamento antipode.
     const [g1, g2] = wbFinalistIds;
     const [p1, p2] = lbFinalistIds;
 
-    add(mk('SF1', 'Semi',
+    add(mk('SF1', 'Semifinal',
       { fromMatch: g1, as: 'V' },
       { fromMatch: p2, as: 'V' }));
-    add(mk('SF2', 'Semi',
+    add(mk('SF2', 'Semifinal',
       { fromMatch: g2, as: 'V' },
       { fromMatch: p1, as: 'V' }));
 

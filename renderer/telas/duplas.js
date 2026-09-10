@@ -61,7 +61,7 @@
       </div>
       <p class="dica">${ehChaveDireta
         ? 'Chave dupla direta: não há fase de grupos. A ordem das linhas '
-          + 'define as seeds da chave (1ª linha = seed 1). Use "Aplicar '
+          + 'define a ordem da chave (1ª linha = 1ª posição). Use "Aplicar '
           + 'ranking" para ordenar automaticamente pelos pontos, ou as '
           + 'setas ↑↓ para ajustar manualmente.'
         : 'Código e grupo já vêm preenchidos — ajuste se precisar. '

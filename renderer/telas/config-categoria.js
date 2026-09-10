@@ -96,8 +96,8 @@
           O campo Repescagem só é usado quando o tamanho é Automático.</p>
 
         <h3>Ranqueamento geral</h3>
-        <p class="dica">Como os classificados são ordenados para virar as
-          seeds do mata-mata.</p>
+        <p class="dica">Como os classificados são ordenados para definir
+          as posições da chave do mata-mata.</p>
         <div class="radio-linha">
           <label><input type="radio" name="rkg" value="blocos"
             ${cfg.rankingGeral === 'blocos' ? 'checked' : ''}>

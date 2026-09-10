@@ -168,7 +168,7 @@
                  value="${editando && ec.num_grupos ? ec.num_grupos : ''}">
         </div>
         <div class="form-row" id="f-row-origem" hidden>
-          <label>Ordem das seeds</label>
+          <label>Ordem da chave</label>
           ${seletorOrigem}
         </div>
         <div class="form-row">

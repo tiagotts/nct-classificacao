@@ -101,30 +101,30 @@ console.log('\n▶ Estrutura interna\n');
 
 t('N=4: 3 WB + 2 LB + 1 GF', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(4));
-  eq(partidas.filter(p => p.fase.startsWith('WB')).length, 3, 'WB');
-  eq(partidas.filter(p => p.fase.startsWith('LB')).length, 2, 'LB');
-  eq(partidas.filter(p => p.fase.startsWith('Grand')).length, 1, 'GF');
+  eq(partidas.filter(p => p.fase.startsWith('Ganhadores')).length, 3, 'WB');
+  eq(partidas.filter(p => p.fase.startsWith('Perdedores')).length, 2, 'LB');
+  eq(partidas.filter(p => p.fase.startsWith('Grande')).length, 1, 'GF');
 });
 
 t('N=8: 7 WB + 6 LB + 1 GF', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(8));
-  eq(partidas.filter(p => p.fase.startsWith('WB')).length, 7);
-  eq(partidas.filter(p => p.fase.startsWith('LB')).length, 6);
-  eq(partidas.filter(p => p.fase.startsWith('Grand')).length, 1);
+  eq(partidas.filter(p => p.fase.startsWith('Ganhadores')).length, 7);
+  eq(partidas.filter(p => p.fase.startsWith('Perdedores')).length, 6);
+  eq(partidas.filter(p => p.fase.startsWith('Grande')).length, 1);
 });
 
 t('N=16: 15 WB + 14 LB + 1 GF', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(16));
-  eq(partidas.filter(p => p.fase.startsWith('WB')).length, 15);
-  eq(partidas.filter(p => p.fase.startsWith('LB')).length, 14);
-  eq(partidas.filter(p => p.fase.startsWith('Grand')).length, 1);
+  eq(partidas.filter(p => p.fase.startsWith('Ganhadores')).length, 15);
+  eq(partidas.filter(p => p.fase.startsWith('Perdedores')).length, 14);
+  eq(partidas.filter(p => p.fase.startsWith('Grande')).length, 1);
 });
 
 t('N=32: 31 WB + 30 LB + 1 GF', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(32));
-  eq(partidas.filter(p => p.fase.startsWith('WB')).length, 31);
-  eq(partidas.filter(p => p.fase.startsWith('LB')).length, 30);
-  eq(partidas.filter(p => p.fase.startsWith('Grand')).length, 1);
+  eq(partidas.filter(p => p.fase.startsWith('Ganhadores')).length, 31);
+  eq(partidas.filter(p => p.fase.startsWith('Perdedores')).length, 30);
+  eq(partidas.filter(p => p.fase.startsWith('Grande')).length, 1);
 });
 
 // ----------------------------------------------------------------------
@@ -134,20 +134,20 @@ console.log('\n▶ Emparelhamentos da WB R1\n');
 
 t('N=4 WB R1: (1,4) e (2,3)', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(4));
-  const wbR1 = partidas.filter(p => p.fase === 'WB R1');
+  const wbR1 = partidas.filter(p => p.fase === 'Ganhadores 1');
   const pares = wbR1.map(p => [p.slot1.seed, p.slot2.seed]);
   eq(JSON.stringify(pares), JSON.stringify([[1,4],[2,3]]));
 });
 
 t('N=8 WB R1: (1,8)(4,5)(2,7)(3,6)', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(8));
-  const pares = partidas.filter(p => p.fase === 'WB R1').map(p => [p.slot1.seed, p.slot2.seed]);
+  const pares = partidas.filter(p => p.fase === 'Ganhadores 1').map(p => [p.slot1.seed, p.slot2.seed]);
   eq(JSON.stringify(pares), JSON.stringify([[1,8],[4,5],[2,7],[3,6]]));
 });
 
 t('N=16 WB R1: padrão canônico', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(16));
-  const pares = partidas.filter(p => p.fase === 'WB R1').map(p => [p.slot1.seed, p.slot2.seed]);
+  const pares = partidas.filter(p => p.fase === 'Ganhadores 1').map(p => [p.slot1.seed, p.slot2.seed]);
   const esperado = [[1,16],[8,9],[4,13],[5,12],[2,15],[7,10],[3,14],[6,11]];
   eq(JSON.stringify(pares), JSON.stringify(esperado));
 });
@@ -155,7 +155,7 @@ t('N=16 WB R1: padrão canônico', () => {
 t('Todos os seeds aparecem exatamente uma vez na WB R1 (N=32)', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(32));
   const todos = partidas
-    .filter(p => p.fase === 'WB R1')
+    .filter(p => p.fase === 'Ganhadores 1')
     .flatMap(p => [p.slot1.seed, p.slot2.seed])
     .sort((a,b) => a-b);
   for (let i = 1; i <= 32; i++) eq(todos[i-1], i, `seed ${i}`);
@@ -194,15 +194,15 @@ for (const N of [4, 8, 16, 32]) {
 
 t('N=16: perdedor da WB Final cai na LB Final', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(16));
-  const wbFinal = partidas.find(p => p.fase === 'WB Final');
-  const lbFinal = partidas.find(p => p.fase === 'LB Final');
+  const wbFinal = partidas.find(p => p.fase === 'Ganhadores Final');
+  const lbFinal = partidas.find(p => p.fase === 'Perdedores Final');
   eq(wbFinal.proxP, lbFinal.id);
 });
 
 t('N=8: perdedor da WB Final cai na LB Final', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(8));
-  const wbFinal = partidas.find(p => p.fase === 'WB Final');
-  const lbFinal = partidas.find(p => p.fase === 'LB Final');
+  const wbFinal = partidas.find(p => p.fase === 'Ganhadores Final');
+  const lbFinal = partidas.find(p => p.fase === 'Perdedores Final');
   eq(wbFinal.proxP, lbFinal.id);
 });
 
@@ -317,34 +317,34 @@ for (const N of [8, 16, 32]) {
 
 t('semi-simples não gera WB Final', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(16), { modo: 'semi-simples' });
-  const temFinalWB = partidas.some(p => p.fase === 'WB Final');
+  const temFinalWB = partidas.some(p => p.fase === 'Ganhadores Final');
   eq(temFinalWB, false);
 });
 
 t('semi-simples não gera LB Final nem GF', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(16), { modo: 'semi-simples' });
-  eq(partidas.some(p => p.fase === 'LB Final'), false);
+  eq(partidas.some(p => p.fase === 'Perdedores Final'), false);
   eq(partidas.some(p => p.fase === 'Grand Final'), false);
 });
 
 t('semi-simples gera exatamente 2 Semis, 1 Final e 1 3º lugar', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(16), { modo: 'semi-simples' });
-  eq(partidas.filter(p => p.fase === 'Semi').length, 2);
+  eq(partidas.filter(p => p.fase === 'Semifinal').length, 2);
   eq(partidas.filter(p => p.fase === 'Final').length, 1);
   eq(partidas.filter(p => p.fase === '3º lugar').length, 1);
 });
 
 t('semi-simples: WB Semi tem 2 partidas (2 finalistas WB)', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(16), { modo: 'semi-simples' });
-  const wbSemis = partidas.filter(p => p.fase === 'WB Semi');
+  const wbSemis = partidas.filter(p => p.fase === 'Ganhadores Semi');
   eq(wbSemis.length, 2);
 });
 
 t('semi-simples: cruzamento das semis é G×P (nunca G×G ou P×P)', () => {
   // Cada Semi tem slot1 vindo de WB Semi e slot2 vindo da última rodada LB.
   const { partidas } = gerarChaveDupla(seedsTeste(16), { modo: 'semi-simples' });
-  const wbSemiIds = partidas.filter(p => p.fase === 'WB Semi').map(p => p.id);
-  const semis = partidas.filter(p => p.fase === 'Semi');
+  const wbSemiIds = partidas.filter(p => p.fase === 'Ganhadores Semi').map(p => p.id);
+  const semis = partidas.filter(p => p.fase === 'Semifinal');
   for (const s of semis) {
     const vemDeWB = wbSemiIds.includes(s.slot1.fromMatch);
     const outroVemDeLB = !wbSemiIds.includes(s.slot2.fromMatch);
@@ -356,11 +356,11 @@ t('semi-simples: cruzamento das semis é G×P (nunca G×G ou P×P)', () => {
 
 t('semi-simples: cruzamento máximo G1×P2 / G2×P1 (opção A)', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(16), { modo: 'semi-simples' });
-  const wbSemis = partidas.filter(p => p.fase === 'WB Semi');
+  const wbSemis = partidas.filter(p => p.fase === 'Ganhadores Semi');
   // Últimas 2 partidas da LB (finalistas)
-  const lbAll = partidas.filter(p => p.fase.startsWith('LB '));
+  const lbAll = partidas.filter(p => p.fase.startsWith('Perdedores'));
   const lbFinalistas = lbAll.slice(-2);
-  const semis = partidas.filter(p => p.fase === 'Semi');
+  const semis = partidas.filter(p => p.fase === 'Semifinal');
   // SF1: G1 (wbSemis[0]) × P2 (lbFinalistas[1])
   eq(semis[0].slot1.fromMatch, wbSemis[0].id, 'SF1 slot1');
   eq(semis[0].slot2.fromMatch, lbFinalistas[1].id, 'SF1 slot2 (P2)');
@@ -374,7 +374,7 @@ t('semi-simples: 3º lugar vem dos perdedores das duas semis', () => {
   const terceiro = partidas.find(p => p.fase === '3º lugar');
   eq(terceiro.slot1.as, 'P');
   eq(terceiro.slot2.as, 'P');
-  const semiIds = partidas.filter(p => p.fase === 'Semi').map(p => p.id);
+  const semiIds = partidas.filter(p => p.fase === 'Semifinal').map(p => p.id);
   eq(semiIds.includes(terceiro.slot1.fromMatch), true);
   eq(semiIds.includes(terceiro.slot2.fromMatch), true);
 });
@@ -408,7 +408,7 @@ t('N=20: aceita e produz chave interna de 32', () => {
 
 t('N=20: exatamente 12 partidas da WB R1 são bye', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(20), { modo: 'semi-simples' });
-  const wbR1 = partidas.filter(p => p.fase === 'WB R1');
+  const wbR1 = partidas.filter(p => p.fase === 'Ganhadores 1');
   eq(wbR1.length, 16, 'WB R1 tem 16 partidas na chave de 32');
   const byes = wbR1.filter(p => p.bye === true);
   eq(byes.length, 12, 'devem existir 12 partidas de bye');
@@ -416,7 +416,7 @@ t('N=20: exatamente 12 partidas da WB R1 são bye', () => {
 
 t('N=20: as 12 seeds que passam direto são exatamente 1..12', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(20), { modo: 'semi-simples' });
-  const byes = partidas.filter(p => p.fase === 'WB R1' && p.bye === true);
+  const byes = partidas.filter(p => p.fase === 'Ganhadores 1' && p.bye === true);
   const seedsQuePassam = byes.map(p => p.byeVencedor).sort((a, b) => a - b);
   const esperado = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
   eq(JSON.stringify(seedsQuePassam), JSON.stringify(esperado));
@@ -424,7 +424,7 @@ t('N=20: as 12 seeds que passam direto são exatamente 1..12', () => {
 
 t('N=25: 7 byes; seeds 1..7 passam direto', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(25), { modo: 'semi-simples' });
-  const byes = partidas.filter(p => p.fase === 'WB R1' && p.bye === true);
+  const byes = partidas.filter(p => p.fase === 'Ganhadores 1' && p.bye === true);
   eq(byes.length, 7);
   const seedsQuePassam = byes.map(p => p.byeVencedor).sort((a, b) => a - b);
   eq(JSON.stringify(seedsQuePassam), JSON.stringify([1, 2, 3, 4, 5, 6, 7]));
@@ -432,7 +432,7 @@ t('N=25: 7 byes; seeds 1..7 passam direto', () => {
 
 t('N=17: apenas 1 partida real na WB R1; 15 byes', () => {
   const { partidas } = gerarChaveDupla(seedsTeste(17), { modo: 'semi-simples' });
-  const wbR1 = partidas.filter(p => p.fase === 'WB R1');
+  const wbR1 = partidas.filter(p => p.fase === 'Ganhadores 1');
   const reais = wbR1.filter(p => !p.bye);
   eq(reais.length, 1);
   eq(wbR1.length - reais.length, 15);

@@ -59,24 +59,25 @@ function logoDataUri(arquivoTemporada) {
 // Perdedores, depois o encerramento (Semi/Final/3º).
 const ORDEM_FASE = [
   'oitavas', 'quartas', 'semi', 'final', 'terceiro',
-  'WB R1', 'WB R2', 'WB R3', 'WB Semi',
-  'LB R1', 'LB R2', 'LB R3', 'LB R4', 'LB R5', 'LB R6',
-  'Semi', 'Final', '3º lugar',
+  'Ganhadores 1', 'Ganhadores 2', 'Ganhadores 3', 'Ganhadores Semi',
+  'Perdedores 1', 'Perdedores 2', 'Perdedores 3', 'Perdedores 4',
+  'Perdedores 5', 'Perdedores 6',
+  'Semifinal', 'Final', '3º lugar',
 ];
 const ROTULO_FASE = {
   oitavas: 'Oitavas de final', quartas: 'Quartas de final',
   semi: 'Semifinais', final: 'Final', terceiro: 'Disputa de 3º lugar',
-  'WB R1': 'Chave dos ganhadores — 1ª rodada',
-  'WB R2': 'Chave dos ganhadores — 2ª rodada',
-  'WB R3': 'Chave dos ganhadores — 3ª rodada',
-  'WB Semi': 'Chave dos ganhadores — semifinal',
-  'LB R1': 'Chave dos perdedores — 1ª rodada',
-  'LB R2': 'Chave dos perdedores — 2ª rodada',
-  'LB R3': 'Chave dos perdedores — 3ª rodada',
-  'LB R4': 'Chave dos perdedores — 4ª rodada',
-  'LB R5': 'Chave dos perdedores — 5ª rodada',
-  'LB R6': 'Chave dos perdedores — 6ª rodada',
-  'Semi': 'Semifinais', 'Final': 'Final', '3º lugar': 'Disputa de 3º lugar',
+  'Ganhadores 1': 'Chave dos ganhadores — 1ª rodada',
+  'Ganhadores 2': 'Chave dos ganhadores — 2ª rodada',
+  'Ganhadores 3': 'Chave dos ganhadores — 3ª rodada',
+  'Ganhadores Semi': 'Chave dos ganhadores — semifinal',
+  'Perdedores 1': 'Chave dos perdedores — 1ª rodada',
+  'Perdedores 2': 'Chave dos perdedores — 2ª rodada',
+  'Perdedores 3': 'Chave dos perdedores — 3ª rodada',
+  'Perdedores 4': 'Chave dos perdedores — 4ª rodada',
+  'Perdedores 5': 'Chave dos perdedores — 5ª rodada',
+  'Perdedores 6': 'Chave dos perdedores — 6ª rodada',
+  'Semifinal': 'Semifinais', 'Final': 'Final', '3º lugar': 'Disputa de 3º lugar',
 };
 const ROTULO_TIPO = { masculino: 'Masculino', feminino: 'Feminino' };
 

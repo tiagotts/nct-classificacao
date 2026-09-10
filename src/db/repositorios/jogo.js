@@ -110,15 +110,18 @@ function apurarColocacoes(etapaCategoriaId) {
     // Chave dupla direta (modo semi-simples): as fases 'Final' e '3º lugar'
     // definem 1º-4º com precisão; os perdedores das 'Semi' são justamente
     // quem foi para o 3º lugar (não geram colocação extra). Para as
-    // rodadas anteriores (WB R*/LB R*), quem perde cai em faixas: a
+    // rodadas anteriores (Ganhadores/Perdedores), quem perde cai em faixas: a
     // colocação é 2 * (nº de duplas vivas depois dessa rodada) + 1.
     // Aproximação: usar a ordem inversa em que a partida aparece nas
     // fases posteriores. O número de duplas que se classificam adiante
     // é a soma de partidas ainda por jogar depois daquela.
     const N = duplas.length;
     // Contagem por fase para as rodadas eliminatórias (não semi/final/3º).
-    const fasesOrdem = ['WB R1', 'WB R2', 'WB R3', 'WB Semi',
-                        'LB R1', 'LB R2', 'LB R3', 'LB R4', 'LB R5', 'LB R6'];
+    const fasesOrdem = [
+      'Ganhadores 1', 'Ganhadores 2', 'Ganhadores 3', 'Ganhadores Semi',
+      'Perdedores 1', 'Perdedores 2', 'Perdedores 3', 'Perdedores 4',
+      'Perdedores 5', 'Perdedores 6',
+    ];
 
     for (const j of mata) {
       const res = vencedorPerdedor(j);
@@ -130,17 +133,18 @@ function apurarColocacoes(etapaCategoriaId) {
         colocacao.set(res.vencedor, 3);
         colocacao.set(res.perdedor, 4);
       }
-      // Perdedores de WB/LB e das Semis ficam em faixas — atribuídas abaixo.
+      // Perdedores das rodadas anteriores e das Semis ficam em faixas
+      // — atribuídas abaixo.
     }
     // Quem foi eliminado antes das semis: agrupa por fase e distribui em
     // faixa (5º-8º, 9º-16º...) — a colocação inicial de cada faixa é
     // determinada pelo número de duplas que sobraram após aquela fase.
-    // Para simplificar: quem sai da LB Final tem faixa 5-6, da penúltima
+    // Para simplificar: quem sai da última rodada dos Perdedores tem faixa 5-6, da penúltima
     // rodada 7-8, e assim por diante. Aqui atribuo faixas conservadoras
     // baseadas em quantas partidas ainda restam.
     const perdedoresPorFase = {};
     for (const j of mata) {
-      if (['Final', '3º lugar', 'Semi'].includes(j.fase)) continue;
+      if (['Final', '3º lugar', 'Semifinal'].includes(j.fase)) continue;
       const res = vencedorPerdedor(j);
       if (!res) continue;
       (perdedoresPorFase[j.fase] = perdedoresPorFase[j.fase] || [])
@@ -148,8 +152,8 @@ function apurarColocacoes(etapaCategoriaId) {
     }
     // Faixa começa após 4 (os 4 semifinalistas já estão colocados).
     let faixaAtual = 5;
-    // Fases mais tardias eliminam menos duplas — quem perdeu na última LB
-    // fica na faixa mais alta (5-6).
+    // Fases mais tardias eliminam menos duplas — quem perdeu na última
+    // rodada dos Perdedores fica na faixa mais alta (5-6).
     const fasesPresentes = fasesOrdem
       .filter(f => perdedoresPorFase[f])
       .reverse();

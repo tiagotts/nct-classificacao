@@ -22,6 +22,9 @@ npm test                          # roda toda a suíte (Electron como Node)
 npm run seed                      # popula o banco com dados de teste
 npm run rebuild                   # recompila better-sqlite3 pro ABI do Electron
 npm run dist[:mac|:win|:linux]    # gera instalador em dist/
+                                  # (.exe oficial sai do workflow
+                                  # .github/workflows/build-windows.yml,
+                                  # manual ou em tag v*)
 
 node tests/dump-chave.js [N]      # imprime a chave dupla para N duplas
 ```
@@ -67,10 +70,14 @@ Dois processos Electron com o banco só no main:
   (faixas de pontos por colocação), `ranking-entrada.js` (pontos que uma
   dupla ganha na etapa), `ranking-geral.js` (acumulado da temporada) e
   `serpentina.js` (distribuição de seeds em grupos).
-- [src/motor-chave-dupla.js](src/motor-chave-dupla.js) — motor **legado** de
-  chave de dupla eliminação (N em {4,8,16,32}). Ainda existe e é testado por
-  `tests/test-chave-dupla.js`, mas **não é usado pela UI atual**; use
-  `src/motor/chave.js` para mata-mata.
+- [src/motor-chave-dupla.js](src/motor-chave-dupla.js) — motor de chave
+  dupla eliminação (N em {4,8,16,32} e qualquer N de 17 a 31, com passe
+  direto para as melhores seeds). Modos `'classico'` (Grande Final) e
+  `'semi-simples'` (WB/LB param com 4 finalistas; semifinais cruzadas, Final
+  e 3º lugar). Usado por `jogo.gerarChaveDuplaDireta` no modo semi-simples.
+  Fica fora de `src/motor/` e mantém a dupla exportação por motivos
+  históricos (ver Convenções). O mata-mata pós-fase-de-grupos usa
+  `src/motor/chave.js`.
 - [src/publicacao/](src/publicacao/) — geração das páginas estáticas.
   `gerar-pagina.js` monta o HTML (por categoria e página geral da etapa);
   `github.js` faz o commit/push via API REST para servir por GitHub Pages.
@@ -105,7 +112,27 @@ registra em `App.registrarTela(nome, { render })` → `App.iniciar()`.
 - Renderer nunca faz SQL: só chama `window.electronAPI.db.*`, que roteia via
   IPC até os repositórios no main.
 
-### Fluxo típico de uma etapa
+### Formatos de disputa
+
+O campo `etapa_categoria.formato` decide o fluxo da categoria e é checado
+em vários lugares (repositório de jogo, motor de classificação, telas
+`duplas`/`jogos`/`chave`, `gerar-pagina.js`). Ao criar ou alterar um
+formato, procure todos os usos da string.
+
+- `'todos-contra-todos'` — fase de grupos round-robin, depois mata-mata.
+- `'dupla-eliminatoria'` — dupla eliminatória dentro de cada grupo de 4;
+  ordem dos jogos não é reordenável.
+- `'chave-dupla-direta'` — sem fase de grupos (a tela de duplas oculta a
+  coluna Grupo). `jogo:gerarChaveDuplaDireta` monta a chave inteira; a
+  ordem das seeds vem de `origem_ranking`: `'temporada'` (padrão, via
+  ranking das etapas anteriores) ou `'manual'` (`opts.ordemDuplaIds`).
+  `opts.recriar` apaga a chave existente.
+
+O ranking inicial de uma temporada (pontos trazidos de fora do app) é
+cadastrado na tela `ranking-inicial` e persistido via
+`rankingInicial:listar`/`salvar`.
+
+### Fluxo típico de uma etapa (formato com grupos)
 
 1. Cria temporada e etapa; adiciona categorias (`etapaCategoria`).
 2. Cadastra duplas na categoria.

@@ -160,6 +160,19 @@ t('pontuacao: salvar e ler faixas customizadas', () => {
   eq(f[0].pontos, 300, 'pontos da 1ª colocação');
   eq(f[2].fim, 8, 'fim da faixa 5-8');
 });
+t('pontuacao: salvar faixas recalcula pontos_ganhos das duplas já colocadas', () => {
+  getDb().prepare(
+    'UPDATE dupla SET colocacao_final = ?, pontos_ganhos = ? WHERE id = ?')
+    .run(1, 300, d1.id);
+  pontuacao.salvar(ec.id, [
+    { ini: 1, fim: 1, pontos: 500 },
+    { ini: 2, fim: 2, pontos: 240 },
+  ]);
+  const atualizada = dupla.listar(ec.id).find(d => d.id === d1.id);
+  eq(atualizada.pontos_ganhos, 500, 'pontos da 1ª colocação após alterar faixas');
+  const semColocacao = dupla.listar(ec.id).find(d => d.id === d2.id);
+  eq(semColocacao.pontos_ganhos, null, 'dupla sem colocação continua sem pontos');
+});
 
 // --- remoção -----------------------------------------------------------
 t('remover: dupla some da listagem', () => {

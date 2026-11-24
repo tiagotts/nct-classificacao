@@ -22,8 +22,9 @@ const TAMANHOS_VALIDOS = [4, 6, 8, 16]; // 6 é o caso especial com bye (chave.j
  * @param {Array} duplas - duplas da etapa_categoria
  * @param {Array} jogos  - jogos da etapa_categoria
  * @param {Object} config - { classPorGrupo, repescagem, criterios, formulaAvg,
- *   tamanhoChave }. tamanhoChave fixa o tamanho do mata-mata (4|6|8|16);
- *   quando ausente, o app pega o menor tamanho válido que cabem os diretos.
+ *   tamanhoChave, finaisDiretas }. tamanhoChave fixa o tamanho do mata-mata
+ *   (4|6|8|16); quando ausente, o app pega o menor tamanho válido que cabem
+ *   os diretos. finaisDiretas força 4 (final 1x2 e 3º lugar 3x4).
  * @returns {Object} { criterios, formulaAvg, grupos, ranking: [statComSeed] }
  */
 function calcularRankingGeral(duplas, jogos, config = {}) {
@@ -57,6 +58,9 @@ function calcularRankingGeral(duplas, jogos, config = {}) {
   //     repescagem (compat. com o knob antigo).
   //  3) Automático — pega o menor tamanho de chave válido que comporta os
   //     diretos. Ex.: 3 grupos com 2 diretos = 6 -> completa para 8.
+  // Finais diretas (sem semifinal) sempre levam 4 duplas ao mata-mata.
+  if (config.finaisDiretas) config = { ...config, tamanhoChave: 4 };
+
   let repescagem;
   if (config.tamanhoChave != null) {
     if (!TAMANHOS_VALIDOS.includes(config.tamanhoChave)) {

@@ -120,6 +120,9 @@ em vários lugares (repositório de jogo, motor de classificação, telas
 formato, procure todos os usos da string.
 
 - `'todos-contra-todos'` — fase de grupos round-robin, depois mata-mata.
+  Com `config_json.finaisDiretas = true` (opção "Finais diretas" na tela de
+  configuração) o mata-mata tem só a final (seeds 1x2) e o 3º lugar (3x4),
+  sem semifinal; o ranking geral é forçado a 4 classificados.
 - `'dupla-eliminatoria'` — dupla eliminatória dentro de cada grupo de 4;
   ordem dos jogos não é reordenável.
 - `'chave-dupla-direta'` — sem fase de grupos (a tela de duplas oculta a

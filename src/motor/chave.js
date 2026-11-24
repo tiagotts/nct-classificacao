@@ -14,6 +14,10 @@
 // à semifinal; as seeds 3-6 jogam as quartas. Usado quando dois grupos
 // classificam três duplas cada (campeão de grupo com bye).
 //
+// Finais diretas (4 classificados, sem semifinal): seeds 1 e 2 fazem a
+// final; seeds 3 e 4 disputam o 3º lugar. Usado, por exemplo, num grupo
+// único de 5 em que o 5º é eliminado.
+//
 // Cada partida traz slot1/slot2, que indicam a origem da dupla:
 //   { seed: n }                       -> a dupla de seed n entra direto
 //   { origem: 'R1J2', tipo: 'vencedor' | 'perdedor' } -> vem de outra partida
@@ -68,13 +72,34 @@ function gerarChave6(opts) {
   };
 }
 
+// Finais diretas: os 4 classificados vão direto às disputas de medalha.
+// O 3º lugar vem primeiro na ordem dos jogos, como de costume.
+function gerarChaveFinaisDiretas() {
+  return {
+    N: 4,
+    partidas: [
+      { id: 'TERCEIRO', rodada: 1, fase: 'terceiro',
+        slot1: { seed: 3 }, slot2: { seed: 4 } },
+      { id: 'R1J1', rodada: 1, fase: 'final',
+        slot1: { seed: 1 }, slot2: { seed: 2 } },
+    ],
+  };
+}
+
 /**
  * Gera a chave do mata-mata.
  * @param {number} n - quantidade de classificados (4, 6, 8 ou 16)
- * @param {Object} opts - { cruzamentos?: [[seedA, seedB], ...] } para a rodada 1
+ * @param {Object} opts - { cruzamentos?: [[seedA, seedB], ...] } para a rodada 1;
+ *   { finaisDiretas: true } com n = 4 gera só final e 3º lugar (sem semis).
  * @returns {Object} { partidas, N }
  */
 function gerarChave(n, opts = {}) {
+  if (opts.finaisDiretas) {
+    if (n !== 4) {
+      throw new Error(`Finais diretas exigem 4 classificados; recebeu ${n}.`);
+    }
+    return gerarChaveFinaisDiretas();
+  }
   if (n === 6) return gerarChave6(opts);
   if (!TAMANHOS_SUPORTADOS.includes(n)) {
     throw new Error(`Mata-mata exige 4, 6, 8 ou 16 duplas; recebeu ${n}.`);

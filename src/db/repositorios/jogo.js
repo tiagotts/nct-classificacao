@@ -183,7 +183,13 @@ function apurarColocacoes(etapaCategoriaId) {
       if (j.fase === 'terceiro') continue;
       contagem[j.fase] = (contagem[j.fase] || 0) + 1;
     }
-    const N = 2 * Math.max(...Object.values(contagem));
+    // N = tamanho do mata-mata; quem não entrou fica em N+1. Nas chaves
+    // tradicionais vale 2 x (maior nº de jogos numa fase). Nas finais
+    // diretas (só final e 3º lugar, sem semi) são 4 duplas com um único
+    // jogo de final, então N é fixado em 4 (o 5º fica em 5º, não em 3º).
+    const finaisDiretas = !contagem.semi && contagem.final === 1
+      && mata.some(j => j.fase === 'terceiro');
+    const N = finaisDiretas ? 4 : 2 * Math.max(...Object.values(contagem));
 
     for (const j of mata) {
       const res = vencedorPerdedor(j);
@@ -362,9 +368,13 @@ function gerarMataMata(etapaCategoriaId, opts = {}) {
   // 6 classificados de 2 grupos = chave com bye: o 1º de cada grupo entra
   // direto na semifinal; 2º e 3º jogam as quartas cruzando os grupos.
   const grupos = [...new Set(ranking.map(r => r.grupoOrigem))].sort();
-  const chaveComBye = ranking.length === 6 && grupos.length === 2;
-  const chave = gerarChave(ranking.length,
-    chaveComBye ? {} : { cruzamentos: config.cruzamentos });
+  const chaveComBye = !config.finaisDiretas
+    && ranking.length === 6 && grupos.length === 2;
+  let optsChave = { cruzamentos: config.cruzamentos };
+  if (chaveComBye) optsChave = {};
+  // Finais diretas: 1x2 na final e 3x4 no 3º lugar, sem semifinal.
+  if (config.finaisDiretas) optsChave = { finaisDiretas: true };
+  const chave = gerarChave(ranking.length, optsChave);
 
   const duplaDoSeed = {};
   if (chaveComBye) {

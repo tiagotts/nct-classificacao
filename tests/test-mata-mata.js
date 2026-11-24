@@ -69,6 +69,43 @@ t('tamanho não suportado lança erro', () => {
   if (!lancou) throw new Error('deveria lançar erro para N=5');
 });
 
+t('finais diretas: só final (1x2) e 3º lugar (3x4), sem semifinal', () => {
+  const { partidas, N } = gerarChave(4, { finaisDiretas: true });
+  eq(N, 4);
+  eq(partidas.length, 2, 'nº de jogos');
+  eq(partidas.filter(p => p.fase === 'semi').length, 0, 'semis');
+  const fin = partidas.find(p => p.fase === 'final');
+  const ter = partidas.find(p => p.fase === 'terceiro');
+  eq(`${fin.slot1.seed}x${fin.slot2.seed}`, '1x2', 'final');
+  eq(`${ter.slot1.seed}x${ter.slot2.seed}`, '3x4', '3º lugar');
+});
+
+t('finais diretas com N diferente de 4 lança erro', () => {
+  let lancou = false;
+  try { gerarChave(8, { finaisDiretas: true }); } catch { lancou = true; }
+  if (!lancou) throw new Error('deveria lançar erro para N=8');
+});
+
+t('ranking geral: finais diretas levam 4 de um grupo de 5', () => {
+  const duplas = [1, 2, 3, 4, 5].map(n => ({
+    id: `A${n}`, codigo: `A${n}`, grupo: 'A',
+    atleta1_nome: 'x', atleta2_nome: 'y',
+  }));
+  const jogos = [];
+  for (let i = 0; i < duplas.length; i++) {
+    for (let j = i + 1; j < duplas.length; j++) {
+      jogos.push({
+        fase: 'grupo', dupla1_id: duplas[i].id, dupla2_id: duplas[j].id,
+        placar1: 21, placar2: 10, tipo_resultado: 'normal',
+      });
+    }
+  }
+  const r = calcularRankingGeral(duplas, jogos,
+    { classPorGrupo: 2, finaisDiretas: true });
+  eq(r.ranking.length, 4, '4 classificados');
+  eq(r.ranking.map(x => x.id).join(','), 'A1,A2,A3,A4', 'ordem das seeds');
+});
+
 t('3º lugar vem dos perdedores das semifinais', () => {
   const { partidas } = gerarChave(8);
   const semis = partidas.filter(p => p.fase === 'semi');
@@ -437,6 +474,51 @@ t('mata-mata com bye: 2 grupos classificando 3 -> chave de 6 jogos', () => {
   // 1, 2 (final), 3, 4 (3º lugar), e 5 para quartas/não classificadas.
   eq(JSON.stringify(colocs), JSON.stringify([1, 2, 3, 4, 5, 5, 5, 5]),
     'colocações da chave com bye');
+});
+
+t('finais diretas: grupo único de 5, final 1x2, bronze 3x4, 5º eliminado', () => {
+  const et3 = etapa.criar({ temporadaId: temp.id, nome: 'E-finais' });
+  const cat15 = categoria.listar().find(c => c.slug !== cat.slug) || cat;
+  const ec3 = etapaCategoria.criar({
+    etapaId: et3.id, categoriaId: cat15.id, tipo: 'masculino', numGrupos: 1,
+    configJson: JSON.stringify({
+      classPorGrupo: 2, tamanhoChave: 4, finaisDiretas: true }),
+  });
+  const dups = [];
+  for (let n = 1; n <= 5; n++) {
+    const a1 = atleta.criar({ nome: `Fin A${n}a` });
+    const a2 = atleta.criar({ nome: `Fin A${n}b` });
+    dups.push(dupla.criar({
+      etapaCategoriaId: ec3.id, codigo: `A${n}`, grupo: 'A',
+      atleta1Id: a1.id, atleta2Id: a2.id }));
+  }
+  jogo.gerarFaseGrupos(ec3.id);
+  const grupo = jogo.listar(ec3.id).filter(x => x.fase === 'grupo');
+  eq(grupo.length, 10, 'todos contra todos com 5 = 10 jogos');
+  // A1 vence todos, A2 vence todos menos A1, e assim por diante.
+  for (const j of grupo) {
+    const ordem = id => dups.findIndex(d => d.id === id);
+    const venceu1 = ordem(j.dupla1_id) < ordem(j.dupla2_id);
+    jogo.registrarPlacar(j.id, {
+      placar1: venceu1 ? 21 : 15, placar2: venceu1 ? 15 : 21 });
+  }
+
+  const mata = jogo.gerarMataMata(ec3.id).filter(j => j.fase !== 'grupo');
+  eq(mata.length, 2, 'só final e 3º lugar');
+  const fin = mata.find(j => j.fase === 'final');
+  const ter = mata.find(j => j.fase === 'terceiro');
+  eq(fin.dupla1_id, dups[0].id, 'final: seed 1');
+  eq(fin.dupla2_id, dups[1].id, 'final: seed 2');
+  eq(ter.dupla1_id, dups[2].id, '3º lugar: seed 3');
+  eq(ter.dupla2_id, dups[3].id, '3º lugar: seed 4');
+
+  // A2 vence a final; A4 vence o bronze.
+  jogo.registrarPlacar(fin.id, { placar1: 18, placar2: 21 });
+  jogo.registrarPlacar(ter.id, { placar1: 15, placar2: 21 });
+  const col = {};
+  dupla.listar(ec3.id).forEach(d => { col[d.codigo] = d.colocacao_final; });
+  eq(JSON.stringify(col),
+    JSON.stringify({ A1: 2, A2: 1, A3: 4, A4: 3, A5: 5 }), 'colocações');
 });
 
 fechar();

@@ -41,6 +41,7 @@
       classPorGrupo: salvo.classPorGrupo ?? PADRAO.classPorGrupo,
       repescagem: salvo.repescagem ?? null,
       tamanhoChave: salvo.tamanhoChave ?? null,
+      finaisDiretas: salvo.finaisDiretas === true,
       rankingGeral: salvo.rankingGeral || PADRAO.rankingGeral,
       setsFinal: salvo.setsFinal === 3 ? 3 : PADRAO.setsFinal,
     };
@@ -80,7 +81,8 @@
             <option value="16"${cfg.tamanhoChave === 16 ? ' selected' : ''}>Oitavas (16 duplas)</option>
             <option value="8"${cfg.tamanhoChave === 8 ? ' selected' : ''}>Quartas (8 duplas)</option>
             <option value="6"${cfg.tamanhoChave === 6 ? ' selected' : ''}>Com bye (6 duplas)</option>
-            <option value="4"${cfg.tamanhoChave === 4 ? ' selected' : ''}>Semifinais (4 duplas)</option>
+            <option value="4"${cfg.tamanhoChave === 4 && !cfg.finaisDiretas ? ' selected' : ''}>Semifinais (4 duplas)</option>
+            <option value="finais"${cfg.finaisDiretas ? ' selected' : ''}>Finais diretas (4 duplas, sem semifinal)</option>
           </select>
         </div>
         <div class="form-row">
@@ -93,7 +95,9 @@
           chave válida (4/8/16) que comporta os diretos. Escolher um tamanho
           fixo força esse formato, completando com melhores terceiros (e quartos)
           até atingir o número — se sobrar dupla direta, dá erro ao gerar.
-          O campo Repescagem só é usado quando o tamanho é Automático.</p>
+          O campo Repescagem só é usado quando o tamanho é Automático.
+          Em <em>Finais diretas</em>, o 1º e o 2º do ranking geral fazem a
+          final e o 3º e o 4º disputam o 3º lugar.</p>
 
         <h3>Ranqueamento geral</h3>
         <p class="dica">Como os classificados são ordenados para definir
@@ -294,7 +298,13 @@
     // Repescagem só vai ao config quando informada; em branco fica automática.
     if (repescTxt !== '') cfg.repescagem = Number(repescTxt);
     // Tamanho fixo do mata-mata; vazio = automático.
-    if (tamTxt !== '') cfg.tamanhoChave = Number(tamTxt);
+    // "finais" = finais diretas: 4 duplas, final e 3º lugar sem semifinal.
+    if (tamTxt === 'finais') {
+      cfg.tamanhoChave = 4;
+      cfg.finaisDiretas = true;
+    } else if (tamTxt !== '') {
+      cfg.tamanhoChave = Number(tamTxt);
+    }
 
     botao.disabled = true;
     try {

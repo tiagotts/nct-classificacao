@@ -8,10 +8,11 @@
   const apiAtleta = () => window.electronAPI.db.atleta;
   const apiEC = () => window.electronAPI.db.etapaCategoria;
 
+  // 5 cobre o grupo único de 5 com finais diretas (o 5º é eliminado).
   // 9 e 15 cobrem os formatos de grupos de 3 (ex.: 9 duplas = 3 grupos de 3,
   // com mata-mata de 8 e o 9º eliminado). 26 cobre 8 grupos desiguais
   // (2 de 4 + 6 de 3), com oitavas cheias.
-  const QUANTIDADES_BASE = [4, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20, 24, 26, 28, 32];
+  const QUANTIDADES_BASE = [4, 5, 6, 8, 9, 10, 12, 14, 15, 16, 18, 20, 24, 26, 28, 32];
 
   App.registrarTela('duplas', { render });
 
